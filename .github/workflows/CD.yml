@@ -1,4 +1,3 @@
-
 name: CD
 
 on:
@@ -13,51 +12,50 @@ on:
 jobs:
   DeployToAWS:
     environment:
-        name: ${{ github.ref_name }}
+      name: ${{ github.ref_name }}
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
 
     steps:
-        - uses: actions/checkout@v2
-        - name: Setup AWS Credentials
-          uses: aws-actions/configure-aws-credentials@v2
-          with:
-            aws-region: ${{ secrets.AWS_REGION }}
-            role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GithubActionsRole
-            role-session-name: github-action
+      - uses: actions/checkout@v2
+      - name: Setup AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-        - name: Setting stage and stack name
-          run: |
-            echo "STAGE=${{ github.ref_name }}" 
-            echo "STACK_NAME=FormulariosStack${{github.ref_name}}" >> $GITHUB_ENV
+      - name: Setting stage and stack name
+        run: |
+          echo "STAGE=${{ github.ref_name }}" 
+          echo "STACK_NAME=FormulariosStack${{github.ref_name}}" >> $GITHUB_ENV
 
-        - uses: actions/checkout@v3
-        - uses: actions/setup-python@v4
-          with:
-            python-version: '3.9'
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
 
-        - name: Installing Dependencies
-          run: |
-            npm install -g aws-cdk
-            cd iac
-            pip install -r requirements.txt
+      - name: Installing Dependencies
+        run: |
+          npm install -g aws-cdk
+          cd iac
+          pip install -r requirements.txt
 
-        - name: DeployWithCDK
-          run: |
-            cd iac
-            cdk synth
-            cdk bootstrap
-            cdk deploy "${{env.STACK_NAME}}" --require-approval never 
-        
+      - name: DeployWithCDK
+        run: |
+          cd iac
+          cdk synth
+          cdk bootstrap
+          cdk deploy "${{env.STACK_NAME}}" --require-approval never
 
-          env:
-              AWS_REGION: ${{ secrets.AWS_REGION }}
-              AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-              STACK_NAME: ${{ env.STACK_NAME }}
-              GITHUB_REF_NAME: ${{ github.ref }}
-              USER_POOL_ARN: ${{ secrets.USER_POOL_ARN }}
-              USER_POOL_ID: ${{ secrets.USER_POOL_ID }}
-              APP_CLIENT_ID: ${{ secrets.APP_CLIENT_ID }}
-              BUCKET_NAME: ${{ secrets.BUCKET_NAME }}
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          STACK_NAME: ${{ env.STACK_NAME }}
+          GITHUB_REF_NAME: ${{ github.ref }}
+          USER_POOL_ARN: ${{ secrets.USER_POOL_ARN }}
+          USER_POOL_ID: ${{ secrets.USER_POOL_ID }}
+          APP_CLIENT_ID: ${{ secrets.APP_CLIENT_ID }}
+          BUCKET_NAME: ${{ secrets.BUCKET_NAME }}
