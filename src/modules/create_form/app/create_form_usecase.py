@@ -9,15 +9,13 @@ from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.enums.priority_enum import PRIORITY
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.image_repository_interface import IImageRepository
-from src.shared.domain.repositories.profile_repository_interface import IProfileRepository
 from src.shared.environments import Environments
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction
 
 
 class CreateFormUsecase:
-    def __init__(self, form_repo: IFormRepository, profile_repo: IProfileRepository, image_repo: IImageRepository):
+    def __init__(self, form_repo: IFormRepository, image_repo: IImageRepository):
         self.form_repo = form_repo
-        self.profile_repo = profile_repo
         self.image_repo = image_repo
 
     def __call__(self,
@@ -43,17 +41,6 @@ class CreateFormUsecase:
                     sections: List[Section],
                     information_fields: Optional[List[InformationField]]
                  ) -> Form:
-        
-        profile = self.profile_repo.get_profile_by_id(creator_user_id)
-        
-        if profile is None:
-            raise ForbiddenAction("Perfil não encontrado")
-        
-        if not profile.enabled:
-            raise ForbiddenAction("Usuário desabilitado")
-        
-        if not system in profile.systems:
-            raise ForbiddenAction("Usuário não tem permissão para criar formulário para esse sistema")
         
         form_id = str(uuid.uuid4())
 

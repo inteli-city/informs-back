@@ -3,7 +3,7 @@ from typing import List
 from src.shared.environments import Environments
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction
 
-class UserFormulariosApiGatewayDTO:
+class UserGatewayDTO:
     user_id: str
     name: str
     email: str
@@ -16,7 +16,7 @@ class UserFormulariosApiGatewayDTO:
         self.systems = systems
 
     @staticmethod
-    def from_api_gateway(user_data: dict) -> 'UserFormulariosApiGatewayDTO':
+    def from_api_gateway(user_data: dict) -> 'UserGatewayDTO':
         """
         This method is used to convert the user data from the API Gateway to a UserApiGatewayDTO object.
         """
@@ -29,7 +29,7 @@ class UserFormulariosApiGatewayDTO:
         
         groups.remove("FORMULARIOS")
 
-        return UserFormulariosApiGatewayDTO(
+        return UserGatewayDTO(
             user_id=user_data['sub'],
             name=user_data['name'],
             email=user_data['email'],

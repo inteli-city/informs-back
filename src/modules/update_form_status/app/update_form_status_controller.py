@@ -6,7 +6,7 @@ from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction, NoItemsFound
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
 from src.shared.helpers.external_interfaces.http_codes import OK, BadRequest, Conflict, Forbidden, InternalServerError, NotFound
-from src.shared.infra.dtos.user_formularios_api_gateway_dto import UserFormulariosApiGatewayDTO
+from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 
 
 class UpdateFormStatusController:
@@ -18,7 +18,7 @@ class UpdateFormStatusController:
             if request.data.get('requester_user') is None:
                 raise MissingParameters('requester_user')
             
-            requester_user = UserFormulariosApiGatewayDTO.from_api_gateway(request.data.get('requester_user'))
+            requester_user = UserGatewayDTO.from_api_gateway(request.data.get('requester_user'))
 
             if request.data.get('form_id') is None:
                 raise MissingParameters('form_id')

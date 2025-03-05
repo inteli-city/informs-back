@@ -10,7 +10,7 @@ from src.shared.helpers.external_interfaces.http_codes import BadRequest, Confli
 from src.shared.infra.dtos.information_field_dto import InformationFieldDTO
 from src.shared.infra.dtos.justification_dto import JustificationDTO
 from src.shared.infra.dtos.section_dto import SectionDTO
-from src.shared.infra.dtos.user_formularios_api_gateway_dto import UserFormulariosApiGatewayDTO
+from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 
 
 class CreateFormController:
@@ -22,7 +22,7 @@ class CreateFormController:
             if request.data.get('requester_user') is None:
                 raise MissingParameters('requester_user')
             
-            requester_user = UserFormulariosApiGatewayDTO.from_api_gateway(request.data.get('requester_user'))
+            requester_user = UserGatewayDTO.from_api_gateway(request.data.get('requester_user'))
 
             if request.data.get('form_title') is None:
                 raise MissingParameters('form_title')

@@ -1,6 +1,6 @@
 import pytest
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
-from src.shared.infra.dtos.user_formularios_api_gateway_dto import UserFormulariosApiGatewayDTO
+from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 
 
 class Test_UserFormulariosApiGatewayDto:
@@ -12,9 +12,9 @@ class Test_UserFormulariosApiGatewayDto:
             'email': 'gabriel@gmail.com', 
             }
         
-        user_dto = UserFormulariosApiGatewayDTO.from_api_gateway(user_data)
+        user_dto = UserGatewayDTO.from_api_gateway(user_data)
 
-        excepted_user_dto = UserFormulariosApiGatewayDTO(
+        excepted_user_dto = UserGatewayDTO(
             user_id='d61dbf66-a10f-11ed-a8fc-0242ac120002',
             name='Gabriel Godoy',
             email='gabriel@gmail.com',
@@ -34,7 +34,7 @@ class Test_UserFormulariosApiGatewayDto:
             }
         
         with pytest.raises(ForbiddenAction):
-            UserFormulariosApiGatewayDTO.from_api_gateway(user_data)
+            UserGatewayDTO.from_api_gateway(user_data)
     
     def test_user_api_gateway_dto_from_api_gateway_not_in_groups(self):
         user_data = {
@@ -44,4 +44,4 @@ class Test_UserFormulariosApiGatewayDto:
             }
         
         with pytest.raises(NoItemsFound):
-            UserFormulariosApiGatewayDTO.from_api_gateway(user_data)
+            UserGatewayDTO.from_api_gateway(user_data)

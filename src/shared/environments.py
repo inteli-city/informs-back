@@ -1,12 +1,7 @@
-import enum
 from enum import Enum
 import os
-
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.image_repository_interface import IImageRepository
-from src.shared.domain.repositories.profile_repository_interface import IProfileRepository
-from src.shared.domain.repositories.user_repository_interface import IUserRepository
-
 
 class STAGE(Enum):
     DOTENV = "DOTENV"
@@ -47,7 +42,6 @@ class Environments:
             self.region = "sa-east-1"
             self.endpoint_url = "http://localhost:8000"
             self.dynamo_table_name = "formularios-table"
-            self.dynamo_table_name_profile = "formularios_profile_table"
             self.dynamo_partition_key = "PK"
             self.dynamo_sort_key = "SK"
             self.client_id = "test"
@@ -56,7 +50,6 @@ class Environments:
             self.region = os.environ.get("AWS_REGION")
             self.endpoint_url = os.environ.get("ENDPOINT_URL")
             self.dynamo_table_name = os.environ.get("DYNAMO_TABLE_NAME")
-            self.dynamo_table_name_profile = os.environ.get("DYNAMO_TABLE_NAME_PROFILE")
             self.dynamo_partition_key = os.environ.get("DYNAMO_PARTITION_KEY")
             self.dynamo_sort_key = os.environ.get("DYNAMO_SORT_KEY")
             self.user_pool_id = os.environ.get("USER_POOL_ID")
@@ -71,28 +64,6 @@ class Environments:
         elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
             from src.shared.infra.repositories.form_repository_dynamo import FormRepositoryDynamo
             return FormRepositoryDynamo
-        else:
-            raise Exception("No repository found for this stage")
-    
-    @staticmethod
-    def get_profile_repo() -> IProfileRepository:
-        if Environments.get_envs().stage == STAGE.TEST:
-            from src.shared.infra.repositories.profile_repository_mock import ProfileRepositoryMock
-            return ProfileRepositoryMock
-        elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
-            from src.shared.infra.repositories.profile_repository_dynamo import ProfileRepositoryDynamo
-            return ProfileRepositoryDynamo
-        else:
-            raise Exception("No repository found for this stage")
-    
-    @staticmethod
-    def get_user_repo() -> IUserRepository:
-        if Environments.get_envs().stage == STAGE.TEST:
-            from src.shared.infra.repositories.user_repository_mock import UserRepositoryMock
-            return UserRepositoryMock
-        elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
-            from src.shared.infra.repositories.user_repository_cognito import UserRepositoryCognito
-            return UserRepositoryCognito
         else:
             raise Exception("No repository found for this stage")
     
