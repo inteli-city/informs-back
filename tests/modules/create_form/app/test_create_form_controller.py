@@ -3,15 +3,13 @@ from src.modules.create_form.app.create_form_usecase import CreateFormUsecase
 from src.shared.helpers.external_interfaces.http_models import HttpRequest
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 from src.shared.infra.repositories.image_repository_mock import ImageRepositoryMock
-from src.shared.infra.repositories.profile_repository_mock import ProfileRepositoryMock
 
 
 class Test_CreateFormController:
     def test_create_form_controller(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CreateFormUsecase(repo, repo_profile, image_repo)
+        usecase = CreateFormUsecase(repo, image_repo)
 
         controller = CreateFormController(usecase)
 
@@ -157,9 +155,8 @@ class Test_CreateFormController:
     
     def test_create_form_controller_missing_request_user(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CreateFormUsecase(repo, repo_profile, image_repo)
+        usecase = CreateFormUsecase(repo, image_repo)
 
         controller = CreateFormController(usecase)
 
@@ -234,81 +231,17 @@ class Test_CreateFormController:
         assert response.status_code == 400
         assert response.body == "Parâmetro ausente: requester_user"
     
-    # def test_create_form_controller_missing_user_id(self):
-    #     repo = FormRepositoryMock()
-    #     repo_profile = ProfileRepositoryMock()
-    #     usecase = CreateFormUsecase(repo, repo_profile)
-
-    #     controller = CreateFormController(usecase)
-
-    #     data = HttpRequest(body={"requester_user": {
-    #             "sub": "d61dbf66-a10f-11ed-a8fc-0242ac120001",
-    #             "name": "Gabriel Godoy",
-    #             "email": repo_profile.profiles[0].email,
-    #             "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
-    #         },
-    #         "form_title": "FORM TITLE",
-    #         "can_vinculate": True,
-    #         "template": "TEMPLATE",
-    #         "area": "1",
-    #         "system": "GAIA",
-    #         "street": "1",
-    #         "city": "1",
-    #         "number": 1,
-    #         "latitude": 1.0,
-    #         "longitude": 1.0,
-    #         "region": "REGION",
-    #         "priority": "EMERGENCY",
-    #         "expiration_date": 946407600000,
-    #         "comments": "123",
-    #         "sections": [
-    #                 {
-    #                     "section_id": "99999",
-    #                     "fields": [
-    #                         {
-    #                             "field_type": "TEXT_FIELD",
-    #                             "placeholder": "placeholder",
-    #                             "required": True,
-    #                             "key": "key",
-    #                             "regex": "regex",
-    #                             "formatting": "formatting",
-    #                             "max_length": 10,
-    #                             "value": "value"
-    #                         }
-    #                     ]
-    #                 },
-    #         ],
-    #         "information_fields": [
-    #             {
-    #                 "field_type": "TEXT_FIELD",
-    #                 "placeholder": "placeholder",
-    #                 "required": True,
-    #                 "key": "key",
-    #                 "regex": "regex",
-    #                 "formatting": "formatting",
-    #                 "max_length": 10,
-    #                 "value": "value"
-    #             }
-    #         ]
-    #     })
-
-    #     response = controller(data)
-
-    #     assert response.status_code == 400
-    #     assert response.body == "Parâmetro ausente: user_id"
-    
     def test_create_form_controller_missing_template(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CreateFormUsecase(repo, repo_profile, image_repo)
+        usecase = CreateFormUsecase(repo, image_repo)
 
         controller = CreateFormController(usecase)
 
         data = HttpRequest(body={"requester_user": {
                 "sub": "d61dbf66-a10f-11ed-a8fc-0242ac120001",
                 "name": "Gabriel Godoy",
-                "email": repo_profile.profiles[0].email,
+                "email": "gabriel.godoybz@intelicity.com.br",
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
             "form_title": "FORM TITLE",
@@ -363,16 +296,15 @@ class Test_CreateFormController:
     
     def test_create_form_controller_missing_area(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CreateFormUsecase(repo, repo_profile, image_repo)
+        usecase = CreateFormUsecase(repo, image_repo)
 
         controller = CreateFormController(usecase)
 
         data = HttpRequest(body={"requester_user": {
                 "sub": "d61dbf66-a10f-11ed-a8fc-0242ac120001",
                 "name": "Gabriel Godoy",
-                "email": repo_profile.profiles[0].email,
+                "email": "gabriel.godoybz@intelicity.com.br",
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
             "form_title": "FORM TITLE",
@@ -427,16 +359,15 @@ class Test_CreateFormController:
     
     def test_create_form_controller_missing_system(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CreateFormUsecase(repo, repo_profile, image_repo)
+        usecase = CreateFormUsecase(repo, image_repo)
 
         controller = CreateFormController(usecase)
 
         data = HttpRequest(body={"requester_user": {
                 "sub": "d61dbf66-a10f-11ed-a8fc-0242ac120001",
                 "name": "Gabriel Godoy",
-                "email": repo_profile.profiles[0].email,
+                "email": "gabriel.godoybz@intelicity.com.br",
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
             "form_title": "FORM TITLE",
@@ -491,16 +422,15 @@ class Test_CreateFormController:
     
     def test_create_form_controller_missing_street(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CreateFormUsecase(repo, repo_profile, image_repo)
+        usecase = CreateFormUsecase(repo, image_repo)
 
         controller = CreateFormController(usecase)
 
         data = HttpRequest(body={"requester_user": {
                 "sub": "d61dbf66-a10f-11ed-a8fc-0242ac120001",
                 "name": "Gabriel Godoy",
-                "email": repo_profile.profiles[0].email,
+                "email": "gabriel.godoybz@intelicity.com.br",
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
             "form_title": "FORM TITLE",
@@ -555,16 +485,15 @@ class Test_CreateFormController:
     
     def test_create_form_controller_missing_city(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CreateFormUsecase(repo, repo_profile, image_repo)
+        usecase = CreateFormUsecase(repo, image_repo)
 
         controller = CreateFormController(usecase)
 
         data = HttpRequest(body={"requester_user": {
                 "sub": "d61dbf66-a10f-11ed-a8fc-0242ac120001",
                 "name": "Gabriel Godoy",
-                "email": repo_profile.profiles[0].email,
+                "email": "gabriel.godoybz@intelicity.com.br",
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
             "form_title": "FORM TITLE",
@@ -619,16 +548,15 @@ class Test_CreateFormController:
     
     def test_create_form_controller_missing_number(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CreateFormUsecase(repo, repo_profile, image_repo)
+        usecase = CreateFormUsecase(repo, image_repo)
 
         controller = CreateFormController(usecase)
 
         data = HttpRequest(body={"requester_user": {
                 "sub": "d61dbf66-a10f-11ed-a8fc-0242ac120001",
                 "name": "Gabriel Godoy",
-                "email": repo_profile.profiles[0].email,
+                "email": "gabriel.godoybz@intelicity.com.br",
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
             "form_title": "FORM TITLE",
@@ -683,16 +611,15 @@ class Test_CreateFormController:
     
     def test_create_form_controller_missing_latitude(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CreateFormUsecase(repo, repo_profile, image_repo)
+        usecase = CreateFormUsecase(repo, image_repo)
 
         controller = CreateFormController(usecase)
 
         data = HttpRequest(body={"requester_user": {
                 "sub": "d61dbf66-a10f-11ed-a8fc-0242ac120001",
                 "name": "Gabriel Godoy",
-                "email": repo_profile.profiles[0].email,
+                "email": "gabriel.godoybz@intelicity.com.br",
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
             "form_title": "FORM TITLE",
@@ -747,16 +674,15 @@ class Test_CreateFormController:
     
     def test_create_form_controller_missing_longitude(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CreateFormUsecase(repo, repo_profile, image_repo)
+        usecase = CreateFormUsecase(repo, image_repo)
 
         controller = CreateFormController(usecase)
 
         data = HttpRequest(body={"requester_user": {
                 "sub": "d61dbf66-a10f-11ed-a8fc-0242ac120001",
                 "name": "Gabriel Godoy",
-                "email": repo_profile.profiles[0].email,
+                "email": "gabriel.godoybz@intelicity.com.br",
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
             "form_title": "FORM TITLE",
@@ -811,16 +737,15 @@ class Test_CreateFormController:
     
     def test_create_form_controller_missing_region(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CreateFormUsecase(repo, repo_profile, image_repo)
+        usecase = CreateFormUsecase(repo, image_repo)
 
         controller = CreateFormController(usecase)
 
         data = HttpRequest(body={"requester_user": {
                 "sub": "d61dbf66-a10f-11ed-a8fc-0242ac120001",
                 "name": "Gabriel Godoy",
-                "email": repo_profile.profiles[0].email,
+                "email": "gabriel.godoybz@intelicity.com.br",
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
             "form_title": "FORM TITLE",
@@ -875,16 +800,15 @@ class Test_CreateFormController:
     
     def test_create_form_controller_missing_priority(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CreateFormUsecase(repo, repo_profile, image_repo)
+        usecase = CreateFormUsecase(repo, image_repo)
 
         controller = CreateFormController(usecase)
 
         data = HttpRequest(body={"requester_user": {
                 "sub": "d61dbf66-a10f-11ed-a8fc-0242ac120001",
                 "name": "Gabriel Godoy",
-                "email": repo_profile.profiles[0].email,
+                "email": "gabriel.godoybz@intelicity.com.br",
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
             "form_title": "FORM TITLE",
@@ -939,16 +863,15 @@ class Test_CreateFormController:
     
     def test_create_form_controller_priority_not_in_enum(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CreateFormUsecase(repo, repo_profile, image_repo)
+        usecase = CreateFormUsecase(repo, image_repo)
 
         controller = CreateFormController(usecase)
 
         data = HttpRequest(body={"requester_user": {
                 "sub": "d61dbf66-a10f-11ed-a8fc-0242ac120001",
                 "name": "Gabriel Godoy",
-                "email": repo_profile.profiles[0].email,
+                "email": "gabriel.godoybz@intelicity.com.br",
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
             "form_title": "FORM TITLE",
@@ -1004,9 +927,8 @@ class Test_CreateFormController:
     
     def test_create_form_controller_missing_expiration_date(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CreateFormUsecase(repo, repo_profile, image_repo)
+        usecase = CreateFormUsecase(repo, image_repo)
 
         controller = CreateFormController(usecase)
 
@@ -1014,7 +936,7 @@ class Test_CreateFormController:
             "requester_user": {
                 "sub": "d61dbf66-a10f-11ed-a8fc-0242ac120001",
                 "name": "Gabriel Godoy",
-                "email": repo_profile.profiles[0].email,
+                "email": "gabriel.godoybz@intelicity.com.br",
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
             "form_title": "FORM TITLE",
@@ -1069,9 +991,8 @@ class Test_CreateFormController:
     
     def test_create_form_controller_missing_sections(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CreateFormUsecase(repo, repo_profile, image_repo)
+        usecase = CreateFormUsecase(repo, image_repo)
 
         controller = CreateFormController(usecase)
 
@@ -1079,7 +1000,7 @@ class Test_CreateFormController:
             "requester_user": {
                 "sub": "d61dbf66-a10f-11ed-a8fc-0242ac120001",
                 "name": "Gabriel Godoy",
-                "email": repo_profile.profiles[0].email,
+                "email": "gabriel.godoybz@intelicity.com.br",
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
             "form_title": "FORM TITLE",

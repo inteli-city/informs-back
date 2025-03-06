@@ -20,20 +20,19 @@ class UserGatewayDTO:
         """
         This method is used to convert the user data from the API Gateway to a UserApiGatewayDTO object.
         """
-        user_repo = Environments.get_user_repo()()
 
-        groups = user_repo.get_groups_for_user(user_data['email'])
+        systems = [item.strip() for item in user_data['cognito:groups'].split(",")]
 
-        if "FORMULARIOS" not in groups:
+        if "FORMULARIOS" not in systems:
             raise ForbiddenAction('Usuário não esta apto para o sistema')
         
-        groups.remove("FORMULARIOS")
+        systems.remove("FORMULARIOS")
 
         return UserGatewayDTO(
             user_id=user_data['sub'],
             name=user_data['name'],
             email=user_data['email'],
-            systems=groups
+            systems=systems
         )
     
     def __eq__(self, other):

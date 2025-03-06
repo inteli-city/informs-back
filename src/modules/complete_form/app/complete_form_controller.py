@@ -39,7 +39,7 @@ class CompleteFormController:
                     raise WrongTypeParameter(fieldName='vinculation_form_id', fieldTypeExpected='str', fieldTypeReceived=type(vinculation_form_id))
                 
             form = self.CompleteFormUsecase(
-                requester_id=requester_user.user_id,
+                user_id=requester_user.user_id,
                 form_id=request.data.get('form_id'),
                 sections=sections,
                 vinculation_form_id=request.data.get('vinculation_form_id')

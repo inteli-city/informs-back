@@ -3,21 +3,19 @@ from src.modules.complete_form.app.complete_form_usecase import CompleteFormUsec
 from src.shared.helpers.external_interfaces.http_models import HttpRequest
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 from src.shared.infra.repositories.image_repository_mock import ImageRepositoryMock
-from src.shared.infra.repositories.profile_repository_mock import ProfileRepositoryMock
 
 
 class Test_CompleteFormController:
 
     def test_complete_form_controller(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CompleteFormUsecase(repo, repo_profile, image_repo)
+        usecase = CompleteFormUsecase(repo, image_repo)
 
         controller = CompleteFormController(usecase)
 
         data = HttpRequest(body={"requester_user": {
-                "sub": repo_profile.profiles[0].profile_id,
+                "sub": 'd61dbf66-a10f-11ed-a8fc-0242ac120001',
                 "name": 'Gabriel Godoy',
                 "email": 'gabriel@gmail.com',
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
@@ -50,9 +48,8 @@ class Test_CompleteFormController:
     
     def test_complete_form_controller_missing_requester_user(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CompleteFormUsecase(repo, repo_profile, image_repo)
+        usecase = CompleteFormUsecase(repo, image_repo)
 
         controller = CompleteFormController(usecase)
 
@@ -85,14 +82,13 @@ class Test_CompleteFormController:
     
     def test_complete_form_controller_missing_form_id(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CompleteFormUsecase(repo, repo_profile, image_repo)
+        usecase = CompleteFormUsecase(repo, image_repo)
 
         controller = CompleteFormController(usecase)
 
         data = HttpRequest(body={"requester_user": {
-                "sub": repo_profile.profiles[0].profile_id,
+                "sub": 'd61dbf66-a10f-11ed-a8fc-0242ac120001',
                 "name": 'Gabriel Godoy',
                 "email": 'gabriel@gmail.com',
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
@@ -124,14 +120,13 @@ class Test_CompleteFormController:
 
     def test_complete_form_controller_missing_sections(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CompleteFormUsecase(repo, repo_profile, image_repo)
+        usecase = CompleteFormUsecase(repo, image_repo)
 
         controller = CompleteFormController(usecase)
 
         data = HttpRequest(body={"requester_user": {
-                "sub": repo_profile.profiles[0].profile_id,
+                "sub": 'd61dbf66-a10f-11ed-a8fc-0242ac120001',
                 "name": 'Gabriel Godoy',
                 "email": 'gabriel@gmail.com',
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
@@ -147,14 +142,13 @@ class Test_CompleteFormController:
     
     def test_complete_form_controller_wrong_type_sections(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CompleteFormUsecase(repo, repo_profile, image_repo)
+        usecase = CompleteFormUsecase(repo, image_repo)
 
         controller = CompleteFormController(usecase)
 
         data = HttpRequest(body={"requester_user": {
-                "sub": repo_profile.profiles[0].profile_id,
+                "sub": 'd61dbf66-a10f-11ed-a8fc-0242ac120001',
                 "name": 'Gabriel Godoy',
                 "email": 'gabriel@gmail.com',
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
@@ -171,14 +165,13 @@ class Test_CompleteFormController:
     
     def test_complete_form_controller_sections_empty(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CompleteFormUsecase(repo, repo_profile, image_repo)
+        usecase = CompleteFormUsecase(repo, image_repo)
 
         controller = CompleteFormController(usecase)
 
         data = HttpRequest(body={"requester_user": {
-                "sub": repo_profile.profiles[0].profile_id,
+                "sub": 'd61dbf66-a10f-11ed-a8fc-0242ac120001',
                 "name": 'Gabriel Godoy',
                 "email": 'gabriel@gmail.com',
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
@@ -195,14 +188,13 @@ class Test_CompleteFormController:
 
     def test_complete_form_controller_wrong_type_vinculation_form_id(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CompleteFormUsecase(repo, repo_profile, image_repo)
+        usecase = CompleteFormUsecase(repo, image_repo)
 
         controller = CompleteFormController(usecase)
 
         data = HttpRequest(body={"requester_user": {
-                "sub": repo_profile.profiles[0].profile_id,
+                "sub": 'd61dbf66-a10f-11ed-a8fc-0242ac120001',
                 "name": 'Gabriel Godoy',
                 "email": 'gabriel@gmail.com',
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"

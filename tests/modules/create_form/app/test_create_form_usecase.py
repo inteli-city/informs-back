@@ -11,7 +11,6 @@ from src.shared.domain.enums.priority_enum import PRIORITY
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 from src.shared.infra.repositories.image_repository_mock import ImageRepositoryMock
-from src.shared.infra.repositories.profile_repository_mock import ProfileRepositoryMock
 
 justification_option = JustificationOption(
     option='option',
@@ -30,9 +29,8 @@ class Test_CreateFormUsecase:
 
     def test_create_form_usecase(self):
         repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CreateFormUsecase(repo, repo_profile, image_repo)
+        usecase = CreateFormUsecase(repo, image_repo)
 
         text_field = TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='value')
         section = Section(section_id='99999', fields=[text_field, text_field])
@@ -88,111 +86,3 @@ class Test_CreateFormUsecase:
         assert isinstance(form.information_fields[0], TextInformationField)
         assert len(form.sections) == 1
         assert len(form.information_fields) == 2
-
-    def test_create_form_usecase_creator_profile_none(self):
-        repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        usecase = CreateFormUsecase(repo, repo_profile, image_repo)
-
-        text_field = TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='value')
-        section = Section(section_id='99999', fields=[text_field, text_field])
-
-        with pytest.raises(ForbiddenAction):
-            usecase(
-                form_title='FORM TITLE',
-                creator_user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-                user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
-                vinculation_form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-                can_vinculate=True,
-                template='TEMPLATE',
-                area='1',
-                system='GAIA',
-                street='1',
-                city='1',
-                number=1,
-                latitude=1.0,
-                longitude=1.0,
-                region='REGION',
-                description='123',
-                priority=PRIORITY.EMERGENCY,
-                expiration_date=946407600000,
-                justification=justification,
-                comments='123',
-                sections=[
-                    section
-                ],
-                information_fields=repo.forms[0].information_fields
-            )
-    
-    def test_create_form_usecase_creator_profile_not_enabled(self):
-        repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        usecase = CreateFormUsecase(repo, repo_profile, image_repo)
-
-        text_field = TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='value')
-        section = Section(section_id='99999', fields=[text_field, text_field])
-
-        with pytest.raises(ForbiddenAction):
-            usecase(
-                form_title='FORM TITLE',
-                creator_user_id='d61dbf66-a10f-11ed-a8fc-0242ac120003',
-                user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
-                vinculation_form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-                can_vinculate=True,
-                template='TEMPLATE',
-                area='1',
-                system='GAIA',
-                street='1',
-                city='1',
-                number=1,
-                latitude=1.0,
-                longitude=1.0,
-                region='REGION',
-                description='123',
-                priority=PRIORITY.EMERGENCY,
-                expiration_date=946407600000,
-                justification=justification,
-                comments='123',
-                sections=[
-                    section
-                ],
-                information_fields=repo.forms[0].information_fields
-            )
-    
-    def test_create_form_usecase_creator_profile_not_in_system(self):
-        repo = FormRepositoryMock()
-        repo_profile = ProfileRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        usecase = CreateFormUsecase(repo, repo_profile, image_repo)
-
-        text_field = TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='value')
-        section = Section(section_id='99999', fields=[text_field, text_field])
-
-        with pytest.raises(ForbiddenAction):
-            usecase(
-                form_title='FORM TITLE',
-                creator_user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
-                user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
-                vinculation_form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-                can_vinculate=True,
-                template='TEMPLATE',
-                area='1',
-                system='123',
-                street='1',
-                city='1',
-                number=1,
-                latitude=1.0,
-                longitude=1.0,
-                region='REGION',
-                description='123',
-                priority=PRIORITY.EMERGENCY,
-                expiration_date=946407600000,
-                justification=justification,
-                comments='123',
-                sections=[
-                    section
-                ],
-                information_fields=repo.forms[0].information_fields
-            )

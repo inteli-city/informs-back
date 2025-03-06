@@ -21,7 +21,6 @@ class Environments:
     region: str
     endpoint_url: str = None
     dynamo_table_name: str
-    dynamo_table_name_profile: str
     dynamo_partition_key: str
     dynamo_sort_key: str
     client_id: str

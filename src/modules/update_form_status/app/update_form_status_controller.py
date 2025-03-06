@@ -30,7 +30,7 @@ class UpdateFormStatusController:
                 raise EntityError('status')
             
             form = self.UpdateFormStatusUsecase(
-                requester_id=requester_user.user_id,
+                user=requester_user,
                 form_id=request.data.get('form_id'),
                 status=FORM_STATUS[request.data.get('status')]
             )

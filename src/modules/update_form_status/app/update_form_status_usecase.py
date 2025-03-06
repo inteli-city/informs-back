@@ -11,7 +11,7 @@ class UpdateFormStatusUsecase:
 
     def __call__(self, user: UserGatewayDTO, form_id: str, status: FORM_STATUS):
         
-        form = self.form_repository.get_form_by_id(user_id=user.requester_id, form_id=form_id)
+        form = self.form_repository.get_form_by_id(user_id=user.user_id, form_id=form_id)
 
         if form is None:
             raise NoItemsFound("Formulário não encontrado")
@@ -19,7 +19,7 @@ class UpdateFormStatusUsecase:
         if form.system not in user.systems:
             raise ForbiddenAction("Usuário não tem permissão para alterar o status desse formulário")
         
-        if user.profile_id != form.user_id:
+        if user.user_id != form.user_id:
             raise ForbiddenAction("Usuário não pode alterar o status de um formulário não direcionado a ele")
         
         if status is FORM_STATUS.CANCELED or status is FORM_STATUS.CONCLUDED:
@@ -33,5 +33,5 @@ class UpdateFormStatusUsecase:
         else:
             start_date = datetime.datetime.now().timestamp()
         
-        return self.form_repository.update_form_status(user_id=user.requester_id, form_id=form_id, status=status, start_date=start_date)
+        return self.form_repository.update_form_status(user_id=user.user_id, form_id=form_id, status=status, start_date=start_date)
         
