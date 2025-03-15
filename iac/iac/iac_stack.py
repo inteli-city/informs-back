@@ -49,7 +49,6 @@ class IacStack(Stack):
             "USER_POOL_ARN": self.user_pool_arn,
             "APP_CLIENT_ID": self.app_client_id,
             "DYNAMO_TABLE_NAME": self.dynamo_stack.dynamo_table_forms.table_name,
-            "DYNAMO_TABLE_NAME_PROFILE": self.dynamo_stack.dynamo_table_profile.table_name,
             "DYNAMO_PARTITION_KEY": "PK",
             "DYNAMO_SORT_KEY": "SK",
             "REGION": self.region,
@@ -75,9 +74,6 @@ class IacStack(Stack):
                 self.user_pool_arn
             ]
         )
-
-        for f in self.lambda_stack.functions_that_need_dynamo_profile_permissions:
-            self.dynamo_stack.dynamo_table_profile.grant_read_write_data(f)
         
         for f in self.lambda_stack.functions_that_need_cognito_permissions:
             f.add_to_role_policy(cognito_admin_policy)

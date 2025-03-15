@@ -5,9 +5,8 @@ from src.shared.helpers.external_interfaces.http_lambda_requests import LambdaHt
 
 
 repo = Environments.get_form_repo()()
-repo_profile = Environments.get_profile_repo()()
 image_repo = Environments.get_image_repo()()
-usecase = CompleteFormUsecase(repo, repo_profile, image_repo)
+usecase = CompleteFormUsecase(repo, image_repo)
 controller = CompleteFormController(usecase)
 
 def lambda_handler(event, context):

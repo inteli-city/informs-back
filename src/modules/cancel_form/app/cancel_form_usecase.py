@@ -7,27 +7,17 @@ from src.shared.domain.entities.justification import Justification
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.image_repository_interface import IImageRepository
-from src.shared.domain.repositories.profile_repository_interface import IProfileRepository
 from src.shared.environments import Environments
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 
 
 class CancelFormUsecase:
-    def __init__(self, form_repo: IFormRepository, profile_repo: IProfileRepository, image_repo: IImageRepository):
+    def __init__(self, form_repo: IFormRepository, image_repo: IImageRepository):
         self.form_repo = form_repo
-        self.profile_repo = profile_repo
         self.image_repo = image_repo
 
     def __call__(self, requester_id: str, form_id: str, selected_option: str, justification_text: Optional[str] = None, justification_image: Optional[str] = None) -> Form:
-
-        profile = self.profile_repo.get_profile_by_id(requester_id)
-
-        if profile is None:
-            raise ForbiddenAction("Perfil não encontrado")
-        
-        if not profile.enabled:
-            raise ForbiddenAction("Usuário desabilitado")
         
         form = self.form_repo.get_form_by_id(user_id=requester_id, form_id=form_id)
 
@@ -60,4 +50,5 @@ class CancelFormUsecase:
             justification_text=justification_text,
             justification_image=justification_image
         )
+        
         return self.form_repo.cancel_form(user_id=requester_id, form_id=form_id, justification=justification)

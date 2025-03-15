@@ -5,8 +5,7 @@ from src.shared.helpers.external_interfaces.http_lambda_requests import LambdaHt
 
 
 repo = Environments.get_form_repo()()
-repo_profile = Environments.get_profile_repo()()
-usecase = UpdateFormStatusUsecase(repo, repo_profile)
+usecase = UpdateFormStatusUsecase(repo)
 controller = UpdateFormStatusController(usecase)
 
 def lambda_handler(event, context):
