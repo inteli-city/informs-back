@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import List
 
 from src.shared.domain.entities.field import Field
 from src.shared.domain.entities.section import Section
@@ -6,17 +6,17 @@ from src.shared.helpers.errors.controller_errors import MissingParameters
 from src.shared.infra.dtos.field_dto import FieldDTO
 
 class SectionDTO:
-    section_id: str
+    section_id: int
     fields: List[Field]
     
-    def __init__(self, section_id: str, fields: List[Field]):
+    def __init__(self, section_id: int, fields: List[Field]):
         self.section_id = section_id
         self.fields = fields
     
     def from_request(section_dict: dict) -> "SectionDTO":
         if 'section_id' not in section_dict:
             raise MissingParameters('section_id')
-        section_id = section_dict['section_id']
+        section_id = int(section_dict['section_id'])
 
         if 'fields' not in section_dict or not section_dict['fields']:
             raise MissingParameters('fields')
@@ -39,7 +39,7 @@ class SectionDTO:
     @staticmethod
     def from_dynamo(section_dict: dict) -> "SectionDTO":
         return SectionDTO(
-            section_id=section_dict['section_id'],
+            section_id=int(section_dict['section_id']),
             fields=[FieldDTO.from_dynamo(field_dict=field_data).to_entity() for field_data in section_dict['fields']]
         )
 
