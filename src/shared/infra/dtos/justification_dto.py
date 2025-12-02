@@ -1,49 +1,57 @@
 from typing import List, Optional
-from src.shared.domain.entities.justification import Justification, JustificationOption
+from src.shared.domain.entities.justification import Justification, JustificationOption, SelectedJustification
 from src.shared.helpers.errors.domain_errors import EntityError
 
 
 class JustificationDTO:
-    options: List[JustificationOption]
-    selected_option: Optional[str]
-    justification_text: Optional[str]
-    justification_image: Optional[str]
+    options: Optional[List[JustificationOption]]
+    selected: Optional[SelectedJustification]
 
-    def __init__(self, options: List[JustificationOption], selected_option: Optional[str], justification_text: Optional[str], justification_image: Optional[str]):
+    def __init__(self, options: Optional[List[JustificationOption]], selected: Optional[SelectedJustification]):
         self.options = options
-        self.selected_option = selected_option
-        self.justification_text = justification_text
-        self.justification_image = justification_image
+        self.selected = selected
 
     def from_request(justification_dict: dict) -> "JustificationDTO":
-        if justification_dict.get('options') is None or not justification_dict.get('options'):
-            raise EntityError('options')
-        options_data = justification_dict.get('options')
+        options = None
+        if justification_dict.get('options') is not None:
+            if not justification_dict.get('options'):
+                raise EntityError('options')
+            options_data = justification_dict.get('options')
 
-        options = []
+            options = []
+            for option_data in options_data:
+                if option_data.get('option') is None:
+                    raise EntityError('option')
 
-        for option_data in options_data:
-            if option_data.get('option') is None:
+                if option_data.get('required_image') is None:
+                    raise EntityError('required_image')
+
+                if option_data.get('required_text') is None:
+                    raise EntityError('required_text')
+
+                option = JustificationOption(
+                    option=option_data.get('option'),
+                    required_image=option_data.get('required_image'),
+                    required_text=option_data.get('required_text')
+                )
+                options.append(option)
+
+        selected = None
+        selected_dict = justification_dict.get('selected')
+        if selected_dict is not None:
+            if selected_dict.get('option') is None:
                 raise EntityError('option')
+            selected = SelectedJustification(
+                option=selected_dict.get('option'),
+                text=selected_dict.get('text'),
+                image_url=selected_dict.get('image_url')
+            )
 
-            if option_data.get('required_image') is None:
-                raise EntityError('required_image')
-
-            if option_data.get('required_text') is None:
-                raise EntityError('required_text')
-
-            option = JustificationOption(**option_data)
-            options.append(option)
-
-        selected_option = justification_dict.get('selected_option')
-        justification_text = justification_dict.get('justification_text')
-        justification_image = justification_dict.get('justification_image')
-
-        return JustificationDTO(options=options, selected_option=selected_option, justification_text=justification_text, justification_image=justification_image)
+        return JustificationDTO(options=options, selected=selected)
 
     @staticmethod
     def from_entity(justification: Justification) -> "JustificationDTO":
-        return JustificationDTO(options=justification.options, selected_option=justification.selected_option, justification_text=justification.justification_text, justification_image=justification.justification_image)
+        return JustificationDTO(options=justification.options, selected=justification.selected)
     
     def to_dynamo(self) -> dict:
         return {
@@ -51,23 +59,31 @@ class JustificationDTO:
                 "option": option.option,
                 "required_image": option.required_image,
                 "required_text": option.required_text
-            } for option in self.options],
-            "selected_option": self.selected_option,
-            "justification_text": self.justification_text,
-            "justification_image": self.justification_image
+            } for option in self.options] if self.options is not None else None,
+            "selected": {
+                "option": self.selected.option,
+                "text": self.selected.text,
+                "image_url": self.selected.image_url
+            } if self.selected is not None else None
         }
 
     @staticmethod
     def from_dynamo(justification_dict: dict) -> "JustificationDTO":
         options_data = justification_dict.get('options')
+        options = None
+        if options_data is not None:
+            options = [JustificationOption(**option_data) for option_data in options_data]
 
-        options = [JustificationOption(**option_data) for option_data in options_data]
+        selected_dict = justification_dict.get('selected')
+        selected = None
+        if selected_dict is not None:
+            selected = SelectedJustification(
+                option=selected_dict.get('option'),
+                text=selected_dict.get('text'),
+                image_url=selected_dict.get('image_url')
+            )
 
-        selected_option = justification_dict.get('selected_option')
-        justification_text = justification_dict.get('justification_text')
-        justification_image = justification_dict.get('justification_image')
-
-        return JustificationDTO(options=options, selected_option=selected_option, justification_text=justification_text, justification_image=justification_image)
+        return JustificationDTO(options=options, selected=selected)
 
     def to_entity(self) -> Justification:
-        return Justification(options=self.options, selected_option=self.selected_option, justification_text=self.justification_text, justification_image=self.justification_image)
+        return Justification(options=self.options, selected=self.selected)
