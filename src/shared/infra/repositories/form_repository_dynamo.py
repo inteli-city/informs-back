@@ -52,14 +52,15 @@ class FormRepositoryDynamo(IFormRepository):
     def create_form(self, form: Form) -> Form:
         item = FormDynamoDTO.from_entity(form).to_dynamo()
 
-        self.dynamo.put_item(item=item, partition_key=self.form_partition_key_format(form.user_id), sort_key=self.form_sort_key_format(form.form_id), is_decimal=True)
+        self.dynamo.put_item(item=item, partition_key=self.form_partition_key_format(form.user_id), sort_key=self.form_sort_key_format(form.id), is_decimal=True)
         
         return form
     
-    def update_form_status(self, user_id: str, form_id: str, status: FORM_STATUS, start_date: Optional[int] = None) -> Form:
+    def update_form_status(self, user_id: str, form_id: str, status: FORM_STATUS, in_progress_at: Optional[int] = None, updated_at: Optional[int] = None) -> Form:
         update_dict = {
             "status": status.value,
-            "start_date": Decimal(start_date) if start_date is not None else None
+            "in_progress_at": Decimal(in_progress_at) if in_progress_at is not None else None,
+            "updated_at": Decimal(updated_at) if updated_at is not None else None
         }
 
         resp = self.dynamo.update_item(partition_key=self.form_partition_key_format(user_id), sort_key=self.form_sort_key_format(form_id), update_dict=update_dict)
@@ -69,12 +70,13 @@ class FormRepositoryDynamo(IFormRepository):
         
         return FormDynamoDTO.from_dynamo(resp['Attributes']).to_entity()
     
-    def cancel_form(self, user_id: str, form_id: str, justification: Justification) -> Form:
+    def cancel_form(self, user_id: str, form_id: str, justification: Justification, cancelled_at: int, updated_at: int) -> Form:
         
         update_dict = {
-            "status": FORM_STATUS.CANCELED.value,
+            "status": FORM_STATUS.CANCELLED.value,
             "justification": JustificationDTO.from_entity(justification).to_dynamo(),
-            "conclusion_date": Decimal(int(datetime.now().timestamp()))
+            "cancelled_at": Decimal(cancelled_at),
+            "updated_at": Decimal(updated_at)
         }
 
         resp = self.dynamo.update_item(partition_key=self.form_partition_key_format(user_id), sort_key=self.form_sort_key_format(form_id), update_dict=update_dict)
@@ -84,14 +86,14 @@ class FormRepositoryDynamo(IFormRepository):
         
         return FormDynamoDTO.from_dynamo(resp['Attributes']).to_entity()
     
-    def complete_form(self, user_id: str, form_id: str, sections: List[Section], vinculation_form_id: Optional[str] = None) -> Form:
+    def complete_form(self, user_id: str, form_id: str, sections: List[Section], completed_at: int, updated_at: int) -> Form:
         update_dict = {
-            "status": FORM_STATUS.CONCLUDED.value,
+            "status": FORM_STATUS.COMPLETED.value,
             "sections": [
                 SectionDTO.from_entity(section).to_dynamo() for section in sections
             ],
-            "vinculation_form_id": vinculation_form_id,
-            "conclusion_date": Decimal(int(datetime.now().timestamp()))
+            "completed_at": Decimal(completed_at),
+            "updated_at": Decimal(updated_at)
         }
 
         resp = self.dynamo.update_item(partition_key=self.form_partition_key_format(user_id), sort_key=self.form_sort_key_format(form_id), update_dict=update_dict)
