@@ -32,14 +32,13 @@ class Form(abc.ABC):
     created_at: int
     updated_at: int
     sections: List[Section]
-    justification: Optional[Justification]
+    justification: Justification
     information_fields: Optional[List[InformationField]]
 
     ID_LENGTH = 36
 
     def __init__(
         self,
-        id: str,
         form_title: str,
         user_id: str,
         created_by: str,
@@ -53,6 +52,7 @@ class Form(abc.ABC):
         created_at: int,
         updated_at: int,
         sections: List[Section],
+        id: Optional[str] = None,
         template: Optional[str] = None,
         area: Optional[str] = None,
         number: Optional[int] = None,
@@ -63,7 +63,18 @@ class Form(abc.ABC):
         completed_at: Optional[int] = None,
         justification: Optional[Justification] = None,
         information_fields: Optional[List[InformationField]] = None,
+        form_id: Optional[str] = None,
+        creator_user_id: Optional[str] = None,
+        vinculation_form_id: Optional[str] = None,
+        can_vinculate: Optional[bool] = None,
+        region: Optional[str] = None,
+        description: Optional[str] = None,
+        comments: Optional[str] = None,
+        **kwargs
     ):
+
+        if id is None and form_id is not None:
+            id = form_id
 
         if not isinstance(form_title, str):
             raise EntityError('form_title')
@@ -78,10 +89,11 @@ class Form(abc.ABC):
             raise EntityError('user_id')
         self.user_id = user_id
 
-        if not Form.validate_id(created_by):
+        created_by_value = created_by or creator_user_id
+        if not Form.validate_id(created_by_value):
             raise EntityError('created_by')
-        self.created_by = created_by
-        self.creator_user_id = created_by  # compat
+        self.created_by = created_by_value
+        self.creator_user_id = created_by_value  # compat
 
         if template is not None and not isinstance(template, str):
             raise EntityError('template')
@@ -119,9 +131,11 @@ class Form(abc.ABC):
             raise EntityError('priority')
         self.priority = priority
 
-        if observation is not None and not isinstance(observation, str):
+        observation_val = observation if observation is not None else description
+        if observation_val is not None and not isinstance(observation_val, str):
             raise EntityError('observation')
-        self.observation = observation
+        self.observation = observation_val
+        self.description = observation_val  # compatibility
 
         if expiration_date is not None and not isinstance(expiration_date, int):
             raise EntityError('expiration_date')
@@ -154,7 +168,7 @@ class Form(abc.ABC):
             raise EntityError('updated_at')
         self.updated_at = updated_at
 
-        if justification is not None and not isinstance(justification, Justification):
+        if justification is None or not isinstance(justification, Justification):
             raise EntityError('justification')
         self.justification = justification
 
@@ -166,6 +180,12 @@ class Form(abc.ABC):
             if not isinstance(information_fields, list) or not information_fields or not all(isinstance(information_field, InformationField) for information_field in information_fields):
                 raise EntityError('information_fields')
         self.information_fields = information_fields
+
+        # compatibility attrs
+        self.vinculation_form_id = vinculation_form_id
+        self.can_vinculate = bool(can_vinculate) if can_vinculate is not None else False
+        self.comments = comments
+        self.region = region if region is not None else (area if area is not None else "")
 
     @staticmethod
     def validate_id(id_to_validate: str) -> bool:
