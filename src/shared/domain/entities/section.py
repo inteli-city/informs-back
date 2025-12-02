@@ -6,11 +6,11 @@ from src.shared.helpers.errors.domain_errors import EntityError
 
 
 class Section(abc.ABC):
-    section_id: str
+    section_id: int
     fields: List[Field]
 
-    def __init__(self, section_id: str, fields: List[Field]):
-        if type(section_id) is not str:
+    def __init__(self, section_id: int, fields: List[Field]):
+        if not isinstance(section_id, int):
             raise EntityError('section_id')
         self.section_id = section_id
 
