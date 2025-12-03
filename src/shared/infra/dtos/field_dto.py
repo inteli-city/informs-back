@@ -21,10 +21,16 @@ class FieldDTO:
         if field_dict.get('field_type') not in [field.value for field in FIELD_TYPE]:
             raise EntityError('field_type')
         
-        for base_param in ['label', 'required', 'key', 'order']:
+        if field_dict.get('label') is None and field_dict.get('placeholder') is not None:
+            field_dict['label'] = field_dict.get('placeholder')
+        
+        for base_param in ['label', 'required', 'key']:
             if field_dict.get(base_param) is None:
                 raise MissingParameters(base_param)
         
+        if field_dict.get('order') is None:
+            field_dict['order'] = 0
+
         field_type = FIELD_TYPE[field_dict.get('field_type')]
         label = field_dict.get('label')
         required = bool(field_dict.get('required'))
@@ -45,6 +51,8 @@ class FieldDTO:
             )
 
         elif field_type == FIELD_TYPE.NUMBER_FIELD:
+            if field_dict.get('decimal') is None:
+                raise MissingParameters('decimal')
             field = NumberField(
                 label=label,
                 required=required,
@@ -120,6 +128,10 @@ class FieldDTO:
                 raise MissingParameters('file_type')
             if field_dict.get('file_type') not in [file_type.value for file_type in FILE_TYPE]:
                 raise EntityError('file_type')
+            if field_dict.get('min_quantity') is None:
+                raise MissingParameters('min_quantity')
+            if field_dict.get('max_quantity') is None:
+                raise MissingParameters('max_quantity')
             field = FileField(
                 key=key,
                 label=label,
@@ -138,6 +150,7 @@ class FieldDTO:
         dynamo_dict = {
             "field_type": self.field.field_type.name,
             "label": self.field.label,
+            "placeholder": getattr(self.field, "placeholder", None),
             "required": self.field.required,
             "key": self.field.key,
             "order": self.field.order,
@@ -147,6 +160,7 @@ class FieldDTO:
         if isinstance(self.field, TextField):
             dynamo_dict.update({
                 "regex": self.field.regex,
+                "formatting": getattr(self.field, "formatting", None),
                 "max_length": self.field.max_length,
                 "value": self.field.value
             })

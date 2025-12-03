@@ -53,7 +53,7 @@ class FormRepositoryMock(IFormRepository):
                 number=1,
                 latitude=1.0,
                 longitude=1.0,
-                priority=PRIORITY.THREE,
+                priority=PRIORITY.EMERGENCY,
                 status=FORM_STATUS.IN_PROGRESS,
                 expiration_date=946407600000,
                 observation=None,
@@ -79,7 +79,7 @@ class FormRepositoryMock(IFormRepository):
                 number=1,
                 latitude=1.0,
                 longitude=1.0,
-                priority=PRIORITY.THREE,
+                priority=PRIORITY.EMERGENCY,
                 status=FORM_STATUS.COMPLETED,
                 expiration_date=946407600000,
                 observation=None,
@@ -105,7 +105,7 @@ class FormRepositoryMock(IFormRepository):
                 number=1,
                 latitude=1.0,
                 longitude=1.0,
-                priority=PRIORITY.ZERO,
+                priority=PRIORITY.LOW,
                 status=FORM_STATUS.PENDING,
                 expiration_date=946407600000,
                 observation=None,
@@ -160,12 +160,13 @@ class FormRepositoryMock(IFormRepository):
                 return form
         return None
 
-    def complete_form(self, user_id: str, form_id: str, sections: List[Section], completed_at: int, updated_at: int) -> Form:
+    def complete_form(self, user_id: str, form_id: str, sections: List[Section], completed_at: int, updated_at: int, vinculation_form_id: Optional[str] = None, **kwargs) -> Form:
         for form in self.forms:
             if form.id == form_id:
                 form.status = FORM_STATUS.COMPLETED
                 form.sections = sections
                 form.completed_at = completed_at
                 form.updated_at = updated_at
+                form.vinculation_form_id = vinculation_form_id
                 return form
         return None

@@ -6,19 +6,25 @@ from src.shared.helpers.errors.domain_errors import EntityError
 class JustificationDTO:
     options: Optional[List[JustificationOption]]
     selected: Optional[SelectedJustification]
+    selected_option: Optional[str]
+    justification_text: Optional[str]
+    justification_image: Optional[str]
 
-    def __init__(self, options: Optional[List[JustificationOption]], selected: Optional[SelectedJustification]):
+    def __init__(self, options: Optional[List[JustificationOption]], selected: Optional[SelectedJustification] = None, selected_option: Optional[str] = None, justification_text: Optional[str] = None, justification_image: Optional[str] = None):
         self.options = options
-        self.selected = selected
+        self.selected = selected if selected is not None else (SelectedJustification(option=selected_option, text=justification_text, image_url=justification_image) if selected_option is not None else None)
+        self.selected_option = self.selected.option if self.selected else None
+        self.justification_text = self.selected.text if self.selected else None
+        self.justification_image = self.selected.image_url if self.selected else None
 
     def from_request(justification_dict: dict) -> "JustificationDTO":
-        options = None
+        if justification_dict.get('options') is None or not justification_dict.get('options'):
+            raise EntityError('options')
+
+        options = []
         if justification_dict.get('options') is not None:
-            if not justification_dict.get('options'):
-                raise EntityError('options')
             options_data = justification_dict.get('options')
 
-            options = []
             for option_data in options_data:
                 if option_data.get('option') is None:
                     raise EntityError('option')
@@ -37,8 +43,15 @@ class JustificationDTO:
                 options.append(option)
 
         selected = None
-        selected_dict = justification_dict.get('selected')
-        if selected_dict is not None:
+        selected_dict = justification_dict.get('selected') or {}
+        if not selected_dict and justification_dict.get('selected_option') is not None:
+            selected_dict = {
+                "option": justification_dict.get('selected_option'),
+                "text": justification_dict.get('justification_text'),
+                "image_url": justification_dict.get('justification_image')
+            }
+
+        if selected_dict:
             if selected_dict.get('option') is None:
                 raise EntityError('option')
             selected = SelectedJustification(
@@ -64,7 +77,10 @@ class JustificationDTO:
                 "option": self.selected.option,
                 "text": self.selected.text,
                 "image_url": self.selected.image_url
-            } if self.selected is not None else None
+            } if self.selected is not None else None,
+            "selected_option": self.selected.option if self.selected else None,
+            "justification_text": self.selected.text if self.selected else None,
+            "justification_image": self.selected.image_url if self.selected else None
         }
 
     @staticmethod
@@ -83,7 +99,11 @@ class JustificationDTO:
                 image_url=selected_dict.get('image_url')
             )
 
-        return JustificationDTO(options=options, selected=selected)
+        selected_option = justification_dict.get('selected_option') if selected is None else None
+        justification_text = justification_dict.get('justification_text') if selected is None else None
+        justification_image = justification_dict.get('justification_image') if selected is None else None
+
+        return JustificationDTO(options=options, selected=selected, selected_option=selected_option, justification_text=justification_text, justification_image=justification_image)
 
     def to_entity(self) -> Justification:
         return Justification(options=self.options, selected=self.selected)

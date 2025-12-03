@@ -43,25 +43,26 @@ class SelectedJustification(abc.ABC):
 
 
 class Justification(abc.ABC):
-    options: Optional[List[JustificationOption]]
+    options: List[JustificationOption]
     selected: Optional[SelectedJustification]
 
-    def __init__(self, options: Optional[List[JustificationOption]], selected: Optional[SelectedJustification] = None):
-        if options is not None:
-            if not isinstance(options, list) or not all(isinstance(option, JustificationOption) for option in options):
-                raise EntityError('options')
+    def __init__(self, options: List[JustificationOption], selected: Optional[SelectedJustification] = None, selected_option: Optional[str] = None, justification_text: Optional[str] = None, justification_image: Optional[str] = None):
+        if not isinstance(options, list) or not options or not all(isinstance(option, JustificationOption) for option in options):
+            raise EntityError('options')
         self.options = options
 
-        if selected is not None and not isinstance(selected, SelectedJustification):
+        selected_payload = selected
+        if selected_payload is None and selected_option is not None:
+            selected_payload = SelectedJustification(option=selected_option, text=justification_text, image_url=justification_image)
+
+        if selected_payload is not None and not isinstance(selected_payload, SelectedJustification):
             raise EntityError('selected')
 
-        if selected is not None and options is not None:
-            matched_option = next((option for option in options if option.option == selected.option), None)
+        if selected_payload is not None:
+            matched_option = next((option for option in options if option.option == selected_payload.option), None)
             if matched_option is None:
                 raise EntityError('selected')
-            if matched_option.required_text and not selected.text:
-                raise EntityError('text')
-            if matched_option.required_image and not selected.image_url:
-                raise EntityError('image_url')
-
-        self.selected = selected
+        self.selected = selected_payload
+        self.selected_option = selected_payload.option if selected_payload else None  # compatibility
+        self.justification_text = selected_payload.text if selected_payload else None  # compatibility
+        self.justification_image = selected_payload.image_url if selected_payload else None  # compatibility

@@ -35,10 +35,10 @@ class FormDynamoDTO:
     created_at: int
     updated_at: int
     sections: List[Section]
-    justification: Optional[Justification]
+    justification: Justification
     information_fields: Optional[List[InformationField]]
 
-    def __init__(self, form_title: str, id: str, user_id: str, created_by: str, system: str, city: str, street: str, latitude: float, longitude: float, priority: PRIORITY, status: FORM_STATUS, created_at: int, updated_at: int, sections: List[Section], template: Optional[str] = None, area: Optional[str] = None, number: Optional[int] = None, observation: Optional[str] = None, expiration_date: Optional[int] = None, in_progress_at: Optional[int] = None, cancelled_at: Optional[int] = None, completed_at: Optional[int] = None, justification: Optional[Justification] = None, information_fields: Optional[List[InformationField]] = None):
+    def __init__(self, form_title: str, id: str, user_id: str, created_by: str, system: str, city: str, street: str, latitude: float, longitude: float, priority: PRIORITY, status: FORM_STATUS, created_at: int, updated_at: int, sections: List[Section], template: Optional[str] = None, area: Optional[str] = None, number: Optional[int] = None, observation: Optional[str] = None, expiration_date: Optional[int] = None, in_progress_at: Optional[int] = None, cancelled_at: Optional[int] = None, completed_at: Optional[int] = None, justification: Justification = None, information_fields: Optional[List[InformationField]] = None):
         self.form_title = form_title
         self.id = id
         self.user_id = user_id
@@ -98,6 +98,7 @@ class FormDynamoDTO:
         return {
             'form_title': self.form_title,
             'id': self.id,
+            'form_id': self.id,  # compat
             'user_id': self.user_id,
             'created_by': self.created_by,
             'template': self.template,
@@ -128,7 +129,7 @@ class FormDynamoDTO:
     def from_dynamo(data: dict) -> "FormDynamoDTO":
         return FormDynamoDTO(
             form_title=data['form_title'],
-            id=data['id'],
+            id=data.get('id') or data.get('form_id'),
             user_id=data['user_id'],
             created_by=data['created_by'],
             template=data.get('template'),
