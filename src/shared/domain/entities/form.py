@@ -11,156 +11,185 @@ from src.shared.helpers.errors.domain_errors import EntityError
 
 class Form(abc.ABC):
     form_title: str
-    form_id: str
-    creator_user_id: str
+    id: str
     user_id: str
-    vinculation_form_id: Optional[str]
-    can_vinculate: bool
-    template: str
-    area: str
+    created_by: str
+    template: Optional[str]
     system: str
-    street: str
     city: str
-    number: int
+    area: Optional[str]
+    street: str
+    number: Optional[int]
     latitude: float
     longitude: float
-    region: str
-    description: Optional[str]
     priority: PRIORITY
+    observation: Optional[str]
+    expiration_date: Optional[int]
     status: FORM_STATUS
-    expiration_date: int
-    creation_date: int
-    start_date: Optional[int]
-    conclusion_date: Optional[int]
-    justification: Justification
-    comments: Optional[str]
+    in_progress_at: Optional[int]
+    cancelled_at: Optional[int]
+    completed_at: Optional[int]
+    created_at: int
+    updated_at: int
     sections: List[Section]
+    justification: Justification
     information_fields: Optional[List[InformationField]]
 
     ID_LENGTH = 36
 
-    def __init__(self, form_title: str, form_id: str, creator_user_id: str, user_id: str, vinculation_form_id: Optional[str], can_vinculate: bool, template: str, area: str, system: str, street: str, city: str, number: int, latitude: float, longitude: float, region: str, description: Optional[str], priority: PRIORITY, status: FORM_STATUS, expiration_date: int, creation_date: int, start_date: Optional[int], conclusion_date: Optional[int], justification: Justification, comments: Optional[str], sections: List[Section], information_fields: Optional[List[InformationField]]):
-        
-        if type(form_title) is not str:
+    def __init__(
+        self,
+        form_title: str,
+        user_id: str,
+        created_by: str,
+        system: str,
+        city: str,
+        street: str,
+        latitude: float,
+        longitude: float,
+        priority: PRIORITY,
+        status: FORM_STATUS,
+        created_at: int,
+        updated_at: int,
+        sections: List[Section],
+        id: Optional[str] = None,
+        template: Optional[str] = None,
+        area: Optional[str] = None,
+        number: Optional[int] = None,
+        observation: Optional[str] = None,
+        expiration_date: Optional[int] = None,
+        in_progress_at: Optional[int] = None,
+        cancelled_at: Optional[int] = None,
+        completed_at: Optional[int] = None,
+        justification: Optional[Justification] = None,
+        information_fields: Optional[List[InformationField]] = None,
+        form_id: Optional[str] = None,
+        creator_user_id: Optional[str] = None,
+        vinculation_form_id: Optional[str] = None,
+        can_vinculate: Optional[bool] = None,
+        region: Optional[str] = None,
+        description: Optional[str] = None,
+        comments: Optional[str] = None,
+        **kwargs
+    ):
+
+        if id is None and form_id is not None:
+            id = form_id
+
+        if not isinstance(form_title, str):
             raise EntityError('form_title')
         self.form_title = form_title
 
-        if not Form.validate_id(form_id):
-            raise EntityError('form_id')
-        self.form_id = form_id
-
-        if not Form.validate_id(creator_user_id):
-            raise EntityError('creator_user_id')
-        self.creator_user_id = creator_user_id
+        if not Form.validate_id(id):
+            raise EntityError('id')
+        self.id = id
+        self.form_id = id  # compat
 
         if not Form.validate_id(user_id):
             raise EntityError('user_id')
         self.user_id = user_id
 
-        if vinculation_form_id is not None and not Form.validate_id(vinculation_form_id):
-            raise EntityError('vinculation_form_id')
-        self.vinculation_form_id = vinculation_form_id
+        created_by_value = created_by or creator_user_id
+        if not Form.validate_id(created_by_value):
+            raise EntityError('created_by')
+        self.created_by = created_by_value
+        self.creator_user_id = created_by_value  # compat
 
-        if type(can_vinculate) is not bool:
-            raise EntityError('can_vinculate')
-        self.can_vinculate = can_vinculate
-
-        if type(template) is not str:
+        if template is not None and not isinstance(template, str):
             raise EntityError('template')
         self.template = template
 
-        if type(area) is not str:
+        if area is not None and not isinstance(area, str):
             raise EntityError('area')
         self.area = area
 
-        if type(system) is not str:
+        if not isinstance(system, str):
             raise EntityError('system')
         self.system = system
 
-        if type(street) is not str:
-            raise EntityError('street')
-        self.street = street
-
-        if type(city) is not str:
+        if not isinstance(city, str):
             raise EntityError('city')
         self.city = city
 
-        if type(number) is not int:
+        if not isinstance(street, str):
+            raise EntityError('street')
+        self.street = street
+
+        if number is not None and not isinstance(number, int):
             raise EntityError('number')
         self.number = number
 
-        if type(latitude) is not float:
+        if not isinstance(latitude, (float, int)):
             raise EntityError('latitude')
-        self.latitude = latitude
+        self.latitude = float(latitude)
 
-        if type(longitude) is not float:
+        if not isinstance(longitude, (float, int)):
             raise EntityError('longitude')
-        self.longitude = longitude
+        self.longitude = float(longitude)
 
-        if type(region) is not str:
-            raise EntityError('region')
-        self.region = region
-
-        if description is not None and type(description) is not str:
-            raise EntityError('description')
-        self.description = description
-
-        if type(priority) is not PRIORITY:
+        if not isinstance(priority, PRIORITY):
             raise EntityError('priority')
         self.priority = priority
 
-        if type(status) is not FORM_STATUS:
-            raise EntityError('status')
-        self.status = status
+        observation_val = observation if observation is not None else description
+        if observation_val is not None and not isinstance(observation_val, str):
+            raise EntityError('observation')
+        self.observation = observation_val
+        self.description = observation_val  # compatibility
 
-        if type(expiration_date) is not int:
+        if expiration_date is not None and not isinstance(expiration_date, int):
             raise EntityError('expiration_date')
         self.expiration_date = expiration_date
 
-        if type(creation_date) is not int:
-            raise EntityError('creation_date')
-        self.creation_date = creation_date
+        if not isinstance(status, FORM_STATUS):
+            raise EntityError('status')
+        self.status = status
 
-        if start_date is not None and type(start_date) is not int:
-            raise EntityError('start_date')
-        if status == FORM_STATUS.IN_PROGRESS and start_date is None:
-            raise EntityError('start_date')
-        self.start_date = start_date
+        if in_progress_at is not None and not isinstance(in_progress_at, int):
+            raise EntityError('in_progress_at')
+        self.in_progress_at = in_progress_at
+        self.start_date = in_progress_at  # compat
 
-        if conclusion_date is not None and type(conclusion_date) is not int:
-            raise EntityError('conclusion_date')
-        if status == FORM_STATUS.CONCLUDED and conclusion_date is None:
-            raise EntityError('conclusion_date')
-        self.conclusion_date = conclusion_date
+        if cancelled_at is not None and not isinstance(cancelled_at, int):
+            raise EntityError('cancelled_at')
+        self.cancelled_at = cancelled_at
 
-        if not isinstance(justification, Justification):
+        if completed_at is not None and not isinstance(completed_at, int):
+            raise EntityError('completed_at')
+        self.completed_at = completed_at
+        self.conclusion_date = completed_at  # compat
+
+        if not isinstance(created_at, int):
+            raise EntityError('created_at')
+        self.created_at = created_at
+        self.creation_date = created_at  # compat
+
+        if not isinstance(updated_at, int):
+            raise EntityError('updated_at')
+        self.updated_at = updated_at
+
+        if justification is None or not isinstance(justification, Justification):
             raise EntityError('justification')
         self.justification = justification
 
-        if comments is not None and type(comments) is not str:
-            raise EntityError('comments')
-        self.comments = comments
-
-        if not isinstance(sections, list):
-            raise EntityError('sections')
-        if not sections:
-            raise EntityError('sections')
-        if not all(isinstance(section, Section) for section in sections):
+        if not isinstance(sections, list) or not sections or not all(isinstance(section, Section) for section in sections):
             raise EntityError('sections')
         self.sections = sections
 
         if information_fields is not None:
-            if not isinstance(information_fields, list):
-                raise EntityError('information_fields')
-            if not information_fields:
-                raise EntityError('information_fields')
-            if not all(isinstance(information_field, InformationField) for information_field in information_fields):
+            if not isinstance(information_fields, list) or not information_fields or not all(isinstance(information_field, InformationField) for information_field in information_fields):
                 raise EntityError('information_fields')
         self.information_fields = information_fields
-    
+
+        # compatibility attrs
+        self.vinculation_form_id = vinculation_form_id
+        self.can_vinculate = bool(can_vinculate) if can_vinculate is not None else False
+        self.comments = comments
+        self.region = region if region is not None else (area if area is not None else "")
+
     @staticmethod
     def validate_id(id_to_validate: str) -> bool:
-        if type(id_to_validate) != str:
+        if not isinstance(id_to_validate, str):
             return False
         if len(id_to_validate) != Form.ID_LENGTH:
             return False

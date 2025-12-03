@@ -57,7 +57,7 @@ class Environments:
 
     @staticmethod
     def get_form_repo() -> IFormRepository:
-        if Environments.get_envs().stage == STAGE.TEST:
+        if Environments.get_envs().stage in [STAGE.TEST, STAGE.DOTENV]:
             from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
             return FormRepositoryMock
         elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
@@ -68,7 +68,7 @@ class Environments:
     
     @staticmethod
     def get_image_repo() -> IImageRepository:
-        if Environments.get_envs().stage == STAGE.TEST:
+        if Environments.get_envs().stage in [STAGE.TEST, STAGE.DOTENV]:
             from src.shared.infra.repositories.image_repository_mock import ImageRepositoryMock
             return ImageRepositoryMock
         elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:

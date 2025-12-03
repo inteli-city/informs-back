@@ -2,7 +2,7 @@ from enum import Enum
 
 
 class PRIORITY(Enum):
-    LOW = 'LOW'
-    MEDIUM = 'MEDIUM'
-    HIGH = 'HIGH'
-    EMERGENCY = 'EMERGENCY'
+    LOW = '0'
+    MEDIUM = '1'
+    HIGH = '2'
+    EMERGENCY = '3'

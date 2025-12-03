@@ -21,92 +21,107 @@ class FieldDTO:
         if field_dict.get('field_type') not in [field.value for field in FIELD_TYPE]:
             raise EntityError('field_type')
         
-        if field_dict.get('placeholder') is None:
-            raise MissingParameters('placeholder')
+        if field_dict.get('label') is None and field_dict.get('placeholder') is not None:
+            field_dict['label'] = field_dict.get('placeholder')
         
-        if field_dict.get('required') is None:
-            raise MissingParameters('required')
+        for base_param in ['label', 'required', 'key']:
+            if field_dict.get(base_param) is None:
+                raise MissingParameters(base_param)
         
-        if field_dict.get('key') is None:
-            raise MissingParameters('key')
-        
-        field_type = FIELD_TYPE[field_dict.get('field_type')]
+        if field_dict.get('order') is None:
+            field_dict['order'] = 0
 
-        field_dict.pop('field_type')
+        field_type = FIELD_TYPE[field_dict.get('field_type')]
+        label = field_dict.get('label')
+        required = bool(field_dict.get('required'))
+        key = field_dict.get('key')
+        order = int(field_dict.get('order'))
+        help_text = field_dict.get('help_text')
 
         if field_type == FIELD_TYPE.TEXT_FIELD:
             field = TextField(
-                placeholder=field_dict.get('placeholder'),
-                required=field_dict.get('required'),
-                key=field_dict.get('key'),
+                label=label,
+                required=required,
+                key=key,
+                order=order,
                 regex=field_dict.get('regex'),
-                formatting=field_dict.get('formatting'),
                 max_length=int(field_dict.get('max_length')) if field_dict.get('max_length') is not None else None,
                 value=field_dict.get('value'),
+                help_text=help_text
             )
 
         elif field_type == FIELD_TYPE.NUMBER_FIELD:
             if field_dict.get('decimal') is None:
                 raise MissingParameters('decimal')
             field = NumberField(
-                placeholder=field_dict.get('placeholder'),
-                required=field_dict.get('required'),
-                key=field_dict.get('key'),
-                decimal=field_dict.get('decimal'),
-                max_value=int(field_dict.get('max_value')) if field_dict.get('max_value') is not None else None,
-                min_value=int(field_dict.get('min_value')) if field_dict.get('min_value') is not None else None,
+                label=label,
+                required=required,
+                key=key,
+                order=order,
+                decimal=bool(field_dict.get('decimal')) if field_dict.get('decimal') is not None else None,
+                max_value=float(field_dict.get('max_value')) if field_dict.get('max_value') is not None else None,
+                min_value=float(field_dict.get('min_value')) if field_dict.get('min_value') is not None else None,
                 value=float(field_dict.get('value')) if field_dict.get('value') is not None else None,
+                help_text=help_text
             )
 
         elif field_type == FIELD_TYPE.DROPDOWN_FIELD:
             if field_dict.get('options') is None:
                 raise MissingParameters('options')
-            field = DropDownField(**field_dict)
+            field = DropDownField(label=label, required=required, key=key, order=order, options=field_dict.get('options'), value=field_dict.get('value'), help_text=help_text)
 
         elif field_type == FIELD_TYPE.TYPEAHEAD_FIELD:
             if field_dict.get('options') is None:
                 raise MissingParameters('options')
             field = TypeAheadField(
-                placeholder=field_dict.get('placeholder'),
-                required=field_dict.get('required'),
-                key=field_dict.get('key'),
+                label=label,
+                required=required,
+                key=key,
+                order=order,
                 options=field_dict.get('options'),
                 max_length=int(field_dict.get('max_length')) if field_dict.get('max_length') is not None else None,
-                value=field_dict.get('value')
+                value=field_dict.get('value'),
+                help_text=help_text
             )
 
         elif field_type == FIELD_TYPE.RADIO_GROUP_FIELD:
             if field_dict.get('options') is None:
                 raise MissingParameters('options')
-            field = RadioGroupField(**field_dict)
+            field = RadioGroupField(label=label, required=required, key=key, order=order, options=field_dict.get('options'), value=field_dict.get('value'), help_text=help_text)
 
         elif field_type == FIELD_TYPE.DATE_FIELD:
             field = DateField(
-                placeholder=field_dict.get('placeholder'),
-                required=field_dict.get('required'),
-                key=field_dict.get('key'),
+                label=label,
+                required=required,
+                key=key,
+                order=order,
                 min_date=int(field_dict.get('min_date')) if field_dict.get('min_date') is not None else None,
                 max_date=int(field_dict.get('max_date')) if field_dict.get('max_date') is not None else None,
-                value=int(field_dict.get('value')) if field_dict.get('value') is not None else None
+                value=int(field_dict.get('value')) if field_dict.get('value') is not None else None,
+                help_text=help_text
             )
 
         elif field_type == FIELD_TYPE.CHECKBOX_FIELD:
-            field = CheckboxField(**field_dict)
+            checkbox_value = field_dict.get('value')
+            field = CheckboxField(label=label, required=required, key=key, order=order, value=bool(checkbox_value) if checkbox_value is not None else None, help_text=help_text)
 
         elif field_type == FIELD_TYPE.CHECKBOX_GROUP_FIELD:
             if field_dict.get('options') is None:
                 raise MissingParameters('options')
             field = CheckBoxGroupField(
-                placeholder=field_dict.get('placeholder'),
-                required=field_dict.get('required'),
-                key=field_dict.get('key'),
+                label=label,
+                required=required,
+                key=key,
+                order=order,
                 options=field_dict.get('options'),
                 check_limit=int(field_dict.get('check_limit')) if field_dict.get('check_limit') is not None else None,
-                value=field_dict.get('value')
+                value=[bool(value) for value in field_dict.get('value')] if field_dict.get('value') is not None else None,
+                help_text=help_text
             )
 
         elif field_type == FIELD_TYPE.SWITCH_BUTTON_FIELD:
-            field = SwitchButtonField(**field_dict)
+            switch_value = field_dict.get('value')
+            field = SwitchButtonField(label=label, required=required, key=key, order=order, value=bool(switch_value) if switch_value is not None else None, help_text=help_text)
 
         elif field_type == FIELD_TYPE.FILE_FIELD:
             if field_dict.get('file_type') is None:
@@ -118,13 +133,15 @@ class FieldDTO:
             if field_dict.get('max_quantity') is None:
                 raise MissingParameters('max_quantity')
             field = FileField(
-                key=field_dict.get('key'),
-                placeholder=field_dict.get('placeholder'),
-                required=field_dict.get('required'),
+                key=key,
+                label=label,
+                required=required,
+                order=order,
                 file_type=FILE_TYPE[field_dict.get('file_type')],
                 min_quantity=int(field_dict.get('min_quantity')) if field_dict.get('min_quantity') is not None else None,
                 max_quantity=int(field_dict.get('max_quantity')) if field_dict.get('max_quantity') is not None else None,
-                value=field_dict.get('value')
+                value=field_dict.get('value'),
+                help_text=help_text
             )
         
         return FieldDTO(field)    
@@ -132,15 +149,18 @@ class FieldDTO:
     def to_dynamo(self) -> dict:
         dynamo_dict = {
             "field_type": self.field.field_type.name,
-            "placeholder": self.field.placeholder,
+            "label": self.field.label,
+            "placeholder": getattr(self.field, "placeholder", None),
             "required": self.field.required,
             "key": self.field.key,
+            "order": self.field.order,
+            "help_text": self.field.help_text,
         }
 
         if isinstance(self.field, TextField):
             dynamo_dict.update({
                 "regex": self.field.regex,
-                "formatting": self.field.formatting,
+                "formatting": getattr(self.field, "formatting", None),
                 "max_length": self.field.max_length,
                 "value": self.field.value
             })
@@ -190,8 +210,8 @@ class FieldDTO:
         elif isinstance(self.field, FileField):
             dynamo_dict.update({
                 "file_type": self.field.file_type.name,
-                "min_quantity": Decimal(str(self.field.min_quantity)),
-                "max_quantity": Decimal(str(self.field.max_quantity)),
+                "min_quantity": Decimal(str(self.field.min_quantity)) if self.field.min_quantity is not None else None,
+                "max_quantity": Decimal(str(self.field.max_quantity)) if self.field.max_quantity is not None else None,
                 "value": self.field.value
             })
 
