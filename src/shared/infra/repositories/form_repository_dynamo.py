@@ -16,12 +16,20 @@ from boto3.dynamodb.conditions import Key
 class FormRepositoryDynamo(IFormRepository):
 
     @staticmethod
-    def form_partition_key_format(user_id: str) -> str:
-        return f'{user_id}'
+    def form_partition_key_format(form_id: str) -> str:
+        return f'form#{form_id}'
     
     @staticmethod
-    def form_sort_key_format(form_id: str) -> str:
-        return f'form#{form_id}'
+    def form_sort_key_format() -> str:
+        return f'METADATA'    
+
+    @staticmethod 
+    def form_gsi1_partition_key_format(user_id: str) -> str:
+        return f'user#{user_id}'
+    
+    @staticmethod
+    def form_gsi1_sort_key_format(priority: str, status: FORM_STATUS, created_at: int) -> str:
+        return f'priority#{priority}#status#{status.value}#created_at#{created_at}'
 
     def __init__(self):
         self.dynamo = DynamoDatasource(
