@@ -18,6 +18,10 @@ class IFormRepository(ABC):
         pass
 
     @abstractmethod
+    def get_all_forms(self, page: int, limit: int, status: Optional[FORM_STATUS] = None, system: Optional[str] = None, user_id: Optional[str] = None, created_at_start: Optional[int] = None, created_at_end: Optional[int] = None, search: Optional[str] = None) -> List[Form]:
+        pass
+
+    @abstractmethod
     def create_form(self, form: Form) -> Form:
         pass
 
