@@ -20,8 +20,8 @@ class FormRepositoryDynamo(IFormRepository):
         return f'form#{form_id}'
     
     @staticmethod
-    def form_sort_key_format() -> str:
-        return f'METADATA'    
+    def form_sort_key_format(form_id: str = None) -> str:
+        return 'METADATA'
 
     @staticmethod 
     def form_gsi1_partition_key_format(user_id: str) -> str:
@@ -41,7 +41,7 @@ class FormRepositoryDynamo(IFormRepository):
         )
     
     def get_form_by_id(self, user_id: str, form_id: str) -> Form:
-        form = self.dynamo.get_item(partition_key=self.form_partition_key_format(user_id), sort_key=self.form_sort_key_format(form_id))
+        form = self.dynamo.get_item(partition_key=self.form_partition_key_format(form_id), sort_key=self.form_sort_key_format(form_id))
         if "Item" not in form:
             return None
 
@@ -60,7 +60,7 @@ class FormRepositoryDynamo(IFormRepository):
     def create_form(self, form: Form) -> Form:
         item = FormDynamoDTO.from_entity(form).to_dynamo()
 
-        self.dynamo.put_item(item=item, partition_key=self.form_partition_key_format(form.user_id), sort_key=self.form_sort_key_format(form.id), is_decimal=True)
+        self.dynamo.put_item(item=item, partition_key=self.form_partition_key_format(form.id), sort_key=self.form_sort_key_format(form.id), is_decimal=True)
         
         return form
     
@@ -71,7 +71,7 @@ class FormRepositoryDynamo(IFormRepository):
             "updated_at": Decimal(updated_at) if updated_at is not None else None
         }
 
-        resp = self.dynamo.update_item(partition_key=self.form_partition_key_format(user_id), sort_key=self.form_sort_key_format(form_id), update_dict=update_dict)
+        resp = self.dynamo.update_item(partition_key=self.form_partition_key_format(form_id), sort_key=self.form_sort_key_format(form_id), update_dict=update_dict)
         
         if "Attributes" not in resp:
             return None
@@ -87,7 +87,7 @@ class FormRepositoryDynamo(IFormRepository):
             "updated_at": Decimal(updated_at)
         }
 
-        resp = self.dynamo.update_item(partition_key=self.form_partition_key_format(user_id), sort_key=self.form_sort_key_format(form_id), update_dict=update_dict)
+        resp = self.dynamo.update_item(partition_key=self.form_partition_key_format(form_id), sort_key=self.form_sort_key_format(form_id), update_dict=update_dict)
         
         if "Attributes" not in resp:
             return None
@@ -104,7 +104,7 @@ class FormRepositoryDynamo(IFormRepository):
             "updated_at": Decimal(updated_at)
         }
 
-        resp = self.dynamo.update_item(partition_key=self.form_partition_key_format(user_id), sort_key=self.form_sort_key_format(form_id), update_dict=update_dict)
+        resp = self.dynamo.update_item(partition_key=self.form_partition_key_format(form_id), sort_key=self.form_sort_key_format(form_id), update_dict=update_dict)
         
         if "Attributes" not in resp:
             return None
