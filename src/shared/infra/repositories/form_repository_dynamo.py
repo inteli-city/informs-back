@@ -11,7 +11,7 @@ from src.shared.infra.dtos.form_dynamo_dto import FormDynamoDTO
 from src.shared.infra.dtos.justification_dto import JustificationDTO
 from src.shared.infra.dtos.section_dto import SectionDTO
 from src.shared.infra.external.dynamo.datasources.dynamo_datasource import DynamoDatasource
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr
 
 class FormRepositoryDynamo(IFormRepository):
 
@@ -54,13 +54,80 @@ class FormRepositoryDynamo(IFormRepository):
 
         for item in resp['Items']:
             forms.append(FormDynamoDTO.from_dynamo(item).to_entity())
-        
+
         return forms
+
+    def get_all_forms(self, page: int, limit: int, status: Optional[FORM_STATUS] = None, system: Optional[str] = None, user_id: Optional[str] = None, created_at_start: Optional[int] = None, created_at_end: Optional[int] = None, search: Optional[str] = None) -> List[Form]:
+        forms: List[Form] = []
+
+        items = []
+        filter_expression = None
+
+        if status is not None:
+            filter_expression = Attr('status').eq(status.value)
+        if system is not None:
+            expr = Attr('system').eq(system)
+            filter_expression = expr if filter_expression is None else filter_expression & expr
+        if created_at_start is not None and created_at_end is not None:
+            expr = Attr('created_at').between(Decimal(created_at_start), Decimal(created_at_end))
+            filter_expression = expr if filter_expression is None else filter_expression & expr
+        elif created_at_start is not None:
+            expr = Attr('created_at').gte(Decimal(created_at_start))
+            filter_expression = expr if filter_expression is None else filter_expression & expr
+        elif created_at_end is not None:
+            expr = Attr('created_at').lte(Decimal(created_at_end))
+            filter_expression = expr if filter_expression is None else filter_expression & expr
+
+        if user_id is not None:
+            query = Key("GSI1PK").eq(self.form_gsi1_partition_key_format(user_id))
+            query_kwargs = {
+                "key_condition_expression": query,
+                "IndexName": "GSI1",
+                "Select": 'ALL_ATTRIBUTES'
+            }
+            if filter_expression is not None:
+                query_kwargs["FilterExpression"] = filter_expression
+            resp = self.dynamo.query(**query_kwargs)
+            items = resp.get('Items', [])
+        else:
+            if filter_expression is not None:
+                resp = self.dynamo.scan_items(filter_expression=filter_expression)
+            else:
+                resp = self.dynamo.get_all_items()
+            items = resp.get('Items', [])
+
+        for item in items:
+            forms.append(FormDynamoDTO.from_dynamo(item).to_entity())
+
+        if search is not None:
+            search_lower = search.lower()
+            forms = [
+                form for form in forms
+                if search_lower in form.form_title.lower() or (form.observation or "").lower().find(search_lower) != -1
+            ]
+
+        def sort_key(f: Form):
+            is_open = f.status not in [FORM_STATUS.COMPLETED, FORM_STATUS.CANCELLED]
+            return (is_open, int(f.priority.value), f.created_at)
+
+        forms.sort(key=sort_key, reverse=True)
+
+        start = (page - 1) * limit
+        end = start + limit
+        return forms[start:end]
 
     def create_form(self, form: Form) -> Form:
         item = FormDynamoDTO.from_entity(form).to_dynamo()
 
-        self.dynamo.put_item(item=item, partition_key=self.form_partition_key_format(form.id), sort_key=self.form_sort_key_format(form.id), is_decimal=True)
+        item["GSI1PK"] = self.form_gsi1_partition_key_format(form.user_id)
+        item["GSI1SK"] = self.form_gsi1_sort_key_format(priority=form.priority.value, status=form.status, created_at=form.created_at)
+
+        self.dynamo.put_item(
+            item=item,
+            partition_key=self.form_partition_key_format(form.id),
+            sort_key=self.form_sort_key_format(),
+            is_decimal=True
+        )
         
         return form
     

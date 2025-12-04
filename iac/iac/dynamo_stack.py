@@ -33,6 +33,19 @@ class DynamoStack(Construct):
                 time_to_live_attribute="TTL"
             )
 
+            self.gsi_user_priority = self.dynamo_table_forms.add_global_secondary_index(
+                index_name="UserPriorityIndex",
+                partition_key=aws_dynamodb.Attribute(
+                    name="GSI1PK",
+                    type=aws_dynamodb.AttributeType.STRING
+                ),
+                sort_key=aws_dynamodb.Attribute(
+                    name="GSI1SK",
+                    type=aws_dynamodb.AttributeType.STRING
+                ),
+                projection_type=aws_dynamodb.ProjectionType.ALL
+            )
+
             CfnOutput(self, 'DynamoFormulariosRemovalPolicy',
                         value=REMOVAL_POLICY.value,
                         export_name=f'Formularios{self.github_ref_name}DynamoRemovalPolicyValue')
