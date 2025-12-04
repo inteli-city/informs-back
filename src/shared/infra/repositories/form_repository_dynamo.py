@@ -60,7 +60,15 @@ class FormRepositoryDynamo(IFormRepository):
     def create_form(self, form: Form) -> Form:
         item = FormDynamoDTO.from_entity(form).to_dynamo()
 
-        self.dynamo.put_item(item=item, partition_key=self.form_partition_key_format(form.user_id), sort_key=self.form_sort_key_format(form.id), is_decimal=True)
+        item["GSI1PK"] = self.form_gsi1_partition_key_format(form.user_id)
+        item["GSI1SK"] = self.form_gsi1_sort_key_format(priority=form.priority.value, status=form.status, created_at=form.created_at)
+
+        self.dynamo.put_item(
+            item=item,
+            partition_key=self.form_partition_key_format(form.id),
+            sort_key=self.form_sort_key_format(),
+            is_decimal=True
+        )
         
         return form
     
