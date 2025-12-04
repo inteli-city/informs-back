@@ -133,6 +133,40 @@ class FormRepositoryMock(IFormRepository):
                 filtered_forms.append(form)
 
         return filtered_forms
+
+    def get_all_forms(self, page: int, limit: int, status: Optional[FORM_STATUS] = None, system: Optional[str] = None, user_id: Optional[str] = None, created_at_start: Optional[int] = None, created_at_end: Optional[int] = None, search: Optional[str] = None) -> List[Form]:
+        forms = self.forms
+
+        if user_id is not None:
+            forms = [form for form in forms if form.user_id == user_id]
+
+        if status is not None:
+            forms = [form for form in forms if form.status == status]
+
+        if system is not None:
+            forms = [form for form in forms if form.system == system]
+
+        if created_at_start is not None:
+            forms = [form for form in forms if form.created_at >= created_at_start]
+        if created_at_end is not None:
+            forms = [form for form in forms if form.created_at <= created_at_end]
+
+        if search is not None:
+            search_lower = search.lower()
+            forms = [
+                form for form in forms
+                if search_lower in form.form_title.lower() or (form.observation or "").lower().find(search_lower) != -1
+            ]
+
+        def sort_key(f: Form):
+            is_open = f.status not in [FORM_STATUS.COMPLETED, FORM_STATUS.CANCELLED]
+            return (is_open, int(f.priority.value), f.created_at)
+
+        forms = sorted(forms, key=sort_key, reverse=True)
+
+        start = (page - 1) * limit
+        end = start + limit
+        return forms[start:end]
     
     def create_form(self, form: Form) -> Form:
         for item in self.forms:

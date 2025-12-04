@@ -1,4 +1,6 @@
 from enum import Enum
+from typing import List, Optional
+
 from src.shared.domain.entities.field import Field
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.information_field import InformationField
@@ -10,7 +12,7 @@ from src.shared.domain.enums.fields_enum import FIELD_TYPE
 class FieldViewmodel:
     def __init__(self, field: Field):
         self.field = field
-    
+
     def to_dict(self):
         base = {
             'field_type': self.field.field_type.value,
@@ -47,7 +49,7 @@ class FieldViewmodel:
 class SectionViewmodel:
     def __init__(self, section: Section):
         self.section = section
-    
+
     def to_dict(self):
         return {
             'section_id': self.section.section_id,
@@ -74,7 +76,7 @@ class JustificationViewmodel:
     def to_dict(self):
         return {
             'options': [JustificationOptionViewmodel(option).to_dict() for option in self.justification.options],
-            'selected': None
+            'selected': self.justification.selected.__dict__ if self.justification.selected else None
         }
 
 
@@ -84,16 +86,12 @@ class InformationFieldViewmodel:
 
     def to_dict(self):
         return {
-            attr: (
-                getattr(self.information_field, attr).value
-                if isinstance(getattr(self.information_field, attr), Enum)
-                else getattr(self.information_field, attr)
-            )
+            attr: getattr(self.information_field, attr).value if isinstance(getattr(self.information_field, attr), Enum) else getattr(self.information_field, attr)
             for attr in vars(self.information_field)
         }
 
 
-class FormViewmodel:
+class FormItemViewmodel:
     def __init__(self, form: Form):
         self.form = form
 
@@ -119,14 +117,20 @@ class FormViewmodel:
             'created_by': self.form.created_by,
             'created_at': self.form.created_at,
             'updated_at': self.form.updated_at,
-            'information_fields': [InformationFieldViewmodel(information_field).to_dict() for information_field in self.form.information_fields] if self.form.information_fields else None,
+            'information_fields': [InformationFieldViewmodel(info).to_dict() for info in self.form.information_fields] if self.form.information_fields else None,
             'number': self.form.number
         }
-    
 
-class CreateFormViewmodel:
-    def __init__(self, form: Form):
-        self.form = form
-    
+
+class GetAllFormsViewmodel:
+    def __init__(self, forms: List[Form], page: int, limit: int):
+        self.forms = forms
+        self.page = page
+        self.limit = limit
+
     def to_dict(self):
-        return FormViewmodel(self.form).to_dict()
+        return {
+            'forms': [FormItemViewmodel(form).to_dict() for form in self.forms],
+            'page': self.page,
+            'limit': self.limit
+        }
