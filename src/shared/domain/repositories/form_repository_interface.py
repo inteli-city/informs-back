@@ -32,3 +32,7 @@ class IFormRepository(ABC):
     @abstractmethod
     def complete_form(self, user_id: str, form_id: str, sections: List[Section], completed_at: int, updated_at: int) -> Form:
         pass
+
+    @abstractmethod
+    def start_form(self, user_id: str, form_id: str, in_progress_at: int, updated_at: int) -> Form:
+        pass

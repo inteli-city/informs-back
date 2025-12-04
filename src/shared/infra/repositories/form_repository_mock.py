@@ -170,3 +170,12 @@ class FormRepositoryMock(IFormRepository):
                 form.vinculation_form_id = vinculation_form_id
                 return form
         return None
+
+    def start_form(self, user_id: str, form_id: str, in_progress_at: int, updated_at: int) -> Form:
+        for form in self.forms:
+            if form.id == form_id:
+                form.status = FORM_STATUS.IN_PROGRESS
+                form.in_progress_at = in_progress_at
+                form.updated_at = updated_at
+                return form
+        return None
