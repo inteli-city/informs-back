@@ -1,6 +1,5 @@
 from .create_form_usecase import CreateFormUsecase
 from .create_form_viewmodel import CreateFormViewmodel
-from src.shared.domain.entities.information_field import TextInformationField
 from src.shared.domain.enums.priority_enum import PRIORITY
 from src.shared.helpers.errors.controller_errors import MissingParameters
 from src.shared.helpers.errors.domain_errors import EntityError
@@ -26,18 +25,9 @@ class CreateFormController:
 
             if request.data.get('form_title') is None:
                 raise MissingParameters('form_title')
-            
+
             if request.data.get('user_id') is None:
-                request.data['user_id'] = requester_user.user_id
-            
-            if request.data.get('can_vinculate') is None:
-                raise MissingParameters('can_vinculate')
-            
-            if request.data.get('template') is None:
-                raise MissingParameters('template')
-            
-            if request.data.get('area') is None:
-                raise MissingParameters('area')
+                raise MissingParameters('user_id')
             
             if request.data.get('system') is None:
                 raise MissingParameters('system')
@@ -48,58 +38,81 @@ class CreateFormController:
             if request.data.get('city') is None:
                 raise MissingParameters('city')
             
-            if request.data.get('number') is None:
-                raise MissingParameters('number')
-            
             if request.data.get('latitude') is None:
                 raise MissingParameters('latitude')
             
             if request.data.get('longitude') is None:
                 raise MissingParameters('longitude')
             
-            if request.data.get('region') is None:
-                raise MissingParameters('region')
-            
             if request.data.get('priority') is None:
                 raise MissingParameters('priority')
             
-            if request.data.get('priority') not in [enum.value for enum in PRIORITY]:
+            if request.data.get('justifications') is None:
+                raise MissingParameters('justifications')
+            
+            if request.data.get('sessions') is None:
+                raise MissingParameters('sessions')
+
+            priority_payload = request.data.get('priority')
+            try:
+                if isinstance(priority_payload, str) and priority_payload.upper() in PRIORITY.__members__:
+                    priority = PRIORITY[priority_payload.upper()]
+                else:
+                    priority = PRIORITY(str(int(priority_payload)))
+            except Exception:
                 raise EntityError('priority')
-            
-            if request.data.get('expiration_date') is None:
-                raise MissingParameters('expiration_date')
-            
-            if request.data.get('justification') is None:
-                raise MissingParameters('justification')
-            
-            if request.data.get('sections') is None:
-                raise MissingParameters('sections')
-            
+
+            raw_justifications = request.data.get('justifications') or []
+            normalized_justifications = [
+                {
+                    "option": option.get('option'),
+                    "required_image": bool(option.get('required_image')) if option.get('required_image') is not None else False,
+                    "required_text": bool(option.get('required_text')) if option.get('required_text') is not None else False
+                }
+                for option in raw_justifications
+            ]
+
+            justification_entity = JustificationDTO.from_request({"options": normalized_justifications}).to_entity()
+
+            try:
+                latitude = float(request.data.get('latitude'))
+                longitude = float(request.data.get('longitude'))
+            except (TypeError, ValueError):
+                raise EntityError('latitude/longitude')
+
+            expiration_date = request.data.get('expiration_date')
+            if expiration_date is not None:
+                try:
+                    expiration_date = int(expiration_date)
+                except (TypeError, ValueError):
+                    raise EntityError('expiration_date')
+
+            number = request.data.get('number')
+            if number is not None:
+                try:
+                    number = int(number)
+                except (TypeError, ValueError):
+                    raise EntityError('number')
+
             form = self.CreateFormUsecase(
                 form_title=request.data.get('form_title'),
                 creator_user_id=requester_user.user_id,
                 user_id=request.data.get('user_id'),
-                vinculation_form_id=request.data.get('vinculation_form_id'),
-                can_vinculate=request.data.get('can_vinculate'),
-                template=request.data.get('template'),
-                area=request.data.get('area'),
                 system=request.data.get('system'),
                 street=request.data.get('street'),
                 city=request.data.get('city'),
-                number=request.data.get('number'),
-                latitude=request.data.get('latitude'),
-                longitude=request.data.get('longitude'),
-                region=request.data.get('region'),
-                description=request.data.get('description'),
-                priority=PRIORITY[request.data.get('priority')],
-                expiration_date=request.data.get('expiration_date'),
-                justification=JustificationDTO.from_request(request.data.get('justification')).to_entity(),
-                comments=request.data.get('comments'),
+                latitude=latitude,
+                longitude=longitude,
+                priority=priority,
                 sections=[
                     SectionDTO.from_request(section).to_entity()
-                    for section in request.data.get('sections')
+                    for section in request.data.get('sessions')
                 ],
-                information_fields= [
+                justification=justification_entity,
+                number=number,
+                observation=request.data.get('observation'),
+                expiration_date=expiration_date,
+                information_fields=[
                     InformationFieldDTO.from_request(information_field).to_entity()
                     for information_field in request.data.get('information_fields')
                 ] if request.data.get('information_fields') is not None else None

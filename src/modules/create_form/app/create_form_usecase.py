@@ -10,7 +10,6 @@ from src.shared.domain.enums.priority_enum import PRIORITY
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.image_repository_interface import IImageRepository
 from src.shared.environments import Environments
-from src.shared.helpers.errors.usecase_errors import ForbiddenAction
 
 
 class CreateFormUsecase:
@@ -18,64 +17,54 @@ class CreateFormUsecase:
         self.form_repo = form_repo
         self.image_repo = image_repo
 
-    def __call__(self,
-                    form_title: str,
-                    creator_user_id: str,
-                    user_id: str,
-                    vinculation_form_id: Optional[str],
-                    can_vinculate: bool,
-                    template: str,
-                    area: str,
-                    system: str,
-                    street: str,
-                    city: str,
-                    number: int,
-                    latitude: float,
-                    longitude: float,
-                    region: str,
-                    description: Optional[str],
-                    priority: PRIORITY,
-                    expiration_date: int,
-                    justification: Justification,
-                    comments: Optional[str],
-                    sections: List[Section],
-                    information_fields: Optional[List[InformationField]]
-                 ) -> Form:
+    def __call__(
+        self,
+        form_title: str,
+        creator_user_id: str,
+        user_id: str,
+        system: str,
+        street: str,
+        city: str,
+        latitude: float,
+        longitude: float,
+        priority: PRIORITY,
+        sections: List[Section],
+        justification: Justification,
+        number: Optional[int] = None,
+        observation: Optional[str] = None,
+        expiration_date: Optional[int] = None,
+        information_fields: Optional[List[InformationField]] = None,
+    ) -> Form:
         
         form_id = str(uuid.uuid4())
+        now_timestamp = int(datetime.utcnow().timestamp() * 1000)
 
-        for information_field in information_fields:
-            if isinstance(information_field, ImageInformationField):
-                image_path = f'{datetime.now().year}/{form_id}/information_field/{str(uuid.uuid4())}.png'
-                self.image_repo.put_image(base_64_image=information_field.file_path, image_path=image_path)
-                information_field.file_path = f'https://{Environments.get_envs().bucket_name}.s3.sa-east-1.amazonaws.com/{image_path}'
+        if information_fields:
+            for information_field in information_fields:
+                if isinstance(information_field, ImageInformationField):
+                    image_path = f'{datetime.now().year}/{form_id}/information_field/{str(uuid.uuid4())}.png'
+                    self.image_repo.put_image(base_64_image=information_field.file_path, image_path=image_path)
+                    information_field.file_path = f'https://{Environments.get_envs().bucket_name}.s3.sa-east-1.amazonaws.com/{image_path}'
 
         form = Form(
             form_title=form_title,
-            form_id=form_id,
-            creator_user_id=creator_user_id,
+            id=form_id,
+            created_by=creator_user_id,
             user_id=user_id,
-            vinculation_form_id=vinculation_form_id,
-            can_vinculate=can_vinculate,
-            template=template,
-            area=area,
             system=system,
             street=street,
             city=city,
             number=number,
             latitude=latitude,
             longitude=longitude,
-            region=region,
-            description=description,
             priority=priority,
-            status=FORM_STATUS.NOT_STARTED,
-            expiration_date=expiration_date,
-            creation_date=int(datetime.now().timestamp()),
-            start_date=None,
-            conclusion_date=None,
-            justification=justification,
-            comments=comments,
+            status=FORM_STATUS.PENDING,
+            created_at=now_timestamp,
+            updated_at=now_timestamp,
             sections=sections,
+            observation=observation,
+            expiration_date=expiration_date,
+            justification=justification,
             information_fields=information_fields
         )
 
