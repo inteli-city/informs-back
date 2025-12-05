@@ -63,25 +63,9 @@ class LambdaStack(Construct):
             authorizer=authorizer
         )
 
-        self.get_form_by_user_id = self.create_lambda_api_gateway_integration(
-            module_name="get_form_by_user_id",
-            method="GET",
-            api_resource=api_gateway_resource,
-            environment_variables=environment_variables,
-            authorizer=authorizer
-        )
-
         self.get_form = self.create_lambda_api_gateway_integration(
             module_name="get_form",
             method="GET",
-            api_resource=api_gateway_resource,
-            environment_variables=environment_variables,
-            authorizer=authorizer
-        )
-
-        self.update_form_status = self.create_lambda_api_gateway_integration(
-            module_name="update_form_status",
-            method="POST",
             api_resource=api_gateway_resource,
             environment_variables=environment_variables,
             authorizer=authorizer
@@ -104,22 +88,18 @@ class LambdaStack(Construct):
         )
 
         self.functions_that_need_dynamo_forms_permissions = [
-            self.get_form_by_user_id,
             self.create_form,
             self.cancel_form,
             self.complete_form,
-            self.update_form_status,
             self.get_all_forms,
             self.start_form,
             self.get_form
         ]
 
         self.functions_that_need_cognito_permissions = [
-            self.get_form_by_user_id,
             self.create_form,
             self.cancel_form,
             self.complete_form,
-            self.update_form_status,
             self.get_all_forms,
             self.start_form,
             self.get_form
