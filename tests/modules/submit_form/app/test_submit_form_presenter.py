@@ -1,10 +1,10 @@
 import json
-from src.modules.complete_form.app.complete_form_presenter import lambda_handler
+from src.modules.submit_form.app.submit_form_presenter import lambda_handler
 
 
-class Test_CompleteFormPresenter:
+class Test_SubmitFormPresenter:
 
-    def test_complete_form_presenter(self):
+    def test_submit_form_presenter(self):
         event = {
             "version": "2.0",
             "routeKey": "$default",
@@ -51,9 +51,10 @@ class Test_CompleteFormPresenter:
             },
             "body": {
                 "form_id": "d61dbf66-a10f-11ed-a8fc-0242ac120010",
+                "completed_at": 123,
                 "sections": [
                     {
-                        "section_id": "1",
+                        "section_id": 1,
                         "fields": [
                             {
                                 "field_type": "TEXT_FIELD",
@@ -67,8 +68,7 @@ class Test_CompleteFormPresenter:
                             }
                         ]
                     }
-                ],
-                "vinculation_form_id": "d61dbf66-a10f-11ed-a8fc-0242ac120011"
+                ]
             },
             "pathParameters": None,
             "isBase64Encoded": None,
@@ -77,9 +77,5 @@ class Test_CompleteFormPresenter:
 
         response = lambda_handler(event, None)
 
-        response_json = json.loads(response["body"])
-
-        assert response["statusCode"] == 200
-        assert response_json['message'] == 'Formulário finalizado com sucesso!'
-        assert response_json['form']['form_id'] == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert response_json['form']['sections'][0]['fields'][0]['value'] == 'poggers'
+        assert response["statusCode"] == 204
+        assert json.loads(response["body"]) == {}
