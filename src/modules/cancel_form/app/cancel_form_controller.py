@@ -22,28 +22,36 @@ class CancelFormController:
             if request.data.get('form_id') is None:
                 raise MissingParameters('form_id')
             
-            selected_option = request.data.get('selected_option')
+            selected_option = request.data.get('selected_option') or request.data.get('option')
             if selected_option is None:
                 raise MissingParameters('selected_option')
             if type(selected_option) is not str:
                 raise WrongTypeParameter(fieldName='selected_option', fieldTypeExpected='str', fieldTypeReceived=type(request.data.get('selected_option')))
             
-            justification_text = request.data.get('justification_text')
+            justification_text = request.data.get('justification_text') or request.data.get('text')
             if justification_text is not None:
                 if type(justification_text) is not str:
                     raise WrongTypeParameter(fieldName='justification_text', fieldTypeExpected='str', fieldTypeReceived=type(justification_text))
             
-            justification_image = request.data.get('justification_image')
+            justification_image = request.data.get('justification_image') or request.data.get('image')
             if justification_image is not None:
                 if type(justification_image) is not str:
                     raise WrongTypeParameter(fieldName='justification_image', fieldTypeExpected='str', fieldTypeReceived=type(justification_image))
+
+            if request.data.get('cancelled_at') is None:
+                raise MissingParameters('cancelled_at')
+            try:
+                cancelled_at = int(request.data.get('cancelled_at'))
+            except (TypeError, ValueError):
+                raise WrongTypeParameter(fieldName='cancelled_at', fieldTypeExpected='int', fieldTypeReceived=type(request.data.get('cancelled_at')))
             
             form = self.CancelFormUsecase(
                 requester_id=requester_user.user_id,
                 form_id=request.data.get('form_id'),
                 selected_option=selected_option,
                 justification_text=justification_text,
-                justification_image=justification_image
+                justification_image=justification_image,
+                cancelled_at=cancelled_at
             )
 
             viewmodel = CancelFormViewmodel(form=form)
