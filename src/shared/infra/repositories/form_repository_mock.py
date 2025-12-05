@@ -215,14 +215,3 @@ class FormRepositoryMock(IFormRepository):
                 form.updated_at = updated_at
                 return form
         return None
-
-    def complete_form(self, user_id: str, form_id: str, sections: List[Section], completed_at: int, updated_at: int, vinculation_form_id: Optional[str] = None, **kwargs) -> Form:
-        for form in self.forms:
-            if form.id == form_id:
-                form.status = FORM_STATUS.COMPLETED
-                form.sections = sections
-                form.completed_at = completed_at
-                form.updated_at = updated_at
-                form.vinculation_form_id = vinculation_form_id
-                return form
-        return None
