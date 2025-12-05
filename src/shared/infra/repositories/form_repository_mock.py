@@ -174,13 +174,35 @@ class FormRepositoryMock(IFormRepository):
                 raise DuplicatedItem('Formulário já existe')
         self.forms.append(form)
         return form
-    
-    def update_form_status(self, user_id: str, form_id: str, status: FORM_STATUS, in_progress_at: Optional[int] = None, updated_at: Optional[int] = None) -> Form:
+
+    def update_form(
+        self,
+        user_id: str,
+        form_id: str,
+        status: Optional[FORM_STATUS] = None,
+        in_progress_at: Optional[int] = None,
+        completed_at: Optional[int] = None,
+        cancelled_at: Optional[int] = None,
+        updated_at: Optional[int] = None,
+        sections: Optional[List[Section]] = None,
+        justification: Optional[Justification] = None,
+    ) -> Form:
         for form in self.forms:
             if form.id == form_id:
-                form.status = status
-                form.in_progress_at = in_progress_at
-                form.updated_at = updated_at or form.updated_at
+                if status is not None:
+                    form.status = status
+                if in_progress_at is not None:
+                    form.in_progress_at = in_progress_at
+                if completed_at is not None:
+                    form.completed_at = completed_at
+                if cancelled_at is not None:
+                    form.cancelled_at = cancelled_at
+                if updated_at is not None:
+                    form.updated_at = updated_at
+                if sections is not None:
+                    form.sections = sections
+                if justification is not None:
+                    form.justification = justification
                 return form
         return None
     

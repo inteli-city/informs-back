@@ -33,5 +33,5 @@ class UpdateFormStatusUsecase:
         else:
             start_date = datetime.datetime.now().timestamp()
         
-        return self.form_repository.update_form_status(user_id=user.user_id, form_id=form_id, status=status, start_date=start_date)
+        return self.form_repository.update_form(user_id=user.user_id, form_id=form_id, status=status, in_progress_at=start_date)
         

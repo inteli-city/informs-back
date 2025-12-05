@@ -7,6 +7,7 @@ from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.enums.priority_enum import PRIORITY
 from src.shared.helpers.errors.domain_errors import EntityError
+from src.shared.helpers.errors.usecase_errors import ForbiddenAction
 
 
 class Form(abc.ABC):
@@ -194,3 +195,17 @@ class Form(abc.ABC):
         if len(id_to_validate) != Form.ID_LENGTH:
             return False
         return True
+
+    def start(self, in_progress_at: int, updated_at: int):
+        if not isinstance(in_progress_at, int):
+            raise EntityError('in_progress_at')
+        if not isinstance(updated_at, int):
+            raise EntityError('updated_at')
+
+        if self.status != FORM_STATUS.PENDING:
+            raise ForbiddenAction("Formulário não está aberto para início")
+
+        self.status = FORM_STATUS.IN_PROGRESS
+        self.in_progress_at = in_progress_at
+        self.start_date = in_progress_at  # compat
+        self.updated_at = updated_at
