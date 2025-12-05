@@ -142,8 +142,6 @@ class FormRepositoryDynamo(IFormRepository):
         updated_at: Optional[int] = None,
         sections: Optional[List[Section]] = None,
         justification: Optional[Justification] = None,
-        vinculation_form_id: Optional[str] = None,
-        extra_fields: Optional[dict] = None,
     ) -> Form:
         update_dict = {}
 
@@ -168,11 +166,6 @@ class FormRepositoryDynamo(IFormRepository):
         _put("updated_at", updated_at)
         _put("sections", sections)
         _put("justification", justification)
-        _put("vinculation_form_id", vinculation_form_id)
-
-        if extra_fields:
-            for key, value in extra_fields.items():
-                _put(key, value)
 
         resp = self.dynamo.update_item(
             partition_key=self.form_partition_key_format(form_id),

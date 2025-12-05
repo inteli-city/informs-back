@@ -186,8 +186,6 @@ class FormRepositoryMock(IFormRepository):
         updated_at: Optional[int] = None,
         sections: Optional[List[Section]] = None,
         justification: Optional[Justification] = None,
-        vinculation_form_id: Optional[str] = None,
-        extra_fields: Optional[dict] = None,
     ) -> Form:
         for form in self.forms:
             if form.id == form_id:
@@ -205,12 +203,6 @@ class FormRepositoryMock(IFormRepository):
                     form.sections = sections
                 if justification is not None:
                     form.justification = justification
-                if vinculation_form_id is not None:
-                    form.vinculation_form_id = vinculation_form_id
-                if extra_fields:
-                    for key, value in extra_fields.items():
-                        if hasattr(form, key):
-                            setattr(form, key, value)
                 return form
         return None
     

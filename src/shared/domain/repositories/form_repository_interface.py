@@ -37,8 +37,6 @@ class IFormRepository(ABC):
         updated_at: Optional[int] = None,
         sections: Optional[List[Section]] = None,
         justification: Optional[Justification] = None,
-        vinculation_form_id: Optional[str] = None,
-        extra_fields: Optional[dict] = None,
     ) -> Form:
         pass
 
