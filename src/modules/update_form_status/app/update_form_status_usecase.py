@@ -22,7 +22,7 @@ class UpdateFormStatusUsecase:
         if user.user_id != form.user_id:
             raise ForbiddenAction("Usuário não pode alterar o status de um formulário não direcionado a ele")
         
-        if status is FORM_STATUS.CANCELED or status is FORM_STATUS.CONCLUDED:
+        if status in [FORM_STATUS.CANCELLED, FORM_STATUS.COMPLETED]:
             raise ForbiddenAction("Não é possível alterar o status para cancelado ou concluído")
 
         if status == form.status:
