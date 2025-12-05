@@ -131,10 +131,25 @@ class FormRepositoryDynamo(IFormRepository):
         
         return form
 
-    def update_form(self, user_id: str, form_id: str, fields: dict) -> Form:
+    def update_form(
+        self,
+        user_id: str,
+        form_id: str,
+        status: Optional[FORM_STATUS] = None,
+        in_progress_at: Optional[int] = None,
+        completed_at: Optional[int] = None,
+        cancelled_at: Optional[int] = None,
+        updated_at: Optional[int] = None,
+        sections: Optional[List[Section]] = None,
+        justification: Optional[Justification] = None,
+        vinculation_form_id: Optional[str] = None,
+        extra_fields: Optional[dict] = None,
+    ) -> Form:
         update_dict = {}
 
-        for key, value in fields.items():
+        def _put(key, value):
+            if value is None:
+                return
             if isinstance(value, FORM_STATUS):
                 update_dict[key] = value.value
             elif isinstance(value, Justification):
@@ -146,26 +161,25 @@ class FormRepositoryDynamo(IFormRepository):
             else:
                 update_dict[key] = value
 
+        _put("status", status)
+        _put("in_progress_at", in_progress_at)
+        _put("completed_at", completed_at)
+        _put("cancelled_at", cancelled_at)
+        _put("updated_at", updated_at)
+        _put("sections", sections)
+        _put("justification", justification)
+        _put("vinculation_form_id", vinculation_form_id)
+
+        if extra_fields:
+            for key, value in extra_fields.items():
+                _put(key, value)
+
         resp = self.dynamo.update_item(
             partition_key=self.form_partition_key_format(form_id),
             sort_key=self.form_sort_key_format(form_id),
             update_dict=update_dict
         )
 
-        if "Attributes" not in resp:
-            return None
-        
-        return FormDynamoDTO.from_dynamo(resp['Attributes']).to_entity()
-    
-    def update_form_status(self, user_id: str, form_id: str, status: FORM_STATUS, in_progress_at: Optional[int] = None, updated_at: Optional[int] = None) -> Form:
-        update_dict = {
-            "status": status.value,
-            "in_progress_at": Decimal(in_progress_at) if in_progress_at is not None else None,
-            "updated_at": Decimal(updated_at) if updated_at is not None else None
-        }
-
-        resp = self.dynamo.update_item(partition_key=self.form_partition_key_format(form_id), sort_key=self.form_sort_key_format(form_id), update_dict=update_dict)
-        
         if "Attributes" not in resp:
             return None
         
