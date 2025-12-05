@@ -95,11 +95,18 @@ class Test_FormRepositoryMock:
         assert form.justification.selected.text == 'text'
         assert form.justification.selected.image_url == 'image'
     
-    def test_form_repository_mock_complete_form(self):
+    def test_form_repository_mock_submit_form(self):
         repo = FormRepositoryMock()
         text_field = TextField(label='label', required=True, key='key', order=1, regex='regex', max_length=10, value='value')
         section = Section(section_id=2, fields=[text_field, text_field])
-        form = repo.complete_form('d61dbf66-a10f-11ed-a8fc-0242ac120001', repo.forms[0].id, [section], completed_at=1, updated_at=1)
+        form = repo.update_form(
+            user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
+            form_id=repo.forms[0].id,
+            status=FORM_STATUS.COMPLETED,
+            sections=[section],
+            completed_at=1,
+            updated_at=1
+        )
 
         assert form.status == FORM_STATUS.COMPLETED
         assert form.sections == [section]
