@@ -175,21 +175,42 @@ class FormRepositoryMock(IFormRepository):
         self.forms.append(form)
         return form
 
-    def update_form(self, user_id: str, form_id: str, fields: dict) -> Form:
+    def update_form(
+        self,
+        user_id: str,
+        form_id: str,
+        status: Optional[FORM_STATUS] = None,
+        in_progress_at: Optional[int] = None,
+        completed_at: Optional[int] = None,
+        cancelled_at: Optional[int] = None,
+        updated_at: Optional[int] = None,
+        sections: Optional[List[Section]] = None,
+        justification: Optional[Justification] = None,
+        vinculation_form_id: Optional[str] = None,
+        extra_fields: Optional[dict] = None,
+    ) -> Form:
         for form in self.forms:
             if form.id == form_id:
-                for key, value in fields.items():
-                    if hasattr(form, key):
-                        setattr(form, key, value)
-                return form
-        return None
-    
-    def update_form_status(self, user_id: str, form_id: str, status: FORM_STATUS, in_progress_at: Optional[int] = None, updated_at: Optional[int] = None) -> Form:
-        for form in self.forms:
-            if form.id == form_id:
-                form.status = status
-                form.in_progress_at = in_progress_at
-                form.updated_at = updated_at or form.updated_at
+                if status is not None:
+                    form.status = status
+                if in_progress_at is not None:
+                    form.in_progress_at = in_progress_at
+                if completed_at is not None:
+                    form.completed_at = completed_at
+                if cancelled_at is not None:
+                    form.cancelled_at = cancelled_at
+                if updated_at is not None:
+                    form.updated_at = updated_at
+                if sections is not None:
+                    form.sections = sections
+                if justification is not None:
+                    form.justification = justification
+                if vinculation_form_id is not None:
+                    form.vinculation_form_id = vinculation_form_id
+                if extra_fields:
+                    for key, value in extra_fields.items():
+                        if hasattr(form, key):
+                            setattr(form, key, value)
                 return form
         return None
     
