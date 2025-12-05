@@ -26,11 +26,20 @@ class IFormRepository(ABC):
         pass
 
     @abstractmethod
-    def update_form(self, user_id: str, form_id: str, fields: dict) -> Form:
-        pass
-
-    @abstractmethod
-    def update_form_status(self, user_id: str, form_id: str, status: FORM_STATUS, in_progress_at: Optional[int] = None, updated_at: Optional[int] = None) -> Form:
+    def update_form(
+        self,
+        user_id: str,
+        form_id: str,
+        status: Optional[FORM_STATUS] = None,
+        in_progress_at: Optional[int] = None,
+        completed_at: Optional[int] = None,
+        cancelled_at: Optional[int] = None,
+        updated_at: Optional[int] = None,
+        sections: Optional[List[Section]] = None,
+        justification: Optional[Justification] = None,
+        vinculation_form_id: Optional[str] = None,
+        extra_fields: Optional[dict] = None,
+    ) -> Form:
         pass
 
     @abstractmethod
