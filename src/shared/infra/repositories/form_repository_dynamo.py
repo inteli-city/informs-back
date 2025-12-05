@@ -130,6 +130,32 @@ class FormRepositoryDynamo(IFormRepository):
         )
         
         return form
+
+    def update_form(self, user_id: str, form_id: str, fields: dict) -> Form:
+        update_dict = {}
+
+        for key, value in fields.items():
+            if isinstance(value, FORM_STATUS):
+                update_dict[key] = value.value
+            elif isinstance(value, Justification):
+                update_dict[key] = JustificationDTO.from_entity(value).to_dynamo()
+            elif isinstance(value, list) and value and isinstance(value[0], Section):
+                update_dict[key] = [SectionDTO.from_entity(section).to_dynamo() for section in value]
+            elif isinstance(value, (int, float)):
+                update_dict[key] = Decimal(str(value))
+            else:
+                update_dict[key] = value
+
+        resp = self.dynamo.update_item(
+            partition_key=self.form_partition_key_format(form_id),
+            sort_key=self.form_sort_key_format(form_id),
+            update_dict=update_dict
+        )
+
+        if "Attributes" not in resp:
+            return None
+        
+        return FormDynamoDTO.from_dynamo(resp['Attributes']).to_entity()
     
     def update_form_status(self, user_id: str, form_id: str, status: FORM_STATUS, in_progress_at: Optional[int] = None, updated_at: Optional[int] = None) -> Form:
         update_dict = {
@@ -168,20 +194,6 @@ class FormRepositoryDynamo(IFormRepository):
                 SectionDTO.from_entity(section).to_dynamo() for section in sections
             ],
             "completed_at": Decimal(completed_at),
-            "updated_at": Decimal(updated_at)
-        }
-
-        resp = self.dynamo.update_item(partition_key=self.form_partition_key_format(form_id), sort_key=self.form_sort_key_format(form_id), update_dict=update_dict)
-        
-        if "Attributes" not in resp:
-            return None
-        
-        return FormDynamoDTO.from_dynamo(resp['Attributes']).to_entity()
-
-    def start_form(self, user_id: str, form_id: str, in_progress_at: int, updated_at: int) -> Form:
-        update_dict = {
-            "status": FORM_STATUS.IN_PROGRESS.value,
-            "in_progress_at": Decimal(in_progress_at),
             "updated_at": Decimal(updated_at)
         }
 

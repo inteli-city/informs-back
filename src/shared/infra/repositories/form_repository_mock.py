@@ -174,6 +174,15 @@ class FormRepositoryMock(IFormRepository):
                 raise DuplicatedItem('Formulário já existe')
         self.forms.append(form)
         return form
+
+    def update_form(self, user_id: str, form_id: str, fields: dict) -> Form:
+        for form in self.forms:
+            if form.id == form_id:
+                for key, value in fields.items():
+                    if hasattr(form, key):
+                        setattr(form, key, value)
+                return form
+        return None
     
     def update_form_status(self, user_id: str, form_id: str, status: FORM_STATUS, in_progress_at: Optional[int] = None, updated_at: Optional[int] = None) -> Form:
         for form in self.forms:
@@ -202,14 +211,5 @@ class FormRepositoryMock(IFormRepository):
                 form.completed_at = completed_at
                 form.updated_at = updated_at
                 form.vinculation_form_id = vinculation_form_id
-                return form
-        return None
-
-    def start_form(self, user_id: str, form_id: str, in_progress_at: int, updated_at: int) -> Form:
-        for form in self.forms:
-            if form.id == form_id:
-                form.status = FORM_STATUS.IN_PROGRESS
-                form.in_progress_at = in_progress_at
-                form.updated_at = updated_at
                 return form
         return None

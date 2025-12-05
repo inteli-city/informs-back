@@ -26,6 +26,10 @@ class IFormRepository(ABC):
         pass
 
     @abstractmethod
+    def update_form(self, user_id: str, form_id: str, fields: dict) -> Form:
+        pass
+
+    @abstractmethod
     def update_form_status(self, user_id: str, form_id: str, status: FORM_STATUS, in_progress_at: Optional[int] = None, updated_at: Optional[int] = None) -> Form:
         pass
 
@@ -35,8 +39,4 @@ class IFormRepository(ABC):
 
     @abstractmethod
     def complete_form(self, user_id: str, form_id: str, sections: List[Section], completed_at: int, updated_at: int) -> Form:
-        pass
-
-    @abstractmethod
-    def start_form(self, user_id: str, form_id: str, in_progress_at: int, updated_at: int) -> Form:
         pass
