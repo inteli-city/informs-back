@@ -10,13 +10,14 @@ from src.shared.domain.repositories.image_repository_interface import IImageRepo
 from src.shared.environments import Environments
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 
-class CompleteFormUsecase:
+
+class SubmitFormUsecase:
 
     def __init__(self, form_repo: IFormRepository, image_repo: IImageRepository):
         self.form_repo = form_repo
         self.image_repo = image_repo
     
-    def __call__(self, user_id: str, form_id: str, sections: List[Section], vinculation_form_id: Optional[str] = None) -> Form:
+    def __call__(self, user_id: str, form_id: str, sections: List[Section], completed_at: int) -> Form:
         form = self.form_repo.get_form_by_id(user_id=user_id, form_id=form_id)
 
         if form is None:
@@ -32,11 +33,6 @@ class CompleteFormUsecase:
             for field in section.fields:
                 if field.required and field.value is None:
                     raise ForbiddenAction("Campo obrigatório não preenchido")
-                
-        if vinculation_form_id is not None:
-            vinculation_form = self.form_repo.get_form_by_id(user_id=user_id, form_id=vinculation_form_id)
-            if vinculation_form is None:
-                raise NoItemsFound("Formulário de vinculação não encontrado")
         
         for section in sections:
             for field in section.fields:
@@ -45,4 +41,13 @@ class CompleteFormUsecase:
                     self.image_repo.put_image(base_64_image=field.value, image_path=image_path)
                     field.value = f'https://{Environments.get_envs().bucket_name}.s3.sa-east-1.amazonaws.com/{image_path}'
         
-        return self.form_repo.complete_form(user_id=user_id, form_id=form_id, sections=sections, vinculation_form_id=vinculation_form_id)
+        updated_at = int(datetime.now().timestamp() * 1000)
+        
+        return self.form_repo.update_form(
+            user_id=user_id,
+            form_id=form_id,
+            status=FORM_STATUS.COMPLETED,
+            sections=sections,
+            completed_at=completed_at,
+            updated_at=updated_at
+        )

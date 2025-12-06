@@ -1,4 +1,4 @@
-from src.modules.complete_form.app.complete_form_viewmodel import CompleteFormViewmodel, FieldViewmodel, FormViewmodel, InformationFieldViewmodel, JustificationOptionViewmodel, JustificationViewmodel, SectionViewmodel
+from src.modules.submit_form.app.submit_form_viewmodel import SubmitFormViewmodel, FieldViewmodel, FormViewmodel, InformationFieldViewmodel, JustificationOptionViewmodel, JustificationViewmodel, SectionViewmodel
 from src.shared.domain.entities.field import FileField, TextField
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.information_field import ImageInformationField, MapInformationField, TextInformationField
@@ -21,7 +21,7 @@ justification = Justification(
     justification_image='image'
 )
 
-class Test_CompleteFormViewmodel:
+class Test_SubmitFormViewmodel:
 
     def test_field_viewmodel(self):
         viewmodel = FieldViewmodel(field=TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='value'))
@@ -30,9 +30,12 @@ class Test_CompleteFormViewmodel:
 
         excepted = {
             'field_type': 'TEXT_FIELD',
+            'label': 'placeholder',
             'placeholder': 'placeholder',
             'required': True,
             'key': 'key',
+            'order': 0,
+            'help_text': None,
             'regex': 'regex',
             'formatting': 'formatting',
             'max_length': 10,
@@ -48,9 +51,12 @@ class Test_CompleteFormViewmodel:
 
         excepted = {
             'field_type': 'FILE_FIELD',
+            'label': 'placeholder',
             'placeholder': 'placeholder',
             'required': True,
             'key': 'key',
+            'order': 0,
+            'help_text': None,
             'file_type': 'IMAGE',
             'min_quantity': 1,
             'max_quantity': 10,
@@ -78,9 +84,12 @@ class Test_CompleteFormViewmodel:
 
         excepted = {
             'field_type': 'TEXT_FIELD',
+            'label': 'placeholder',
             'placeholder': 'placeholder',
             'required': True,
             'key': 'key',
+            'order': 0,
+            'help_text': None,
             'regex': 'regex',
             'formatting': 'formatting',
             'max_length': None,
@@ -95,7 +104,7 @@ class Test_CompleteFormViewmodel:
 
         viewmodel = SectionViewmodel(
             section=Section(
-                section_id='section_id',
+                section_id=1,
                 fields=[field]
             )
         )
@@ -103,12 +112,15 @@ class Test_CompleteFormViewmodel:
         response = viewmodel.to_dict()
 
         excepted = {
-            'section_id': 'section_id',
+            'section_id': 1,
             'fields': [{
                 'field_type': 'FILE_FIELD',
+                'label': 'placeholder',
                 'placeholder': 'placeholder',
                 'required': True,
                 'key': 'key',
+                'order': 0,
+                'help_text': None,
                 'file_type': 'IMAGE',
                 'min_quantity': 1,
                 'max_quantity': 10,
@@ -155,7 +167,7 @@ class Test_CompleteFormViewmodel:
         field = FileField(placeholder='placeholder', required=True, key='key', file_type=FILE_TYPE.IMAGE, min_quantity=1, max_quantity=10, value=['value'])
 
         section = Section(
-                section_id='section_id',
+                section_id=1,
                 fields=[field]
             )
         
@@ -164,6 +176,7 @@ class Test_CompleteFormViewmodel:
                 form_title='FORM_TITLE',
                 form_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 creator_user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
+                created_by='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 vinculation_form_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 can_vinculate=True,
@@ -181,8 +194,10 @@ class Test_CompleteFormViewmodel:
                 status=FORM_STATUS.IN_PROGRESS,
                 expiration_date=1,
                 creation_date=1,
-                start_date=1,
-                conclusion_date=1,
+                created_at=1,
+                updated_at=1,
+                in_progress_at=1,
+                completed_at=1,
                 justification=justification,
                 comments='comments',
                 sections=[section],
@@ -213,7 +228,7 @@ class Test_CompleteFormViewmodel:
             'longitude': 1.0,
             'region': 'region',
             'description': 'description',
-            'priority': 'HIGH',
+            'priority': PRIORITY.HIGH.value,
             'status': 'IN_PROGRESS',
             'expiration_date': 1,
             'creation_date': 1,
@@ -232,12 +247,15 @@ class Test_CompleteFormViewmodel:
             },
             'comments': 'comments',
             'sections': [{
-                'section_id': 'section_id',
+                'section_id': 1,
                 'fields': [{
                     'field_type': 'FILE_FIELD',
+                    'label': 'placeholder',
                     'placeholder': 'placeholder',
                     'required': True,
                     'key': 'key',
+                    'order': 0,
+                    'help_text': None,
                     'file_type': 'IMAGE',
                     'min_quantity': 1,
                     'max_quantity': 10,
@@ -263,11 +281,11 @@ class Test_CompleteFormViewmodel:
 
         assert response == excepted
     
-    def test_complete_form_viewmodel(self):
+    def test_submit_form_viewmodel(self):
         field = FileField(placeholder='placeholder', required=True, key='key', file_type=FILE_TYPE.IMAGE, min_quantity=1, max_quantity=10, value=['value'])
 
         section = Section(
-                section_id='section_id',
+                section_id=1,
                 fields=[field]
             )
         
@@ -275,6 +293,7 @@ class Test_CompleteFormViewmodel:
                 form_title='FORM TITLE',
                 form_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 creator_user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
+                created_by='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 vinculation_form_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 can_vinculate=True,
@@ -292,8 +311,10 @@ class Test_CompleteFormViewmodel:
                 status=FORM_STATUS.IN_PROGRESS,
                 expiration_date=1,
                 creation_date=1,
-                start_date=1,
-                conclusion_date=1,
+                created_at=1,
+                updated_at=1,
+                in_progress_at=1,
+                completed_at=1,
                 justification=justification,
                 comments='comments',
                 sections=[section],
@@ -304,7 +325,7 @@ class Test_CompleteFormViewmodel:
                 ]
             )
 
-        viewmodel = CompleteFormViewmodel(
+        viewmodel = SubmitFormViewmodel(
             form=form
         )
 
@@ -328,7 +349,7 @@ class Test_CompleteFormViewmodel:
                     'longitude': 1.0,
                     'region': 'region',
                     'description': 'description',
-                    'priority': 'HIGH',
+                    'priority': PRIORITY.HIGH.value,
                     'status': 'IN_PROGRESS',
                     'expiration_date': 1,
                     'creation_date': 1,
@@ -347,13 +368,16 @@ class Test_CompleteFormViewmodel:
                     'comments': 'comments',
                     'sections': [
                         {
-                            'section_id': 'section_id',
+                            'section_id': 1,
                             'fields': [
                                 {
                                     'field_type': 'FILE_FIELD',
+                                    'label': 'placeholder',
                                     'placeholder': 'placeholder',
                                     'required': True,
                                     'key': 'key',
+                                    'order': 0,
+                                    'help_text': None,
                                     'file_type': 'IMAGE',
                                     'min_quantity': 1,
                                     'max_quantity': 10,

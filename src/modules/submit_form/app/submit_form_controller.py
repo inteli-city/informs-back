@@ -1,17 +1,17 @@
-from .complete_form_usecase import CompleteFormUsecase
-from .complete_form_viewmodel import CompleteFormViewmodel
+from .submit_form_usecase import SubmitFormUsecase
+from .submit_form_viewmodel import SubmitFormViewmodel
 from src.shared.helpers.errors.controller_errors import MissingParameters, WrongTypeParameter
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
-from src.shared.helpers.external_interfaces.http_codes import OK, BadRequest, Forbidden, InternalServerError, NotFound
+from src.shared.helpers.external_interfaces.http_codes import NoContent, BadRequest, Forbidden, InternalServerError, NotFound
 from src.shared.infra.dtos.section_dto import SectionDTO
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 
 
-class CompleteFormController:
-    def __init__(self, usecase: CompleteFormUsecase):
-        self.CompleteFormUsecase = usecase
+class SubmitFormController:
+    def __init__(self, usecase: SubmitFormUsecase):
+        self.submit_form_usecase = usecase
     
     def __call__(self, request: IRequest) -> IResponse:
         try:
@@ -22,7 +22,14 @@ class CompleteFormController:
 
             if request.data.get('form_id') is None:
                 raise MissingParameters('form_id')
-            
+            completed_at = request.data.get('completed_at')
+            if completed_at is None:
+                raise MissingParameters('completed_at')
+            try:
+                completed_at = int(completed_at)
+            except (TypeError, ValueError):
+                raise WrongTypeParameter(fieldName='completed_at', fieldTypeExpected='int', fieldTypeReceived=type(completed_at))
+
             sections = request.data.get('sections')
             if sections is None:
                 raise MissingParameters('sections')
@@ -32,22 +39,15 @@ class CompleteFormController:
 
             if len(sections) == 0:
                 raise MissingParameters('sections')
-                        
-            vinculation_form_id = request.data.get('vinculation_form_id')
-            if vinculation_form_id is not None:
-                if type(vinculation_form_id) is not str:
-                    raise WrongTypeParameter(fieldName='vinculation_form_id', fieldTypeExpected='str', fieldTypeReceived=type(vinculation_form_id))
                 
-            form = self.CompleteFormUsecase(
+            form = self.submit_form_usecase(
                 user_id=requester_user.user_id,
                 form_id=request.data.get('form_id'),
                 sections=sections,
-                vinculation_form_id=request.data.get('vinculation_form_id')
+                completed_at=completed_at
             )
 
-            viewmodel = CompleteFormViewmodel(form=form)
-            
-            return OK(viewmodel.to_dict())
+            return NoContent()
 
         except NoItemsFound as err:
             return NotFound(body=err.message)

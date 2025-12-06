@@ -194,19 +194,3 @@ class FormRepositoryDynamo(IFormRepository):
         
         return FormDynamoDTO.from_dynamo(resp['Attributes']).to_entity()
     
-    def complete_form(self, user_id: str, form_id: str, sections: List[Section], completed_at: int, updated_at: int) -> Form:
-        update_dict = {
-            "status": FORM_STATUS.COMPLETED.value,
-            "sections": [
-                SectionDTO.from_entity(section).to_dynamo() for section in sections
-            ],
-            "completed_at": Decimal(completed_at),
-            "updated_at": Decimal(updated_at)
-        }
-
-        resp = self.dynamo.update_item(partition_key=self.form_partition_key_format(form_id), sort_key=self.form_sort_key_format(form_id), update_dict=update_dict)
-        
-        if "Attributes" not in resp:
-            return None
-        
-        return FormDynamoDTO.from_dynamo(resp['Attributes']).to_entity()
