@@ -103,6 +103,7 @@ class LambdaHttpRequest(HttpRequest):
         """
         _headers = data.get("headers")
         _query_string_parameters = data.get("queryStringParameters")
+        _path_parameters = data.get("pathParameters")
         _body = None
 
         if "body" in data:
@@ -111,7 +112,7 @@ class LambdaHttpRequest(HttpRequest):
             except:
                 _body = data.get("body")
 
-        super().__init__(body=_body, headers=_headers, query_params=_query_string_parameters)
+        super().__init__(body=_body, headers=_headers, query_params=_query_string_parameters, path_params=_path_parameters)
 
         self.version = data.get("version")
         self.raw_path = data.get("rawPath")
