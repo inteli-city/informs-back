@@ -4,8 +4,6 @@ from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.template import Template
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
 from src.shared.helpers.errors.domain_errors import EntityError
-from src.shared.helpers.errors.usecase_errors import DuplicatedItem
-
 
 class CreateTemplateUsecase:
     def __init__(self, template_repo: ITemplateRepository):
@@ -34,7 +32,4 @@ class CreateTemplateUsecase:
             sections=sessions,
         )
 
-        try:
-            return self.template_repo.create_template(template)
-        except ValueError as err:
-            raise DuplicatedItem(str(err))
+        return self.template_repo.create(template)
