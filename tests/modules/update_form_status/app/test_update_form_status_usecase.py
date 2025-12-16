@@ -31,9 +31,9 @@ class Test_UpdateFormStatusUseCase:
             email="gabriel@gmail.com", name="Gabriel Godoy", user_id="d61dbf66-a10f-11ed-a8fc-0242ac120001", systems=["GAIA","JUNDIAI"]
         )
 
-        result = usecase(user, form.form_id, FORM_STATUS.NOT_STARTED)
+        result = usecase(user, form.form_id, FORM_STATUS.PENDING)
 
-        assert result.status == FORM_STATUS.NOT_STARTED
+        assert result.status == FORM_STATUS.PENDING
         assert result.start_date is None
     
     def test_update_form_status_usecase_same_status(self):
