@@ -9,8 +9,8 @@ class Section(abc.ABC):
     section_id: int
     fields: List[Field]
 
-    def __init__(self, section_id, fields: List[Field]):
-        if not isinstance(section_id, (int, str)):
+    def __init__(self, section_id: int, fields: List[Field]):
+        if not isinstance(section_id, int):
             raise EntityError('section_id')
         self.section_id = section_id
 
