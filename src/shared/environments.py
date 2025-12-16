@@ -2,6 +2,7 @@ from enum import Enum
 import os
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.image_repository_interface import IImageRepository
+from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
 
 class STAGE(Enum):
     DOTENV = "DOTENV"
@@ -65,7 +66,7 @@ class Environments:
             return FormRepositoryDynamo
         else:
             raise Exception("No repository found for this stage")
-    
+
     @staticmethod
     def get_image_repo() -> IImageRepository:
         if Environments.get_envs().stage in [STAGE.TEST, STAGE.DOTENV]:
@@ -76,6 +77,14 @@ class Environments:
             return ImageRepositoryS3
         else:
             raise Exception("No repository found for this stage")
+
+    @staticmethod
+    def get_template_repo() -> ITemplateRepository:
+        if Environments.get_envs().stage in [STAGE.TEST, STAGE.DOTENV]:
+            from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
+            return TemplateRepositoryMock
+        else:
+            raise Exception("No template repository configured for this stage")
 
     @staticmethod
     def get_envs() -> "Environments":
