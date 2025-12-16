@@ -36,7 +36,7 @@ class Template(abc.ABC):
         if not Template.validate_id(template_identifier):
             raise EntityError("id")
         self.id = template_identifier
-        self.template_id = template_identifier  # compatibility alias
+        self.template_id = template_identifier
 
         if not isinstance(name, str) or not name:
             raise EntityError("name")
