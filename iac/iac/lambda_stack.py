@@ -43,6 +43,8 @@ class LambdaStack(Construct):
                                                  )
         forms_resource = api_gateway_resource.add_resource("forms")
         form_id_resource = forms_resource.add_resource("{form_id}")
+        templates_resource = api_gateway_resource.add_resource("templates")
+        template_id_resource = templates_resource.add_resource("{template_id}")
 
         self.create_form = self.create_lambda_api_gateway_integration(
             module_name="create_form",
@@ -94,6 +96,15 @@ class LambdaStack(Construct):
             method="POST",
             api_resource=form_id_resource,
             path="cancel",
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.create_template = self.create_lambda_api_gateway_integration(
+            module_name="create_template",
+            method="POST",
+            api_resource=templates_resource,
+            path=None,
             environment_variables=environment_variables,
             authorizer=authorizer,
         )
