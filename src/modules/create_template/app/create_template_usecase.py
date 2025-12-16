@@ -32,4 +32,4 @@ class CreateTemplateUsecase:
             sections=sessions,
         )
 
-        return self.template_repo.create(template)
+        return self.template_repo.create_template(template)

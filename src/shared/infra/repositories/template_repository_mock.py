@@ -1,5 +1,5 @@
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 from src.shared.domain.entities.section import Section
@@ -12,7 +12,7 @@ class TemplateRepositoryMock(ITemplateRepository):
     templates: List[Template]
 
     def __init__(self):
-        now = int(datetime.utcnow().timestamp() * 1000)
+        now = int(datetime.now(timezone.utc).timestamp() * 1000)
         sample_field = TextField(label="Name", required=True, key="name", order=1)
         sample_section = Section(section_id=1, fields=[sample_field])
         base_template = Template(

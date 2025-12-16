@@ -72,10 +72,6 @@ class Template:
         if not isinstance(self.updated_at, int):
             raise EntityError("updated_at")
 
-    @property
-    def sessions(self) -> List[Section]:
-        return self.sections
-
     def changeName(self, new_name: str, updated_at: int):
         if not isinstance(new_name, str) or not new_name:
             raise EntityError("name")

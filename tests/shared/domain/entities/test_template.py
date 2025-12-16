@@ -34,7 +34,7 @@ class TestTemplateEntity:
 
     def test_invalid_name(self):
         with pytest.raises(EntityError):
-            make_template().changeName("", int(datetime.utcnow().timestamp() * 1000))
+            make_template().changeName("", int(datetime.now(timezone.utc).timestamp() * 1000))
 
     def test_change_description(self):
         tpl = make_template()
@@ -52,7 +52,7 @@ class TestTemplateEntity:
         assert tpl.updated_at == new_time
 
     def test_accepts_template_id_alias(self):
-        now = int(datetime.utcnow().timestamp() * 1000)
+        now = int(datetime.now(timezone.utc).timestamp() * 1000)
         section = Section(section_id=1, fields=[TextField(label="Field", required=True, key="field", order=1)])
         tpl = Template(
             name="Template B",
