@@ -51,5 +51,4 @@ class SectionDTO:
         return dynamo_dict
 
     def to_entity(self) -> Section:
-        section_id_cast = int(self.section_id) if str(self.section_id).isdigit() else self.section_id
-        return Section(section_id_cast, self.fields)
+        return Section(self.section_id, self.fields)
