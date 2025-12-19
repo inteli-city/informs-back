@@ -36,6 +36,10 @@ class TemplateRepositoryDynamo(ITemplateRepository):
 
     def create_template(self, template: Template) -> Template:
         dto = TemplateDynamoDTO.from_entity(template).to_dynamo()
+
+        dto["GSI1PK"] = self.template_gsi_partition_key(template.system)
+        dto["GSI1SK"] = self.template_gsi_sort_key(template.is_active, template.name, template.id)
+
         self.dynamo.put_item(
             item=dto,
             partition_key=self.template_partition_key(template.id),

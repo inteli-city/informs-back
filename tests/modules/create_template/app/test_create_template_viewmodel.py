@@ -11,10 +11,11 @@ from src.shared.domain.entities.template import Template
 
 class TestCreateTemplateViewmodel:
     def _make_template(self):
+        template_id = "d61dbf66-a10f-11ed-a8fc-0242ac120099"
         field = TextField(label="Name", required=True, key="name", order=0)
         section = Section(section_id=1, fields=[field])
         return Template(
-            id="template-id",
+            id=template_id,
             name="Template X",
             system="GAIA",
             description="Description",
@@ -45,7 +46,7 @@ class TestCreateTemplateViewmodel:
         template = self._make_template()
         vm = TemplateViewmodel(template)
         result = vm.to_dict()
-        assert result["id"] == "template-id"
+        assert result["id"] == "d61dbf66-a10f-11ed-a8fc-0242ac120099"
         assert result["name"] == "Template X"
         assert result["isActive"] is True
         assert len(result["sessions"]) == 1
