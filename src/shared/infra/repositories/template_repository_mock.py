@@ -46,4 +46,4 @@ class TemplateRepositoryMock(ITemplateRepository):
             if tpl.id == template.id:
                 self.templates[idx] = template
                 return template
-        return None
+        raise ValueError("Template not found")

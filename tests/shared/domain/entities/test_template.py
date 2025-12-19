@@ -34,12 +34,12 @@ class TestTemplateEntity:
 
     def test_invalid_name(self):
         with pytest.raises(EntityError):
-            make_template().changeName("")
+            make_template().change_name("")
 
     def test_change_description(self):
         tpl = make_template()
         previous_updated_at = tpl.updated_at
-        tpl.changeDescription("New desc")
+        tpl.change_description("New desc")
         assert tpl.description == "New desc"
         assert tpl.updated_at == previous_updated_at
 
@@ -47,7 +47,7 @@ class TestTemplateEntity:
         tpl = make_template()
         previous_updated_at = tpl.updated_at
         new_section = Section(section_id=2, fields=[TextField(label="Other", required=False, key="other", order=1)])
-        tpl.changeSections([new_section])
+        tpl.change_sections([new_section])
         assert tpl.sections[0].section_id == 2
         assert tpl.updated_at == previous_updated_at
 

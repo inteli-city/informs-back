@@ -36,7 +36,7 @@ class TestTemplateRepositoryMock:
     def test_update_template(self):
         repo = TemplateRepositoryMock()
         tpl = repo.templates[0]
-        tpl.changeName("Updated")
+        tpl.change_name("Updated")
         repo.update_template(tpl)
 
         fetched = repo.get_template(tpl.id)
