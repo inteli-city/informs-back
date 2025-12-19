@@ -72,17 +72,17 @@ class Template:
         if not isinstance(self.updated_at, int):
             raise EntityError("updated_at")
 
-    def changeName(self, new_name: str):
+    def change_name(self, new_name: str):
         if not isinstance(new_name, str) or not new_name:
             raise EntityError("name")
         self.name = new_name
 
-    def changeDescription(self, new_description: Optional[str]):
+    def change_description(self, new_description: Optional[str]):
         if new_description is not None and not isinstance(new_description, str):
             raise EntityError("description")
         self.description = new_description
 
-    def changeSections(self, sections: List[Section]):
+    def change_sections(self, sections: List[Section]):
         if not isinstance(sections, list) or not sections or not all(isinstance(section, Section) for section in sections):
             raise EntityError("sections")
         self.sections = sections
