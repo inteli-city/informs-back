@@ -52,7 +52,7 @@ class TestTemplateEntity:
         assert tpl.updated_at == previous_updated_at
 
     def test_accepts_template_id_alias(self):
-        now = int(datetime.utcnow().timestamp() * 1000)
+        now = int(datetime.now(timezone.utc).timestamp() * 1000)
         section = Section(section_id=1, fields=[TextField(label="Field", required=True, key="field", order=1)])
         tpl = Template(
             name="Template B",

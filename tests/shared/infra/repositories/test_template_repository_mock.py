@@ -1,6 +1,6 @@
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
 sys.path.append(os.getcwd())
 
@@ -11,7 +11,7 @@ from src.shared.infra.repositories.template_repository_mock import TemplateRepos
 
 
 def make_template():
-    now = int(datetime.utcnow().timestamp() * 1000)
+    now = int(datetime.now(timezone.utc).timestamp() * 1000)
     section = Section(section_id=1, fields=[TextField(label="Field", required=True, key="field", order=1)])
     return Template(
         name="Repo Template",
