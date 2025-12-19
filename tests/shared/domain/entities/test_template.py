@@ -34,22 +34,22 @@ class TestTemplateEntity:
 
     def test_invalid_name(self):
         with pytest.raises(EntityError):
-            make_template().changeName("", int(datetime.now(timezone.utc).timestamp() * 1000))
+            make_template().changeName("")
 
     def test_change_description(self):
         tpl = make_template()
-        new_time = tpl.updated_at + 1
-        tpl.changeDescription("New desc", new_time)
+        previous_updated_at = tpl.updated_at
+        tpl.changeDescription("New desc")
         assert tpl.description == "New desc"
-        assert tpl.updated_at == new_time
+        assert tpl.updated_at == previous_updated_at
 
     def test_change_sections(self):
         tpl = make_template()
-        new_time = tpl.updated_at + 2
+        previous_updated_at = tpl.updated_at
         new_section = Section(section_id=2, fields=[TextField(label="Other", required=False, key="other", order=1)])
-        tpl.changeSections([new_section], new_time)
+        tpl.changeSections([new_section])
         assert tpl.sections[0].section_id == 2
-        assert tpl.updated_at == new_time
+        assert tpl.updated_at == previous_updated_at
 
     def test_accepts_template_id_alias(self):
         now = int(datetime.now(timezone.utc).timestamp() * 1000)
