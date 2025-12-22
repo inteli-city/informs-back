@@ -1,21 +1,23 @@
-import abc
 from typing import List, Optional
+from uuid import uuid4
+from datetime import datetime, timezone
 import uuid
 
 from src.shared.domain.entities.section import Section
 from src.shared.helpers.errors.domain_errors import EntityError
 
 
-class Template(abc.ABC):
+class Template:
     id: str
+    template_id: str
     name: str
-    description: Optional[str]
     system: str
+    description: Optional[str]
     is_active: bool
+    sections: List[Section]
     created_by: str
     created_at: int
     updated_at: int
-    sections: List[Section]
 
     ID_LENGTH = 36
 
@@ -24,13 +26,13 @@ class Template(abc.ABC):
         name: str,
         system: str,
         created_by: str,
-        created_at: int,
-        updated_at: int,
         sections: List[Section],
-        id: Optional[str] = None,
-        template_id: Optional[str] = None,
         description: Optional[str] = None,
         is_active: bool = True,
+        id: Optional[str] = None,
+        template_id: Optional[str] = None,
+        created_at: Optional[int] = None,
+        updated_at: Optional[int] = None,
     ):
         template_identifier = id or template_id or str(uuid.uuid4())
         self._validate_id(template_identifier)
