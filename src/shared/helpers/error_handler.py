@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Callable, Dict
 
 from src.shared.helpers.enum.http_status_code_enum import HttpStatusCodeEnum
@@ -72,7 +72,7 @@ def _make_response(status: int, message: str, error_name: str, event: Dict[str, 
         "error": error_name,
         "message": message,
         "statusCode": status,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "path": path,
     }
 

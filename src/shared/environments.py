@@ -2,6 +2,7 @@ from enum import Enum
 import os
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.image_repository_interface import IImageRepository
+from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
 
 class STAGE(Enum):
     DOTENV = "DOTENV"
@@ -17,9 +18,11 @@ class Environments:
     Usage:
 
     """
+    NO_REPOSITORY_FOUND_ERROR = "No repository found for this stage"
+    
     stage: STAGE
     region: str
-    endpoint_url: str = None
+    endpoint_url: str | None
     dynamo_table_name: str
     dynamo_partition_key: str
     dynamo_sort_key: str
@@ -59,23 +62,34 @@ class Environments:
     def get_form_repo() -> IFormRepository:
         if Environments.get_envs().stage in [STAGE.TEST, STAGE.DOTENV]:
             from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
-            return FormRepositoryMock
+            return FormRepositoryMock()
         elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
             from src.shared.infra.repositories.form_repository_dynamo import FormRepositoryDynamo
-            return FormRepositoryDynamo
+            return FormRepositoryDynamo()
         else:
-            raise Exception("No repository found for this stage")
+            raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
     
     @staticmethod
     def get_image_repo() -> IImageRepository:
         if Environments.get_envs().stage in [STAGE.TEST, STAGE.DOTENV]:
             from src.shared.infra.repositories.image_repository_mock import ImageRepositoryMock
-            return ImageRepositoryMock
+            return ImageRepositoryMock()
         elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
             from src.shared.infra.repositories.image_repository_s3 import ImageRepositoryS3
-            return ImageRepositoryS3
+            return ImageRepositoryS3()
         else:
-            raise Exception("No repository found for this stage")
+            raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
+
+    @staticmethod
+    def get_template_repo() -> ITemplateRepository:
+        if Environments.get_envs().stage in [STAGE.TEST, STAGE.DOTENV]:
+            from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
+            return TemplateRepositoryMock()
+        elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
+            from src.shared.infra.repositories.template_repository_dynamo import TemplateRepositoryDynamo
+            return TemplateRepositoryDynamo()
+        else:
+            raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
 
     @staticmethod
     def get_envs() -> "Environments":
