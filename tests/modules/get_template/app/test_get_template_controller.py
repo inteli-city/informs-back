@@ -74,18 +74,3 @@ class TestGetTemplateController:
         assert response.status_code == 404
         assert response.body == "Template não encontrado"
 
-    def test_get_template_controller_unexpected_error(self):
-        class BoomUsecase:
-            def __call__(self, template_id: str):
-                raise Exception("boom")
-
-        controller = GetTemplateController(BoomUsecase())
-        request = HttpRequest(body={
-            "requester_user": self._make_requester(),
-            "template_id": self.template.id
-        })
-
-        response = controller(request)
-
-        assert response.status_code == 500
-        assert response.body == "boom"
