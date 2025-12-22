@@ -20,10 +20,10 @@ class TestUpdateTemplatePresenter:
                 "authorizer": {"claims": {"sub": "user-1", "name": "Tester", "email": "t@example.com", "cognito:groups": "FORMULARIOS"}},
             },
             "pathParameters": {"templateId": template.id},
-            "body": {
+            "body": json.dumps({
                 "name": "Presenter Updated",
                 "isActive": False
-            }
+            })
         }
 
         response = lambda_handler(event, None)

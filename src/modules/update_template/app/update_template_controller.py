@@ -53,7 +53,7 @@ class UpdateTemplateController:
         try:
             requester = self._validate_and_extract_requester(request)
             template_id = self._validate_and_extract_template_id(request)
-            body = request.data.get("body") or {}
+            body = request.data if isinstance(request.data, dict) else {}
 
             name, system, description, is_active, sessions = self._validate_and_extract_body_params(body)
 

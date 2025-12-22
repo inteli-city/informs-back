@@ -92,14 +92,6 @@ class Environments:
             raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
 
     @staticmethod
-    def get_template_repo() -> ITemplateRepository:
-        if Environments.get_envs().stage in [STAGE.TEST, STAGE.DOTENV]:
-            from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
-            return TemplateRepositoryMock
-        else:
-            raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
-
-    @staticmethod
     def get_envs() -> "Environments":
         envs = Environments()
         envs.load_envs()
