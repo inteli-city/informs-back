@@ -1,7 +1,7 @@
 from typing import List, Optional
 
-from src.modules.create_template.app.create_template_usecase import CreateTemplateUsecase
-from src.modules.create_template.app.create_template_viewmodel import TemplateViewmodel
+from .create_template_usecase import CreateTemplateUsecase
+from .create_template_viewmodel import TemplateViewmodel
 from src.shared.helpers.errors.controller_errors import MissingParameters, WrongTypeParameter
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem
@@ -15,6 +15,35 @@ class CreateTemplateController:
     def __init__(self, usecase: CreateTemplateUsecase):
         self.usecase = usecase
 
+    def _validate_and_extract_parameters(self, body: dict) -> tuple:
+        name = body.get("name")
+        system = body.get("system")
+        description: Optional[str] = body.get("description")
+        is_active = body.get("isActive")
+        sessions_raw = body.get("sessions")
+
+        if name is None:
+            raise MissingParameters("name")
+        if system is None:
+            raise MissingParameters("system")
+        if is_active is None:
+            raise MissingParameters("isActive")
+        if sessions_raw is None:
+            raise MissingParameters("sessions")
+
+        if not isinstance(name, str):
+            raise WrongTypeParameter("name", "str", type(name))
+        if not isinstance(system, str):
+            raise WrongTypeParameter("system", "str", type(system))
+        if description is not None and not isinstance(description, str):
+            raise WrongTypeParameter("description", "str", type(description))
+        if not isinstance(is_active, bool):
+            raise WrongTypeParameter("isActive", "bool", type(is_active))
+        if not isinstance(sessions_raw, list):
+            raise WrongTypeParameter("sessions", "list", type(sessions_raw))
+
+        return name, system, description, is_active, sessions_raw
+
     def __call__(self, request: IRequest) -> IResponse:
         try:
             requester_user = request.data.get("requester_user")
@@ -23,32 +52,7 @@ class CreateTemplateController:
             requester = UserGatewayDTO.from_api_gateway(requester_user)
 
             body = request.data if isinstance(request.data, dict) else {}
-
-            name = body.get("name")
-            system = body.get("system")
-            description: Optional[str] = body.get("description")
-            is_active = body.get("isActive")
-            sessions_raw = body.get("sessions")
-
-            if name is None:
-                raise MissingParameters("name")
-            if system is None:
-                raise MissingParameters("system")
-            if is_active is None:
-                raise MissingParameters("isActive")
-            if sessions_raw is None:
-                raise MissingParameters("sessions")
-
-            if not isinstance(name, str):
-                raise WrongTypeParameter("name", "str", type(name))
-            if not isinstance(system, str):
-                raise WrongTypeParameter("system", "str", type(system))
-            if description is not None and not isinstance(description, str):
-                raise WrongTypeParameter("description", "str", type(description))
-            if not isinstance(is_active, bool):
-                raise WrongTypeParameter("isActive", "bool", type(is_active))
-            if not isinstance(sessions_raw, list):
-                raise WrongTypeParameter("sessions", "list", type(sessions_raw))
+            name, system, description, is_active, sessions_raw = self._validate_and_extract_parameters(body)
 
             sessions = [SectionDTO.from_request(session).to_entity() for session in sessions_raw]
 

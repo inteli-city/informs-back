@@ -12,7 +12,8 @@ class SectionDTO:
     def __init__(self, section_id: str, fields: List[Field]):
         self.section_id = section_id
         self.fields = fields
-    
+        
+    @staticmethod
     def from_request(section_dict: dict) -> "SectionDTO":
         if 'section_id' not in section_dict:
             raise MissingParameters('section_id')

@@ -20,7 +20,7 @@ class Environments:
     """
     stage: STAGE
     region: str
-    endpoint_url: str = None
+    endpoint_url: str | None
     dynamo_table_name: str
     dynamo_partition_key: str
     dynamo_sort_key: str
@@ -65,7 +65,7 @@ class Environments:
             from src.shared.infra.repositories.form_repository_dynamo import FormRepositoryDynamo
             return FormRepositoryDynamo
         else:
-            raise Exception("No repository found for this stage")
+            raise ValueError("No repository found for this stage")
     
     @staticmethod
     def get_image_repo() -> IImageRepository:
@@ -76,7 +76,7 @@ class Environments:
             from src.shared.infra.repositories.image_repository_s3 import ImageRepositoryS3
             return ImageRepositoryS3
         else:
-            raise Exception("No repository found for this stage")
+            raise ValueError("No repository found for this stage")
 
     @staticmethod
     def get_template_repo() -> ITemplateRepository:
@@ -84,7 +84,7 @@ class Environments:
             from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
             return TemplateRepositoryMock
         else:
-            raise Exception("No template repository configured for this stage")
+            raise ValueError("No template repository configured for this stage")
 
     @staticmethod
     def get_envs() -> "Environments":
