@@ -18,6 +18,8 @@ class Environments:
     Usage:
 
     """
+    NO_REPOSITORY_FOUND_ERROR = "No repository found for this stage"
+    
     stage: STAGE
     region: str
     endpoint_url: str | None
@@ -65,7 +67,7 @@ class Environments:
             from src.shared.infra.repositories.form_repository_dynamo import FormRepositoryDynamo
             return FormRepositoryDynamo
         else:
-            raise ValueError("No repository found for this stage")
+            raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
     
     @staticmethod
     def get_image_repo() -> IImageRepository:
@@ -76,7 +78,7 @@ class Environments:
             from src.shared.infra.repositories.image_repository_s3 import ImageRepositoryS3
             return ImageRepositoryS3
         else:
-            raise ValueError("No repository found for this stage")
+            raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
 
     @staticmethod
     def get_template_repo() -> ITemplateRepository:
@@ -87,7 +89,7 @@ class Environments:
             from src.shared.infra.repositories.template_repository_dynamo import TemplateRepositoryDynamo
             return TemplateRepositoryDynamo
         else:
-            raise ValueError("No repository found for this stage")
+            raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
 
     @staticmethod
     def get_envs() -> "Environments":
