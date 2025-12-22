@@ -5,7 +5,7 @@ from src.shared.helpers.error_handler import lambda_error_handler
 from src.shared.helpers.external_interfaces.http_lambda_requests import LambdaHttpRequest, LambdaHttpResponse
 
 
-repo = Environments.get_template_repo()()
+repo = Environments.get_template_repo()
 usecase = CreateTemplateUsecase(repo)
 controller = CreateTemplateController(usecase)
 
