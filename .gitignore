@@ -135,3 +135,7 @@ dmypy.json
 /.idea/
 
 json.json
+
+
+cdk.out/
+lambda_layer_out_temp/

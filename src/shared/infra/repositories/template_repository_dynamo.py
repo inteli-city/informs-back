@@ -16,6 +16,14 @@ class TemplateRepositoryDynamo(ITemplateRepository):
     @staticmethod
     def template_sort_key() -> str:
         return "METADATA"
+    
+    @staticmethod
+    def template_gsi_partition_key(system: str) -> str:
+        return f"system#{system}"
+    
+    @staticmethod
+    def template_gsi_sort_key(is_active: bool, name: str, template_id: str) -> str:
+        return f"active#{int(is_active)}#name#{name}#template#{template_id}"
 
     def __init__(self):
         self.dynamo = DynamoDatasource(

@@ -7,18 +7,19 @@ from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFou
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 from src.shared.infra.repositories.image_repository_mock import ImageRepositoryMock
 
-justification_option = JustificationOption(
-    option='option',
-    required_image=True,
-    required_text=True
-)
+def make_justification():
+    justification_option = JustificationOption(
+        option='option',
+        required_image=True,
+        required_text=True
+    )
 
-justification = Justification(
-    options=[justification_option],
-    selected_option='option',
-    justification_text='text',
-    justification_image='image'
-)
+    return Justification(
+        options=[justification_option],
+        selected_option='option',
+        justification_text='text',
+        justification_image='image'
+    )
 
 class Test_CancelFormUsecase:
 
@@ -28,17 +29,18 @@ class Test_CancelFormUsecase:
         usecase = CancelFormUsecase(form_repo, image_repo)
 
         form_repo.forms[0].status = FORM_STATUS.IN_PROGRESS
-
+        justification = make_justification()
         form = usecase(
             requester_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
             form_id=form_repo.forms[0].form_id,
             justification_image=justification.justification_image,
             selected_option=justification.selected_option,
-            justification_text=justification.justification_text
+            justification_text=justification.justification_text,
+            cancelled_at=1
         )
 
         assert form.form_id == form_repo.forms[0].form_id
-        assert form.status == FORM_STATUS.CANCELED
+        assert form.status == FORM_STATUS.CANCELLED
         assert form.justification.selected_option == 'option'
         assert form.justification.justification_text == 'text'
         assert form.justification.justification_image.startswith('https://test')
@@ -53,31 +55,33 @@ class Test_CancelFormUsecase:
             usecase(
                 requester_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 form_id='invalid_id',
-                justification_image=justification.justification_image,
-                selected_option=justification.selected_option,
-                justification_text=justification.justification_text
+                justification_image='image',
+                selected_option='option',
+                justification_text='text',
+                cancelled_at=1
             )
     
     def test_cancel_form_usecase_user_cannot_cancel_form(self):
         form_repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
         usecase = CancelFormUsecase(form_repo, image_repo)
-        
+        justification = make_justification()
         with pytest.raises(ForbiddenAction):
             usecase(
                 requester_id='d61dbf66-a10f-11ed-a8fc-0242ac120002',
                 form_id=form_repo.forms[0].form_id,
                 justification_image=justification.justification_image,
                 selected_option=justification.selected_option,
-                justification_text=justification.justification_text
+                justification_text=justification.justification_text,
+                cancelled_at=1
             )
 
     def test_cancel_form_usecase_form_already_finished(self):
         form_repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
         usecase = CancelFormUsecase(form_repo, image_repo)
-        
-        form_repo.forms[0].status = FORM_STATUS.CANCELED
+        justification = make_justification()
+        form_repo.forms[0].status = FORM_STATUS.CANCELLED
         
         with pytest.raises(ForbiddenAction):
             usecase(
@@ -85,53 +89,54 @@ class Test_CancelFormUsecase:
                 form_id=form_repo.forms[0].form_id,
                 justification_image=justification.justification_image,
                 selected_option=justification.selected_option,
-                justification_text=justification.justification_text
+                justification_text=justification.justification_text,
+                cancelled_at=1
             )
     
     def test_cancel_form_usecase_form_invalid_justification_option(self):
         form_repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
         usecase = CancelFormUsecase(form_repo, image_repo)
-        
-        justification.selected_option = 'invalid_option'
-        
+        justification = make_justification()
+
         with pytest.raises(EntityError):
             usecase(
                 requester_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 form_id=form_repo.forms[0].form_id,
                 justification_image=justification.justification_image,
-                selected_option=justification.selected_option,
-                justification_text=justification.justification_text
+                selected_option='invalid_option',
+                justification_text=justification.justification_text,
+                cancelled_at=1
             )
     
     def test_cancel_form_usecase_form_missing_text_justification(self):
         form_repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
         usecase = CancelFormUsecase(form_repo, image_repo)
-        
-        justification.justification_text = ''
-        
+        justification = make_justification()
+
         with pytest.raises(EntityError):
             usecase(
                 requester_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 form_id=form_repo.forms[0].form_id,
                 justification_image=justification.justification_image,
                 selected_option=justification.selected_option,
-                justification_text=justification.justification_text
+                justification_text='',
+                cancelled_at=1
             )
     
     def test_cancel_form_usecase_form_missing_image_justification(self):
         form_repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
         usecase = CancelFormUsecase(form_repo, image_repo)
-        
-        justification.justification_image = ''
-        
+        justification = make_justification()
+
         with pytest.raises(EntityError):
             usecase(
                 requester_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 form_id=form_repo.forms[0].form_id,
-                justification_image=justification.justification_image,
+                justification_image='',
                 selected_option=justification.selected_option,
-                justification_text=justification.justification_text
+                justification_text=justification.justification_text,
+                cancelled_at=1
             )
