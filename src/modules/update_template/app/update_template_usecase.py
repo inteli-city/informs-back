@@ -12,6 +12,19 @@ class UpdateTemplateUsecase:
     def __init__(self, template_repo: ITemplateRepository):
         self.template_repo = template_repo
 
+    def _validate_sessions(self, sessions: Optional[List[Section]]) -> None:
+        if sessions is None:
+            return
+        if not isinstance(sessions, list) or not sessions:
+            raise EntityError("sessions")
+        if any(len(section.fields) == 0 for section in sessions):
+            raise EntityError("sessions")
+
+    def _check_duplicate_template(self, template_id: str, name: str, system: str) -> None:
+        for existing in self.template_repo.get_all_templates():
+            if existing.id != template_id and existing.name == name and existing.system == system:
+                raise DuplicatedItem("Template já existe para este sistema")
+
     def __call__(
         self,
         template_id: str,
@@ -32,15 +45,8 @@ class UpdateTemplateUsecase:
         new_is_active = is_active if is_active is not None else template.is_active
         new_sections = sessions if sessions is not None else template.sections
 
-        if sessions is not None:
-            if not isinstance(sessions, list) or not sessions:
-                raise EntityError("sessions")
-            if any(len(section.fields) == 0 for section in sessions):
-                raise EntityError("sessions")
-
-        for existing in self.template_repo.get_all_templates():
-            if existing.id != template.id and existing.name == new_name and existing.system == new_system:
-                raise DuplicatedItem("Template já existe para este sistema")
+        self._validate_sessions(sessions)
+        self._check_duplicate_template(template_id, new_name, new_system)
 
         now_ts = int(datetime.now(timezone.utc).timestamp() * 1000)
         updated_at = max(now_ts, template.updated_at + 1)

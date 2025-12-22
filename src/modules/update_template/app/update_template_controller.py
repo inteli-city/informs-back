@@ -15,36 +15,47 @@ class UpdateTemplateController:
     def __init__(self, usecase: UpdateTemplateUsecase):
         self.usecase = usecase
 
+    def _validate_and_extract_requester(self, request: IRequest) -> UserGatewayDTO:
+        requester_user = request.data.get("requester_user")
+        if requester_user is None:
+            raise MissingParameters("requester_user")
+        return UserGatewayDTO.from_api_gateway(requester_user)
+
+    def _validate_and_extract_template_id(self, request: IRequest) -> str:
+        template_id = request.data.get("template_id") or request.data.get("templateId")
+        if template_id is None:
+            raise MissingParameters("template_id")
+        return template_id
+
+    def _validate_and_extract_body_params(self, body: dict):
+        name: Optional[str] = body.get("name")
+        system: Optional[str] = body.get("system")
+        description: Optional[str] = body.get("description")
+        is_active = body.get("isActive")
+        sessions_raw = body.get("sessions")
+
+        if name is not None and not isinstance(name, str):
+            raise WrongTypeParameter("name", "str", type(name))
+        if system is not None and not isinstance(system, str):
+            raise WrongTypeParameter("system", "str", type(system))
+        if description is not None and not isinstance(description, str):
+            raise WrongTypeParameter("description", "str", type(description))
+        if is_active is not None and not isinstance(is_active, bool):
+            raise WrongTypeParameter("isActive", "bool", type(is_active))
+        if sessions_raw is not None and not isinstance(sessions_raw, list):
+            raise WrongTypeParameter("sessions", "list", type(sessions_raw))
+
+        sessions = [SectionDTO.from_request(session).to_entity() for session in sessions_raw] if sessions_raw is not None else None
+
+        return name, system, description, is_active, sessions
+
     def __call__(self, request: IRequest) -> IResponse:
         try:
-            requester_user = request.data.get("requester_user")
-            if requester_user is None:
-                raise MissingParameters("requester_user")
-            requester = UserGatewayDTO.from_api_gateway(requester_user)
+            requester = self._validate_and_extract_requester(request)
+            template_id = self._validate_and_extract_template_id(request)
+            body = request.data.get("body") or {}
 
-            template_id = request.data.get("template_id") or request.data.get("templateId")
-            if template_id is None:
-                raise MissingParameters("template_id")
-
-            body = request.data if isinstance(request.data, dict) else {}
-            name: Optional[str] = body.get("name")
-            system: Optional[str] = body.get("system")
-            description: Optional[str] = body.get("description")
-            is_active = body.get("isActive")
-            sessions_raw = body.get("sessions")
-
-            if name is not None and not isinstance(name, str):
-                raise WrongTypeParameter("name", "str", type(name))
-            if system is not None and not isinstance(system, str):
-                raise WrongTypeParameter("system", "str", type(system))
-            if description is not None and not isinstance(description, str):
-                raise WrongTypeParameter("description", "str", type(description))
-            if is_active is not None and not isinstance(is_active, bool):
-                raise WrongTypeParameter("isActive", "bool", type(is_active))
-            if sessions_raw is not None and not isinstance(sessions_raw, list):
-                raise WrongTypeParameter("sessions", "list", type(sessions_raw))
-
-            sessions = [SectionDTO.from_request(session).to_entity() for session in sessions_raw] if sessions_raw is not None else None
+            name, system, description, is_active, sessions = self._validate_and_extract_body_params(body)
 
             updated_template = self.usecase(
                 template_id=template_id,
