@@ -8,7 +8,7 @@ sys.path.append(os.getcwd())
 from src.modules.update_template.app.update_template_presenter import lambda_handler, repo
 
 
-class Test_UpdateTemplatePresenter:
+class TestUpdateTemplatePresenter:
     def test_update_template_presenter(self):
         template = repo.templates[0]
         event = {

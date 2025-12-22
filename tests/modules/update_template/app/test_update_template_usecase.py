@@ -14,7 +14,7 @@ from src.shared.helpers.errors.usecase_errors import DuplicatedItem, NoItemsFoun
 from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
 
 
-class Test_UpdateTemplateUsecase:
+class TestUpdateTemplateUsecase:
     def setup_method(self):
         self.repo = TemplateRepositoryMock()
         self.usecase = UpdateTemplateUsecase(self.repo)

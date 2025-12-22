@@ -14,7 +14,7 @@ from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.field import TextField
 
 
-class Test_UpdateTemplateController:
+class TestUpdateTemplateController:
     def setup_method(self):
         self.repo = TemplateRepositoryMock()
         self.usecase = UpdateTemplateUsecase(self.repo)
