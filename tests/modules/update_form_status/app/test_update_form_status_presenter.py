@@ -50,7 +50,7 @@ class Test_UpdateFormStatusPresenter:
             },
             "body": {
                 "form_id": "d61dbf66-a10f-11ed-a8fc-0242ac120010",
-                "status": "NOT_STARTED",
+                "status": "PENDING",
             },
             "pathParameters": None,
             "isBase64Encoded": None,
@@ -64,6 +64,5 @@ class Test_UpdateFormStatusPresenter:
         assert response["statusCode"] == 200
         assert response_json['message'] == "Status do formulário atualizado com sucesso!"
         assert response_json["form"]["form_id"] == "d61dbf66-a10f-11ed-a8fc-0242ac120010"
-        assert response_json["form"]["status"] == "NOT_STARTED"
+        assert response_json["form"]["status"] == "PENDING"
         assert response_json["form"]["start_date"] is None
-

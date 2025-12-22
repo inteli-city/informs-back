@@ -7,7 +7,7 @@ from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.enums.priority_enum import PRIORITY
 from src.shared.helpers.errors.domain_errors import EntityError
-from src.shared.helpers.errors.usecase_errors import ForbiddenAction
+from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction
 
 
 class Form(abc.ABC):
@@ -208,4 +208,65 @@ class Form(abc.ABC):
         self.status = FORM_STATUS.IN_PROGRESS
         self.in_progress_at = in_progress_at
         self.start_date = in_progress_at  # compat
+        self.updated_at = updated_at
+
+    def update_status(self, new_status: FORM_STATUS, updated_at: int):
+        if not isinstance(new_status, FORM_STATUS):
+            raise EntityError('status')
+        if not isinstance(updated_at, int):
+            raise EntityError('updated_at')
+
+        if new_status in [FORM_STATUS.CANCELLED, FORM_STATUS.COMPLETED]:
+            raise ForbiddenAction("Não é possível alterar o status para cancelado ou concluído")
+
+        if self.status in [FORM_STATUS.CANCELLED, FORM_STATUS.COMPLETED]:
+            raise ForbiddenAction("Formulário já finalizado")
+
+        if new_status == self.status:
+            raise DuplicatedItem("O status do formulário já é o mesmo que o informado")
+
+        if new_status is FORM_STATUS.PENDING and self.status is FORM_STATUS.IN_PROGRESS:
+            self.in_progress_at = None
+            self.start_date = None
+        elif new_status is FORM_STATUS.IN_PROGRESS:
+            self.in_progress_at = updated_at
+            self.start_date = updated_at
+
+        self.status = new_status
+        self.updated_at = updated_at
+
+    def cancel(
+        self,
+        selected_option: str,
+        justification_text: Optional[str],
+        justification_image: Optional[str],
+        cancelled_at: int,
+        updated_at: int,
+    ):
+        if not isinstance(cancelled_at, int):
+            raise EntityError('cancelled_at')
+        if not isinstance(updated_at, int):
+            raise EntityError('updated_at')
+
+        if self.status in [FORM_STATUS.CANCELLED, FORM_STATUS.COMPLETED]:
+            raise ForbiddenAction("Formulário já finalizado")
+
+        option = next((item for item in self.justification.options if item.option == selected_option), None)
+        if option is None:
+            raise EntityError("Opção de justificativa inválida")
+
+        if option.required_text and not justification_text:
+            raise EntityError("Justificativa de texto obrigatória")
+        if option.required_image and not justification_image:
+            raise EntityError("Justificativa de imagem obrigatória")
+
+        self.justification = Justification(
+            options=self.justification.options,
+            selected_option=selected_option,
+            justification_text=justification_text,
+            justification_image=justification_image
+        )
+
+        self.status = FORM_STATUS.CANCELLED
+        self.cancelled_at = cancelled_at
         self.updated_at = updated_at
