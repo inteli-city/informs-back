@@ -62,10 +62,10 @@ class Environments:
     def get_form_repo() -> IFormRepository:
         if Environments.get_envs().stage in [STAGE.TEST, STAGE.DOTENV]:
             from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
-            return FormRepositoryMock
+            return FormRepositoryMock()
         elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
             from src.shared.infra.repositories.form_repository_dynamo import FormRepositoryDynamo
-            return FormRepositoryDynamo
+            return FormRepositoryDynamo()
         else:
             raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
     
@@ -73,10 +73,10 @@ class Environments:
     def get_image_repo() -> IImageRepository:
         if Environments.get_envs().stage in [STAGE.TEST, STAGE.DOTENV]:
             from src.shared.infra.repositories.image_repository_mock import ImageRepositoryMock
-            return ImageRepositoryMock
+            return ImageRepositoryMock()
         elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
             from src.shared.infra.repositories.image_repository_s3 import ImageRepositoryS3
-            return ImageRepositoryS3
+            return ImageRepositoryS3()
         else:
             raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
 
@@ -84,10 +84,10 @@ class Environments:
     def get_template_repo() -> ITemplateRepository:
         if Environments.get_envs().stage in [STAGE.TEST, STAGE.DOTENV]:
             from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
-            return TemplateRepositoryMock
+            return TemplateRepositoryMock()
         elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
             from src.shared.infra.repositories.template_repository_dynamo import TemplateRepositoryDynamo
-            return TemplateRepositoryDynamo
+            return TemplateRepositoryDynamo()
         else:
             raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
 
