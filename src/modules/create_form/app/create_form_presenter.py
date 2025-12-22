@@ -4,8 +4,8 @@ from src.shared.environments import Environments
 from src.shared.helpers.external_interfaces.http_lambda_requests import LambdaHttpRequest, LambdaHttpResponse
 
 
-repo = Environments.get_form_repo()()
-image_repo = Environments.get_image_repo()()
+repo = Environments.get_form_repo()
+image_repo = Environments.get_image_repo()
 usecase = CreateFormUsecase(repo, image_repo)
 controller = CreateFormController(usecase)
 
