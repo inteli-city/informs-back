@@ -1,0 +1,38 @@
+import os
+import sys
+import uuid
+
+sys.path.append(os.getcwd())
+
+from src.modules.get_all_templates.app.get_all_templates_viewmodel import GetAllTemplatesViewmodel
+from src.shared.domain.entities.field import TextField
+from src.shared.domain.entities.section import Section
+from src.shared.domain.entities.template import Template
+
+
+class TestGetAllTemplatesViewmodel:
+    def _make_template(self, name: str):
+        field = TextField(label="Name", required=True, key="name", order=0)
+        section = Section(section_id=1, fields=[field])
+        return Template(
+            id=str(uuid.uuid4()),
+            name=name,
+            system="GAIA",
+            description=None,
+            is_active=True,
+            created_by="user-123",
+            created_at=111,
+            updated_at=222,
+            sections=[section],
+        )
+
+    def test_get_all_templates_viewmodel(self):
+        templates = [self._make_template("Template 1"), self._make_template("Template 2")]
+
+        viewmodel = GetAllTemplatesViewmodel(templates=templates, page=1, limit=20)
+        result = viewmodel.to_dict()
+
+        assert result["page"] == 1
+        assert result["limit"] == 20
+        assert len(result["templates"]) == 2
+        assert result["templates"][0]["isActive"] is True
