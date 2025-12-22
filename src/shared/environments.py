@@ -83,8 +83,11 @@ class Environments:
         if Environments.get_envs().stage in [STAGE.TEST, STAGE.DOTENV]:
             from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
             return TemplateRepositoryMock
+        elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
+            from src.shared.infra.repositories.template_repository_dynamo import TemplateRepositoryDynamo
+            return TemplateRepositoryDynamo
         else:
-            raise ValueError("No template repository configured for this stage")
+            raise ValueError("No repository found for this stage")
 
     @staticmethod
     def get_envs() -> "Environments":
