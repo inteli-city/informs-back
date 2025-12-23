@@ -29,10 +29,11 @@ class TestGetAllTemplatesViewmodel:
     def test_get_all_templates_viewmodel(self):
         templates = [self._make_template("Template 1"), self._make_template("Template 2")]
 
-        viewmodel = GetAllTemplatesViewmodel(templates=templates, page=1, limit=20)
+        viewmodel = GetAllTemplatesViewmodel(templates=templates, limit=20, last_evaluated_key={"PK": "template#1"}, system="GAIA")
         result = viewmodel.to_dict()
 
-        assert result["page"] == 1
         assert result["limit"] == 20
+        assert result["system"] == "GAIA"
+        assert result["last_evaluated_key"]["PK"] == "template#1"
         assert len(result["templates"]) == 2
-        assert result["templates"][0]["isActive"] is True
+        assert result["templates"][0]["is_active"] is True

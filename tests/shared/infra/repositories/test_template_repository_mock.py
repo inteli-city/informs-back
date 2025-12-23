@@ -31,7 +31,8 @@ class TestTemplateRepositoryMock:
 
         fetched = repo.get_template(tpl.id)
         assert fetched.id == tpl.id
-        assert len(repo.get_all_templates()) >= 2
+        templates, _ = repo.get_all_templates(system="GAIA", limit=10, is_active=None)
+        assert len(templates) >= 2
 
     def test_update_template(self):
         repo = TemplateRepositoryMock()

@@ -22,7 +22,7 @@ class TestGetTemplateController:
             "sub": "user-123",
             "name": "User",
             "email": "user@test.com",
-            "cognito:groups": "FORMULARIOS",
+            "cognito:groups": f"FORMULARIOS,{self.template.system}",
         }
 
     def test_get_template_controller_success(self):
@@ -74,3 +74,29 @@ class TestGetTemplateController:
         assert response.status_code == 404
         assert response.body == "Template não encontrado"
 
+    def test_get_template_controller_forbidden(self):
+        requester = {
+            "sub": "user-123",
+            "name": "User",
+            "email": "user@test.com",
+            "cognito:groups": "FORMULARIOS,ORION",
+        }
+        request = HttpRequest(body={
+            "requester_user": requester,
+            "template_id": self.template.id
+        })
+
+        response = self.controller(request)
+
+        assert response.status_code == 403
+
+    def test_get_template_controller_inactive(self):
+        self.template.is_active = False
+        request = HttpRequest(body={
+            "requester_user": self._make_requester(),
+            "template_id": self.template.id
+        })
+
+        response = self.controller(request)
+
+        assert response.status_code == 404

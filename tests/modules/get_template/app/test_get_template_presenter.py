@@ -25,7 +25,7 @@ class TestGetTemplatePresenter:
                         "sub": "user-123",
                         "name": "User",
                         "email": "user@test.com",
-                        "cognito:groups": "FORMULARIOS",
+                        "cognito:groups": f"FORMULARIOS,{template.system}",
                     }
                 }
             },

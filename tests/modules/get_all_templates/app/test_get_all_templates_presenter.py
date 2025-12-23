@@ -23,11 +23,11 @@ class TestGetAllTemplatesPresenter:
                         "sub": "user-123",
                         "name": "User",
                         "email": "user@test.com",
-                        "cognito:groups": "FORMULARIOS",
+                        "cognito:groups": "FORMULARIOS,GAIA",
                     }
                 }
             },
-            "queryStringParameters": {"page": "1", "limit": "20", "isActive": "true"},
+            "queryStringParameters": {"limit": "20", "isActive": "true", "system": "GAIA"},
         }
 
         response = get_all_templates_presenter.lambda_handler(event, None)
@@ -35,5 +35,5 @@ class TestGetAllTemplatesPresenter:
 
         assert response["statusCode"] == 200
         assert "templates" in response_json
-        assert response_json["page"] == 1
         assert response_json["limit"] == 20
+        assert response_json["system"] == "GAIA"
