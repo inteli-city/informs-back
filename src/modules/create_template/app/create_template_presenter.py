@@ -1,5 +1,5 @@
-from src.modules.create_template.app.create_template_controller import CreateTemplateController
-from src.modules.create_template.app.create_template_usecase import CreateTemplateUsecase
+from .create_template_controller import CreateTemplateController
+from .create_template_usecase import CreateTemplateUsecase
 from src.shared.environments import Environments
 from src.shared.helpers.error_handler import lambda_error_handler
 from src.shared.helpers.external_interfaces.http_lambda_requests import LambdaHttpRequest, LambdaHttpResponse
