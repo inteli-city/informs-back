@@ -4,7 +4,7 @@ from .get_form_by_user_id_controller import GetFormByUserIdController
 from src.shared.environments import Environments
 from src.shared.helpers.external_interfaces.http_lambda_requests import LambdaHttpRequest, LambdaHttpResponse
 
-repo = Environments.get_form_repo()()
+repo = Environments.get_form_repo()
 usecase = GetFormByUserIdUsecase(repo)
 controller = GetFormByUserIdController(usecase)
 
