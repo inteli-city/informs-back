@@ -93,10 +93,23 @@ class TemplateRepositoryDynamo(ITemplateRepository):
         dto["GSI1PK"] = self.template_gsi_partition_key(template.system)
         dto["GSI1SK"] = self.template_gsi_sort_key(template.is_active, template.name, template.id)
 
-        self.dynamo.hard_update_item(
-            partition_key=self.template_partition_key(template.id),
-            sort_key=self.template_sort_key(),
-            item=dto,
+        transaction_items = []
+
+        transaction_items.append(
+            self.dynamo.build_transaction_item_delete(
+                partition_key=self.template_partition_key(template.id),
+                sort_key=self.template_sort_key()
+            )
         )
+
+        transaction_items.append(
+            self.dynamo.build_transaction_item_put(
+                item=dto,
+                partition_key=self.template_partition_key(template.id),
+                sort_key=self.template_sort_key()
+            )
+        )
+
+        self.dynamo.transact_write_items(transaction_items)
 
         return template
