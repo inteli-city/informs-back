@@ -31,7 +31,7 @@ class TestCreateTemplatePresenter:
                 "name": "Template X",
                 "system": "GAIA",
                 "description": "Description",
-                "isActive": True,
+                "is_active": True,
                 "sessions": [
                     {
                         "section_id": 1,

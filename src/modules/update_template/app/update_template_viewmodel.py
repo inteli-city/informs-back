@@ -38,7 +38,7 @@ class TemplateViewmodel:
             "name": self.template.name,
             "system": self.template.system,
             "description": self.template.description,
-            "isActive": self.template.is_active,
+            "is_active": self.template.is_active,
             "sessions": [SectionViewmodel(section).to_dict() for section in self.template.sections],
             "created_by": self.template.created_by,
             "created_at": self.template.created_at,

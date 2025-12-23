@@ -19,7 +19,7 @@ class CreateTemplateController:
         name = body.get("name")
         system = body.get("system")
         description: Optional[str] = body.get("description")
-        is_active = body.get("isActive")
+        is_active = body.get("is_active")
         sessions_raw = body.get("sessions")
 
         if name is None:
@@ -27,7 +27,7 @@ class CreateTemplateController:
         if system is None:
             raise MissingParameters("system")
         if is_active is None:
-            raise MissingParameters("isActive")
+            raise MissingParameters("is_active")
         if sessions_raw is None:
             raise MissingParameters("sessions")
 
@@ -38,7 +38,7 @@ class CreateTemplateController:
         if description is not None and not isinstance(description, str):
             raise WrongTypeParameter("description", "str", type(description))
         if not isinstance(is_active, bool):
-            raise WrongTypeParameter("isActive", "bool", type(is_active))
+            raise WrongTypeParameter("is_active", "bool", type(is_active))
         if not isinstance(sessions_raw, list):
             raise WrongTypeParameter("sessions", "list", type(sessions_raw))
 
