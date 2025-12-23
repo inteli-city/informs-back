@@ -14,7 +14,7 @@ class GetAllTemplatesController:
     def __init__(self, usecase: GetAllTemplatesUsecase):
         self.usecase = usecase
 
-    def _parse_int(self, value: Optional[str], field_name: str) -> int:
+    def _parse_int(self, value: Optional[str], field_name: str) -> Optional[int]:
         if value is None:
             return None
         try:
