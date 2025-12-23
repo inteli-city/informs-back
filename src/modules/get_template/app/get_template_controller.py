@@ -2,9 +2,9 @@ from .get_template_usecase import GetTemplateUsecase
 from .get_template_viewmodel import GetTemplateViewmodel
 from src.shared.helpers.errors.controller_errors import MissingParameters
 from src.shared.helpers.errors.domain_errors import EntityError
-from src.shared.helpers.errors.usecase_errors import NoItemsFound
+from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
-from src.shared.helpers.external_interfaces.http_codes import BadRequest, InternalServerError, NotFound, OK
+from src.shared.helpers.external_interfaces.http_codes import BadRequest, Forbidden, InternalServerError, NotFound, OK
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 
 
@@ -31,16 +31,18 @@ class GetTemplateController:
 
     def __call__(self, request: IRequest) -> IResponse:
         try:
-            self._get_requester(request.data)
+            requester = self._get_requester(request.data)
             template_id = self._get_template_id(request.data)
 
-            template = self.usecase(template_id=template_id)
+            template = self.usecase(template_id=template_id, requester=requester)
 
             viewmodel = GetTemplateViewmodel(template)
             return OK(viewmodel.to_dict())
 
         except NoItemsFound as err:
             return NotFound(body=err.message)
+        except ForbiddenAction as err:
+            return Forbidden(body=err.message)
         except MissingParameters as err:
             return BadRequest(body=err.message)
         except EntityError as err:
