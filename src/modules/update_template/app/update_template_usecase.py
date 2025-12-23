@@ -20,11 +20,6 @@ class UpdateTemplateUsecase:
         if any(len(section.fields) == 0 for section in sessions):
             raise EntityError("sessions")
 
-    def _check_duplicate_template(self, template_id: str, name: str, system: str) -> None:
-        for existing in self.template_repo.get_all_templates():
-            if existing.id != template_id and existing.name == name and existing.system == system:
-                raise DuplicatedItem("Template já existe para este sistema")
-
     def __call__(
         self,
         template_id: str,
@@ -46,8 +41,7 @@ class UpdateTemplateUsecase:
         new_sections = sessions if sessions is not None else template.sections
 
         self._validate_sessions(sessions)
-        self._check_duplicate_template(template_id, new_name, new_system)
-
+        
         now_ts = int(datetime.now(timezone.utc).timestamp() * 1000)
         updated_at = max(now_ts, template.updated_at + 1)
         updated_template = Template(
