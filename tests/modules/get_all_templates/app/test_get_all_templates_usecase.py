@@ -53,7 +53,7 @@ class TestGetAllTemplatesUsecase:
         assert next_key is not None
 
         templates_page_2, _ = self.usecase(requester=self.requester, limit=1, system="GAIA", last_evaluated_key=next_key)
-        assert len(templates_page_2) >= 0
+        assert len(templates_page_2) > 0
 
     def test_get_all_templates_usecase_name_filter(self):
         templates, _ = self.usecase(requester=self.requester, limit=10, system="GAIA", name_contains="Default")
