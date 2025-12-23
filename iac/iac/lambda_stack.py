@@ -113,13 +113,33 @@ class LambdaStack(Construct):
             authorizer=authorizer,
         )
 
+        self.get_template = self.create_lambda_api_gateway_integration(
+            module_name="get_template",
+            method="GET",
+            api_resource=template_id_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.get_all_templates = self.create_lambda_api_gateway_integration(
+            module_name="get_all_templates",
+            method="GET",
+            api_resource=templates_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
         self.functions_that_need_dynamo_forms_permissions = [
             self.create_form,
             self.cancel_form,
             self.submit_form,
             self.get_all_forms,
             self.start_form,
-            self.get_form
+            self.get_form,
+            self.create_template,
+            self.update_template,
+            self.get_template,
+            self.get_all_templates
         ]
 
         self.functions_that_need_cognito_permissions = [
@@ -128,5 +148,9 @@ class LambdaStack(Construct):
             self.submit_form,
             self.get_all_forms,
             self.start_form,
-            self.get_form
+            self.get_form,
+            self.create_template,
+            self.update_template,
+            self.get_template,
+            self.get_all_templates
         ]
