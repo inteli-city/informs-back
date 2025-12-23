@@ -22,7 +22,7 @@ class TestUpdateTemplatePresenter:
             "pathParameters": {"templateId": template.id},
             "body": json.dumps({
                 "name": "Presenter Updated",
-                "isActive": False
+                "is_active": False
             })
         }
 
@@ -31,4 +31,4 @@ class TestUpdateTemplatePresenter:
 
         assert response["statusCode"] == 200
         assert response_json["name"] == "Presenter Updated"
-        assert response_json["isActive"] is False
+        assert response_json["is_active"] is False

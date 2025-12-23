@@ -32,14 +32,14 @@ class TestUpdateTemplateController:
             "template_id": self.template.id,
             "name": "Controller Update",
             "description": "Desc",
-            "isActive": False,
+            "is_active": False,
         })
 
         response = self.controller(request)
 
         assert response.status_code == 200
         assert response.body["name"] == "Controller Update"
-        assert response.body["isActive"] is False
+        assert response.body["is_active"] is False
 
     def test_update_template_controller_with_sessions(self):
         section = {
@@ -80,7 +80,7 @@ class TestUpdateTemplateController:
         request = HttpRequest(body={
             "requester_user": {"sub": "user-1", "name": "Tester", "email": "t@example.com", "cognito:groups": "FORMULARIOS"},
             "template_id": self.template.id,
-            "isActive": "yes",
+            "is_active": "yes",
         })
 
         response = self.controller(request)

@@ -31,7 +31,7 @@ class UpdateTemplateController:
         name: Optional[str] = body.get("name")
         system: Optional[str] = body.get("system")
         description: Optional[str] = body.get("description")
-        is_active = body.get("isActive")
+        is_active = body.get("is_active")
         sessions_raw = body.get("sessions")
 
         if name is not None and not isinstance(name, str):
@@ -41,7 +41,7 @@ class UpdateTemplateController:
         if description is not None and not isinstance(description, str):
             raise WrongTypeParameter("description", "str", type(description))
         if is_active is not None and not isinstance(is_active, bool):
-            raise WrongTypeParameter("isActive", "bool", type(is_active))
+            raise WrongTypeParameter("is_active", "bool", type(is_active))
         if sessions_raw is not None and not isinstance(sessions_raw, list):
             raise WrongTypeParameter("sessions", "list", type(sessions_raw))
 

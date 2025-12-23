@@ -21,7 +21,7 @@ class TestCreateTemplateController:
             "name": "Template X",
             "system": "GAIA",
             "description": "Description",
-            "isActive": True,
+            "is_active": True,
             "sessions": [
                 {
                     "section_id": 1,
@@ -67,12 +67,12 @@ class TestCreateTemplateController:
         controller = CreateTemplateController(CreateTemplateUsecase(repo))
 
         body = self._make_base_body()
-        body["isActive"] = "true"
+        body["is_active"] = "true"
         request = HttpRequest(body=body)
 
         response = controller(request)
         assert response.status_code == 400
-        assert response.body == "Campo isActive deveria ser do tipo bool, mas foi recebido um campo do tipo <class 'str'>"
+        assert response.body == "Campo is_active deveria ser do tipo bool, mas foi recebido um campo do tipo <class 'str'>"
 
     def test_create_template_controller_invalid_sessions(self):
         repo = TemplateRepositoryMock()

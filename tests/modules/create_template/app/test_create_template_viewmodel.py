@@ -48,5 +48,5 @@ class TestCreateTemplateViewmodel:
         result = vm.to_dict()
         assert result["id"] == "d61dbf66-a10f-11ed-a8fc-0242ac120099"
         assert result["name"] == "Template X"
-        assert result["isActive"] is True
+        assert result["is_active"] is True
         assert len(result["sessions"]) == 1
