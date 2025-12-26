@@ -8,6 +8,7 @@ from src.modules.get_all_templates.app.get_all_templates_viewmodel import GetAll
 from src.shared.domain.entities.field import TextField
 from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.template import Template
+from src.shared.helpers.functions.pagination_token import decode_pagination_token, encode_pagination_token
 
 
 class TestGetAllTemplatesViewmodel:
@@ -29,11 +30,13 @@ class TestGetAllTemplatesViewmodel:
     def test_get_all_templates_viewmodel(self):
         templates = [self._make_template("Template 1"), self._make_template("Template 2")]
 
-        viewmodel = GetAllTemplatesViewmodel(templates=templates, limit=20, last_evaluated_key={"PK": "template#1"}, system="GAIA")
+        token = encode_pagination_token({"PK": "template#1"})
+        viewmodel = GetAllTemplatesViewmodel(templates=templates, limit=20, last_evaluated_key=token, system="GAIA")
         result = viewmodel.to_dict()
 
         assert result["limit"] == 20
         assert result["system"] == "GAIA"
-        assert result["last_evaluated_key"]["PK"] == "template#1"
+        decoded = decode_pagination_token(result["last_evaluated_key"])
+        assert decoded["PK"] == "template#1"
         assert len(result["templates"]) == 2
         assert result["templates"][0]["is_active"] is True
