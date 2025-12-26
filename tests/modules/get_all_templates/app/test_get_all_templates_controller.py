@@ -9,6 +9,7 @@ from src.modules.get_all_templates.app.get_all_templates_usecase import GetAllTe
 from src.shared.helpers.external_interfaces.http_models import HttpRequest
 from src.shared.domain.entities.template import Template
 from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
+from src.shared.helpers.functions.pagination_token import decode_pagination_token
 
 
 class TestGetAllTemplatesController:
@@ -136,3 +137,6 @@ class TestGetAllTemplatesController:
 
         assert response.status_code == 200
         assert "last_evaluated_key" in response.body
+        assert isinstance(response.body["last_evaluated_key"], str)
+        decoded = decode_pagination_token(response.body["last_evaluated_key"])
+        assert isinstance(decoded, dict)
