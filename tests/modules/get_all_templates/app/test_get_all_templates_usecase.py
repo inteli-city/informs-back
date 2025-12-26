@@ -11,6 +11,7 @@ from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.template import Template
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
+from src.shared.helpers.functions.pagination_token import decode_pagination_token
 
 
 def _make_template(name: str, system: str, is_active: bool, updated_at: int) -> Template:
@@ -51,8 +52,10 @@ class TestGetAllTemplatesUsecase:
         templates_page_1, next_key = self.usecase(requester=self.requester, limit=1, system="GAIA")
         assert len(templates_page_1) == 1
         assert next_key is not None
+        assert isinstance(next_key, str)
+        assert isinstance(decode_pagination_token(next_key), dict)
 
-        templates_page_2, _ = self.usecase(requester=self.requester, limit=1, system="GAIA", last_evaluated_key=next_key)
+        templates_page_2, _ = self.usecase(requester=self.requester, limit=1, system="GAIA", exclusive_start_key=next_key)
         assert len(templates_page_2) > 0
 
     def test_get_all_templates_usecase_name_filter(self):
