@@ -6,6 +6,7 @@ from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.field import TextField
 from src.shared.domain.entities.template import Template
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
+from src.shared.helpers.functions.pagination_token import decode_pagination_token, encode_pagination_token
 
 
 class TemplateRepositoryMock(ITemplateRepository):
@@ -79,10 +80,10 @@ class TemplateRepositoryMock(ITemplateRepository):
         self,
         system: str,
         limit: int,
-        last_evaluated_key: Optional[dict] = None,
+        exclusive_start_key: Optional[str] = None,
         name_contains: Optional[str] = None,
         is_active: Optional[bool] = True,
-    ) -> tuple[List[Template], Optional[dict]]:
+    ) -> tuple[List[Template], Optional[str]]:
         filtered = [tpl for tpl in self.templates if tpl.system == system]
 
         if is_active is not None:
@@ -94,7 +95,9 @@ class TemplateRepositoryMock(ITemplateRepository):
 
         filtered.sort(key=lambda tpl: tpl.name.lower())
 
-        start = self._parse_start_index(filtered, last_evaluated_key)
+        start_key_dict = decode_pagination_token(exclusive_start_key)
+
+        start = self._parse_start_index(filtered, start_key_dict)
         end = start + limit
         page = filtered[start:end]
 
@@ -107,6 +110,7 @@ class TemplateRepositoryMock(ITemplateRepository):
                 "GSI1PK": f"system#{next_tpl.system}",
                 "GSI1SK": f"active#{int(next_tpl.is_active)}#name#{next_tpl.name}#template#{next_tpl.id}",
             }
+            next_key = encode_pagination_token(next_key)
 
         return page, next_key
 

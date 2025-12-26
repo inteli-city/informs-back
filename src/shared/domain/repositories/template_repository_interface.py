@@ -19,10 +19,10 @@ class ITemplateRepository(ABC):
         self,
         system: str,
         limit: int,
-        last_evaluated_key: Optional[dict] = None,
+        exclusive_start_key: Optional[str] = None,
         name_contains: Optional[str] = None,
         is_active: Optional[bool] = True,
-    ) -> tuple[List[Template], Optional[dict]]:
+    ) -> tuple[List[Template], Optional[str]]:
         pass
 
     @abstractmethod

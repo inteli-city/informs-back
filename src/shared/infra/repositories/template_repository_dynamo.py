@@ -6,6 +6,7 @@ from src.shared.domain.repositories.template_repository_interface import ITempla
 from src.shared.environments import Environments
 from src.shared.infra.dtos.template_dynamo_dto import TemplateDynamoDTO
 from src.shared.infra.external.dynamo.datasources.dynamo_datasource import DynamoDatasource
+from src.shared.helpers.functions.pagination_token import decode_pagination_token, encode_pagination_token
 
 
 class TemplateRepositoryDynamo(ITemplateRepository):
@@ -60,10 +61,17 @@ class TemplateRepositoryDynamo(ITemplateRepository):
         self,
         system: str,
         limit: int,
-        last_evaluated_key: Optional[dict] = None,
+        exclusive_start_key: Optional[str] = None,
         name_contains: Optional[str] = None,
         is_active: Optional[bool] = True,
-    ) -> Tuple[List[Template], Optional[dict]]:
+    ) -> Tuple[List[Template], Optional[str]]:
+        print("Fetching templates from DynamoDB with parameters:")
+        print(f"System: {system}")
+        print(f"Limit: {limit}")
+        print(f"Exclusive Start Key: {exclusive_start_key}")
+        print(f"Name Contains: {name_contains}")
+        print(f"Is Active: {is_active}")
+
         key_condition = Key("GSI1PK").eq(self.template_gsi_partition_key(system))
 
         if is_active is not None:
@@ -76,8 +84,9 @@ class TemplateRepositoryDynamo(ITemplateRepository):
             "Select": "ALL_ATTRIBUTES",
         }
 
-        if last_evaluated_key is not None:
-            query_kwargs["ExclusiveStartKey"] = last_evaluated_key
+        start_key = decode_pagination_token(exclusive_start_key)
+        if start_key is not None:
+            query_kwargs["ExclusiveStartKey"] = start_key
 
         if name_contains is not None:
             query_kwargs["FilterExpression"] = Attr("name").contains(name_contains)
@@ -86,7 +95,8 @@ class TemplateRepositoryDynamo(ITemplateRepository):
         items = resp.get("Items", [])
         templates = [TemplateDynamoDTO.from_dynamo(item).to_entity() for item in items]
 
-        return templates, resp.get("LastEvaluatedKey")
+        next_key = resp.get("LastEvaluatedKey")
+        return templates, encode_pagination_token(next_key)
 
     def update_template(self, template: Template) -> Template:
         dto = TemplateDynamoDTO.from_entity(template).to_dynamo()
