@@ -1,0 +1,465 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Informs",
+    "description": "API de gerenciamento de formulários dinâmicos e templates.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Token do Gates"
+      }
+    },
+    "schemas": {
+      "JustificationOption": {
+        "type": "object",
+        "properties": {
+          "option": { "type": "string", "description": "Texto da opção" },
+          "required_image": { "type": "boolean", "default": false },
+          "required_text": { "type": "boolean", "default": false }
+        },
+        "required": ["option"]
+      },
+      "JustificationSelected": {
+        "type": "object",
+        "properties": {
+          "option": { "type": "string" },
+          "text": { "type": "string", "nullable": true },
+          "image_url": { "type": "string", "nullable": true }
+        }
+      },
+      "JustificationWrapper": {
+        "type": "object",
+        "properties": {
+          "options": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/JustificationOption" }
+          },
+          "selected": {
+            "$ref": "#/components/schemas/JustificationSelected",
+            "nullable": true
+          }
+        }
+      },
+      "Field": {
+        "type": "object",
+        "description": "Objeto genérico que representa qualquer tipo de campo (Text, Number, Date, etc)",
+        "properties": {
+          "field_type": { "type": "string", "example": "TEXT_FIELD" },
+          "label": { "type": "string" },
+          "required": { "type": "boolean" },
+          "key": { "type": "string" },
+          "help_text": { "type": "string", "nullable": true },
+          "order": { "type": "integer" },
+          "regex": { "type": "string", "nullable": true },
+          "max_length": { "type": "integer", "nullable": true },
+          "decimal": { "type": "boolean", "nullable": true },
+          "max_value": { "type": "number", "nullable": true },
+          "min_value": { "type": "number", "nullable": true },
+          "min_date": { "type": "number", "nullable": true },
+          "max_date": { "type": "number", "nullable": true },
+          "options": { 
+            "type": "array", 
+            "items": { "type": "string" }, 
+            "nullable": true,
+            "description": "Usado para Dropdown, Radio, Checkbox Group, etc"
+          },
+          "check_limit": { "type": "integer", "nullable": true },
+          "file_type": { "type": "string", "enum": ["IMAGE", "DOCUMENT"], "nullable": true },
+          "min_quantity": { "type": "integer", "nullable": true },
+          "max_quantity": { "type": "integer", "nullable": true },
+          "information_field_type": { "type": "string", "nullable": true },
+          "file_path": { "type": "string", "nullable": true },
+          "value": { 
+            "nullable": true, 
+            "description": "Valor preenchido. O tipo varia conforme o field_type (string, number, boolean, array)." 
+          }
+        },
+        "required": ["field_type", "label", "required", "key", "order"]
+      },
+      "Section": {
+        "type": "object",
+        "properties": {
+          "section_id": { "type": "integer" },
+          "fields": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Field" }
+          }
+        },
+        "required": ["section_id", "fields"]
+      },
+      "Form": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "readOnly": true },
+          "form_title": { "type": "string" },
+          "user_id": { "type": "string", "description": "ID do usuário preenchedor (Gates)" },
+          "template": { "type": "string", "nullable": true },
+          "system": { "type": "string" },
+          "city": { "type": "string" },
+          "area": { "type": "string", "nullable": true },
+          "street": { "type": "string" },
+          "number": { "type": "number", "nullable": true },
+          "latitude": { "type": "number" },
+          "longitude": { "type": "number" },
+          "priority": { "type": "string", "default": "0" },
+          "observation": { "type": "string", "nullable": true },
+          "expiration_date": { "type": "number", "nullable": true, "description": "Timestamp em ms" },
+          "status": { "type": "string", "enum": ["PENDING", "IN_PROGRESS", "COMPLETED", "SENT", "CANCELLED"], "default": "PENDING" },
+          "in_progress_at": { "type": "string", "format": "date-time", "nullable": true },
+          "cancelled_at": { "type": "string", "format": "date-time", "nullable": true },
+          "completed_at": { "type": "string", "format": "date-time", "nullable": true },
+          "created_by": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time", "readOnly": true },
+          "updated_at": { "type": "string", "format": "date-time", "readOnly": true },
+          "justification": { "$ref": "#/components/schemas/JustificationWrapper" },
+          "sessions": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Section" }
+          }
+        }
+      },
+      "FormInput": {
+        "type": "object",
+        "required": ["form_title", "user_id", "system", "city", "street", "latitude", "longitude", "priority"],
+        "properties": {
+          "form_title": { "type": "string" },
+          "user_id": { "type": "string" },
+          "system": { "type": "string" },
+          "city": { "type": "string" },
+          "street": { "type": "string" },
+          "latitude": { "type": "number" },
+          "longitude": { "type": "number" },
+          "priority": { "type": "number" },
+          "observation": { "type": "string", "nullable": true },
+          "expiration_date": { "type": "number", "nullable": true },
+          "justifications": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/JustificationOption" }
+          },
+          "sessions": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Section" }
+          }
+        }
+      },
+      "Template": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "readOnly": true },
+          "name": { "type": "string" },
+          "description": { "type": "string", "nullable": true },
+          "system": { "type": "string" },
+          "isActive": { "type": "boolean", "default": true },
+          "created_by": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time", "readOnly": true },
+          "updated_at": { "type": "string", "format": "date-time", "readOnly": true },
+          "sessions": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Section" }
+          }
+        }
+      },
+      "TemplateInput": {
+        "type": "object",
+        "required": ["name", "system"],
+        "properties": {
+          "name": { "type": "string" },
+          "system": { "type": "string" },
+          "description": { "type": "string", "nullable": true },
+          "isActive": { "type": "boolean" },
+          "sessions": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Section" }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "paths": {
+    "/forms": {
+      "post": {
+        "summary": "Criação de novo formulário",
+        "tags": ["Forms"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/FormInput" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Formulário criado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Form" }
+              }
+            }
+          },
+          "400": { "description": "Dados inválidos" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Item não encontrado" },
+          "409": { "description": "Conflito" },
+          "500": { "description": "Erro interno" }
+        }
+      },
+      "get": {
+        "summary": "Listagem de formulários com filtros",
+        "tags": ["Forms"],
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "status", "in": "query", "schema": { "type": "string" } },
+          { "name": "system", "in": "query", "schema": { "type": "string" } },
+          { "name": "userId", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de formulários",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Form" }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" },
+          "500": { "description": "Erro interno" }
+        }
+      }
+    },
+    "/forms/{formId}": {
+      "get": {
+        "summary": "Consulta formulário por ID",
+        "tags": ["Forms"],
+        "parameters": [
+          { "name": "formId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dados do formulário",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Form" }
+              }
+            }
+          },
+          "404": { "description": "Não encontrado" },
+          "500": { "description": "Erro interno" }
+        }
+      }
+    },
+    "/forms/{formId}/start": {
+      "post": {
+        "summary": "Inicia o preenchimento (Preenchedor)",
+        "tags": ["Forms"],
+        "parameters": [
+          { "name": "formId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "in_progress_at": { "type": "string", "format": "date-time" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "Status atualizado para IN_PROGRESS" },
+          "409": { "description": "Conflito de atualização" }
+        }
+      }
+    },
+    "/forms/{formId}/submit": {
+      "post": {
+        "summary": "Submete o formulário preenchido",
+        "tags": ["Forms"],
+        "parameters": [
+          { "name": "formId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sessions": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "section_id": { "type": "integer" },
+                        "fields": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "key": { "type": "string" },
+                              "value": { "nullable": true, "description": "Valor polimórfico" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "completed_at": { "type": "string", "format": "date-time" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "Formulário concluído" },
+          "400": { "description": "Validação falhou" }
+        }
+      }
+    },
+    "/forms/{formId}/cancel": {
+      "post": {
+        "summary": "Cancela o formulário",
+        "tags": ["Forms"],
+        "parameters": [
+          { "name": "formId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "option": { "type": "string" },
+                  "text": { "type": "string", "nullable": true },
+                  "image": { "type": "string", "format": "byte", "nullable": true },
+                  "cancelled_at": { "type": "number", "description": "Timestamp" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "Cancelado com sucesso" }
+        }
+      }
+    },
+    "/templates": {
+      "post": {
+        "summary": "Criação de novo template",
+        "tags": ["Templates"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TemplateInput" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Template criado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Template" }
+              }
+            }
+          },
+          "400": { "description": "Erro de validação" },
+          "401": { "description": "Unauthorized" }
+        }
+      },
+      "get": {
+        "summary": "Listagem de templates",
+        "tags": ["Templates"],
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "isActive", "in": "query", "schema": { "type": "boolean" } },
+          { "name": "system", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de templates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Template" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/templates/{templateId}": {
+      "get": {
+        "summary": "Consulta template por ID",
+        "tags": ["Templates"],
+        "parameters": [
+          { "name": "templateId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dados do template",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Template" }
+              }
+            }
+          },
+          "404": { "description": "Template não encontrado" }
+        }
+      },
+      "put": {
+        "summary": "Altera um template",
+        "tags": ["Templates"],
+        "parameters": [
+          { "name": "templateId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TemplateInput" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Template atualizado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Template" }
+              }
+            }
+          },
+          "404": { "description": "Não encontrado" },
+          "409": { "description": "Conflito" }
+        }
+      }
+    }
+  }
+}
