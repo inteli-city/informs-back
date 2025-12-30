@@ -31,7 +31,7 @@ class TestGetAllTemplatesController:
             "requester_user": self._make_requester(),
             "limit": 20,
             "system": self.repo.templates[0].system,
-            "isActive": True
+            "is_active": True
         })
 
         response = self.controller(request)
@@ -57,14 +57,14 @@ class TestGetAllTemplatesController:
         request = HttpRequest(body={
             "requester_user": self._make_requester(),
             "limit": 20,
-            "isActive": "maybe",
+            "is_active": "maybe",
             "system": self.repo.templates[0].system
         })
 
         response = self.controller(request)
 
         assert response.status_code == 400
-        assert response.body == "Campo isActive deveria ser do tipo bool, mas foi recebido um campo do tipo <class 'str'>"
+        assert response.body == "Campo is_active deveria ser do tipo bool, mas foi recebido um campo do tipo <class 'str'>"
 
     def test_get_all_templates_controller_invalid_system(self):
         request = HttpRequest(body={

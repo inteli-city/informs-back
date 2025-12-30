@@ -27,7 +27,7 @@ class TestGetAllTemplatesPresenter:
                     }
                 }
             },
-            "queryStringParameters": {"limit": 20, "isActive": True, "system": "GAIA"},
+            "queryStringParameters": {"limit": 20, "is_active": True, "system": "GAIA"},
         }
 
         response = get_all_templates_presenter.lambda_handler(event, None)
