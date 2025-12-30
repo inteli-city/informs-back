@@ -65,6 +65,8 @@ class Test_CancelFormPresenter:
 
         response_json = json.loads(response["body"])
 
+        print(response_json)
+
         assert response["statusCode"] == 200
         assert response_json['message'] == 'Formulário cancelado com sucesso!'
         assert response_json['form']['form_id'] == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'

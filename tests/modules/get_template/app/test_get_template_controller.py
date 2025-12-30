@@ -61,7 +61,7 @@ class TestGetTemplateController:
         response = self.controller(request)
 
         assert response.status_code == 400
-        assert response.body == "Parâmetro inválido: template_id"
+        assert response.body == "Campo template_id deveria ser do tipo str, mas foi recebido um campo do tipo <class 'int'>"
 
     def test_get_template_controller_not_found(self):
         request = HttpRequest(body={

@@ -34,7 +34,7 @@ class Test_CreateFormPresenter:
                 "city": "1",
                 "latitude": 1.0,
                 "longitude": 1.0,
-                "priority": "EMERGENCY",
+                "priority": 3,
                 "justifications": [
                     {"option": "option", "required_image": True, "required_text": True}
                 ],

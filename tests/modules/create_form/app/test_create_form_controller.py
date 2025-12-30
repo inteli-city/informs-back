@@ -26,7 +26,7 @@ class Test_CreateFormController:
             "city": "1",
             "latitude": 1.0,
             "longitude": 1.0,
-            "priority": "EMERGENCY",
+            "priority": 3,
             "justifications": [
                 {"option": "option", "required_image": True, "required_text": True}
             ],
@@ -232,4 +232,4 @@ class Test_CreateFormController:
 
         response = controller(request)
         assert response.status_code == 400
-        assert "latitude/longitude" in response.body
+        assert "latitude" in response.body

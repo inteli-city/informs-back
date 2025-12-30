@@ -69,7 +69,7 @@ class Test_GetFormController:
         response = self.controller(request)
 
         assert response.status_code == 400
-        assert response.body == 'Parâmetro inválido: form_id'
+        assert response.body == "Campo form_id deveria ser do tipo str, mas foi recebido um campo do tipo <class 'int'>"
 
     def test_get_form_forbidden(self):
         request = HttpRequest(body={

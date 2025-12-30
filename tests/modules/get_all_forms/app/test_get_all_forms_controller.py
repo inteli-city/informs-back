@@ -21,7 +21,6 @@ class Test_GetAllFormsController:
                 "email": "user@test.com",
                 "cognito:groups": "FORMULARIOS"
             },
-            "page": 1,
             "limit": 20,
             "status": "PENDING",
             "system": repo.forms[0].system
@@ -32,6 +31,7 @@ class Test_GetAllFormsController:
         assert response.status_code == 200
         assert len(response.body["forms"]) == 1
         assert response.body["forms"][0]["status"] == "PENDING"
+        assert response.body["last_evaluated_key"] is None
 
     def test_get_all_forms_controller_invalid_limit(self):
         repo = FormRepositoryMock()
@@ -45,8 +45,7 @@ class Test_GetAllFormsController:
                 "email": "user@test.com",
                 "cognito:groups": "FORMULARIOS"
             },
-            "page": 1,
-            "limit": 10
+            "limit": 0
         })
 
         response = controller(request)
