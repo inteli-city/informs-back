@@ -1,7 +1,7 @@
 from .create_form_usecase import CreateFormUsecase
 from .create_form_viewmodel import CreateFormViewmodel
 from src.shared.domain.enums.priority_enum import PRIORITY
-from src.shared.helpers.errors.controller_errors import MissingParameters
+from src.shared.helpers.errors.controller_errors import MissingParameters, WrongTypeParameter
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction, NoItemsFound
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
@@ -14,108 +14,169 @@ from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 
 class CreateFormController:
     def __init__(self, usecase: CreateFormUsecase):
-        self.CreateFormUsecase = usecase
+        self.usecase = usecase
+
+    def _validate_requester_user(self, data: dict) -> UserGatewayDTO:
+        requester_user = data.get("requester_user")
+        if requester_user is None:
+            raise MissingParameters("requester_user")
+
+        return UserGatewayDTO.from_api_gateway(requester_user)
+
+    def _validate_endpoint_parameters(self, data: dict) -> tuple:
+        def _get_required(field: str):
+            value = data.get(field)
+            if value is None:
+                raise MissingParameters(field)
+            return value
+
+        def _require_type(field: str, value, expected_type, expected_label: str = None):
+            if not isinstance(value, expected_type):
+                label = expected_label or expected_type.__name__
+                raise WrongTypeParameter(field, label, type(value))
+            return value
+
+        def _parse_optional_int(field: str, value):
+            if value is None:
+                return None
+            if isinstance(value, bool) or not isinstance(value, int):
+                raise WrongTypeParameter(field, "int", type(value))
+            return value
+
+        def _parse_float(field: str, value):
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise WrongTypeParameter(field, "float", type(value))
+            return float(value)
+
+        form_title = _get_required("form_title")
+        user_id = _get_required("user_id")
+        system = _get_required("system")
+        street = _get_required("street")
+        city = _get_required("city")
+        latitude_raw = _get_required("latitude")
+        longitude_raw = _get_required("longitude")
+        priority_payload = _get_required("priority")
+        raw_justifications = _get_required("justifications")
+        sessions_raw = _get_required("sessions")
+        observation = data.get("observation")
+        expiration_date_raw = data.get("expiration_date")
+        number_raw = data.get("number")
+        information_fields_raw = data.get("information_fields")
+
+        for field_name, value in [
+            ("form_title", form_title),
+            ("user_id", user_id),
+            ("system", system),
+            ("street", street),
+            ("city", city),
+        ]:
+            _require_type(field_name, value, str)
+
+        if observation is not None:
+            _require_type("observation", observation, str)
+
+        _require_type("justifications", raw_justifications, list)
+        _require_type("sessions", sessions_raw, list)
+
+        if information_fields_raw is not None:
+            _require_type("information_fields", information_fields_raw, list)
+
+        priority_values = {priority.value for priority in PRIORITY}
+        if isinstance(priority_payload, bool) or not isinstance(priority_payload, int):
+            raise WrongTypeParameter("priority", "int", type(priority_payload))
+
+        priority_value = str(priority_payload)
+        if priority_value in priority_values:
+            priority = PRIORITY(priority_value)
+        else:
+            raise EntityError("priority")
+
+        latitude = _parse_float("latitude", latitude_raw)
+        longitude = _parse_float("longitude", longitude_raw)
+
+        expiration_date = _parse_optional_int("expiration_date", expiration_date_raw)
+        number = _parse_optional_int("number", number_raw)
+
+        normalized_justifications = []
+        for option in raw_justifications:
+            required_image = option.get("required_image")
+            if required_image is not None and not isinstance(required_image, bool):
+                raise WrongTypeParameter("justifications.required_image", "bool", type(required_image))
+
+            required_text = option.get("required_text")
+            if required_text is not None and not isinstance(required_text, bool):
+                raise WrongTypeParameter("justifications.required_text", "bool", type(required_text))
+
+            normalized_justifications.append(
+                {
+                    "option": option.get("option"),
+                    "required_image": required_image if required_image is not None else False,
+                    "required_text": required_text if required_text is not None else False,
+                }
+            )
+
+        justification_entity = JustificationDTO.from_request({"options": normalized_justifications}).to_entity()
+        sections = [SectionDTO.from_request(section).to_entity() for section in sessions_raw]
+        information_fields = (
+            [InformationFieldDTO.from_request(information_field).to_entity() for information_field in information_fields_raw]
+            if information_fields_raw is not None
+            else None
+        )
+
+        return (
+            form_title,
+            user_id,
+            system,
+            street,
+            city,
+            latitude,
+            longitude,
+            priority,
+            sections,
+            justification_entity,
+            number,
+            observation,
+            expiration_date,
+            information_fields,
+        )
     
     def __call__(self, request: IRequest) -> IResponse:
         try:
-            if request.data.get('requester_user') is None:
-                raise MissingParameters('requester_user')
-            
-            requester_user = UserGatewayDTO.from_api_gateway(request.data.get('requester_user'))
+            data = request.data if isinstance(request.data, dict) else {}
+            requester_user = self._validate_requester_user(data)
+            (
+                form_title,
+                user_id,
+                system,
+                street,
+                city,
+                latitude,
+                longitude,
+                priority,
+                sections,
+                justification_entity,
+                number,
+                observation,
+                expiration_date,
+                information_fields,
+            ) = self._validate_endpoint_parameters(data)
 
-            if request.data.get('form_title') is None:
-                raise MissingParameters('form_title')
-
-            if request.data.get('user_id') is None:
-                raise MissingParameters('user_id')
-            
-            if request.data.get('system') is None:
-                raise MissingParameters('system')
-            
-            if request.data.get('street') is None:
-                raise MissingParameters('street')
-            
-            if request.data.get('city') is None:
-                raise MissingParameters('city')
-            
-            if request.data.get('latitude') is None:
-                raise MissingParameters('latitude')
-            
-            if request.data.get('longitude') is None:
-                raise MissingParameters('longitude')
-            
-            if request.data.get('priority') is None:
-                raise MissingParameters('priority')
-            
-            if request.data.get('justifications') is None:
-                raise MissingParameters('justifications')
-            
-            if request.data.get('sessions') is None:
-                raise MissingParameters('sessions')
-
-            priority_payload = request.data.get('priority')
-            try:
-                if isinstance(priority_payload, str) and priority_payload.upper() in PRIORITY.__members__:
-                    priority = PRIORITY[priority_payload.upper()]
-                else:
-                    priority = PRIORITY(str(int(priority_payload)))
-            except Exception:
-                raise EntityError('priority')
-
-            raw_justifications = request.data.get('justifications') or []
-            normalized_justifications = [
-                {
-                    "option": option.get('option'),
-                    "required_image": bool(option.get('required_image')) if option.get('required_image') is not None else False,
-                    "required_text": bool(option.get('required_text')) if option.get('required_text') is not None else False
-                }
-                for option in raw_justifications
-            ]
-
-            justification_entity = JustificationDTO.from_request({"options": normalized_justifications}).to_entity()
-
-            try:
-                latitude = float(request.data.get('latitude'))
-                longitude = float(request.data.get('longitude'))
-            except (TypeError, ValueError):
-                raise EntityError('latitude/longitude')
-
-            expiration_date = request.data.get('expiration_date')
-            if expiration_date is not None:
-                try:
-                    expiration_date = int(expiration_date)
-                except (TypeError, ValueError):
-                    raise EntityError('expiration_date')
-
-            number = request.data.get('number')
-            if number is not None:
-                try:
-                    number = int(number)
-                except (TypeError, ValueError):
-                    raise EntityError('number')
-
-            form = self.CreateFormUsecase(
-                form_title=request.data.get('form_title'),
+            form = self.usecase(
+                form_title=form_title,
                 creator_user_id=requester_user.user_id,
-                user_id=request.data.get('user_id'),
-                system=request.data.get('system'),
-                street=request.data.get('street'),
-                city=request.data.get('city'),
+                user_id=user_id,
+                system=system,
+                street=street,
+                city=city,
                 latitude=latitude,
                 longitude=longitude,
                 priority=priority,
-                sections=[
-                    SectionDTO.from_request(section).to_entity()
-                    for section in request.data.get('sessions')
-                ],
+                sections=sections,
                 justification=justification_entity,
                 number=number,
-                observation=request.data.get('observation'),
+                observation=observation,
                 expiration_date=expiration_date,
-                information_fields=[
-                    InformationFieldDTO.from_request(information_field).to_entity()
-                    for information_field in request.data.get('information_fields')
-                ] if request.data.get('information_fields') is not None else None
+                information_fields=information_fields,
             )
 
             viewmodel = CreateFormViewmodel(form=form)
@@ -133,6 +194,9 @@ class CreateFormController:
 
         except ForbiddenAction as err:
             return Forbidden(body=err.message)
+
+        except WrongTypeParameter as err:
+            return BadRequest(body=err.message)
         
         except EntityError as err:
             return BadRequest(body=f"Parâmetro inválido: {err.message}")
