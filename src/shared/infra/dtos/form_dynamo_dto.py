@@ -1,4 +1,3 @@
-from decimal import Decimal
 from typing import List, Optional
 
 from src.shared.domain.entities.form import Form
@@ -14,35 +13,97 @@ from src.shared.infra.dtos.section_dto import SectionDTO
 
 class FormDynamoDTO:
     form_title: str
+    form_id: str
     id: str
-    user_id: str
+    creator_user_id: str
     created_by: str
+    user_id: str
+    vinculation_form_id: Optional[str]
+    can_vinculate: bool
     template: Optional[str]
-    system: str
-    city: str
     area: Optional[str]
+    system: str
     street: str
+    city: str
     number: Optional[int]
     latitude: float
     longitude: float
-    priority: PRIORITY
+    region: Optional[str]
+    description: Optional[str]
     observation: Optional[str]
-    expiration_date: Optional[int]
+    priority: PRIORITY
     status: FORM_STATUS
-    in_progress_at: Optional[int]
-    cancelled_at: Optional[int]
-    completed_at: Optional[int]
+    expiration_date: Optional[int]
+    creation_date: int
     created_at: int
+    start_date: Optional[int]
+    in_progress_at: Optional[int]
+    conclusion_date: Optional[int]
+    completed_at: Optional[int]
+    cancelled_at: Optional[int]
     updated_at: int
-    sections: List[Section]
     justification: Justification
+    comments: Optional[str]
+    sections: List[Section]
     information_fields: Optional[List[InformationField]]
 
-    def __init__(self, form_title: str, id: str, user_id: str, created_by: str, system: str, city: str, street: str, latitude: float, longitude: float, priority: PRIORITY, status: FORM_STATUS, created_at: int, updated_at: int, sections: List[Section], template: Optional[str] = None, area: Optional[str] = None, number: Optional[int] = None, observation: Optional[str] = None, expiration_date: Optional[int] = None, in_progress_at: Optional[int] = None, cancelled_at: Optional[int] = None, completed_at: Optional[int] = None, justification: Justification = None, information_fields: Optional[List[InformationField]] = None):
+    def __init__(
+        self,
+        form_title: str,
+        user_id: str,
+        system: str,
+        street: str,
+        city: str,
+        latitude: float,
+        longitude: float,
+        priority: PRIORITY,
+        status: FORM_STATUS,
+        sections: List[Section],
+        form_id: Optional[str] = None,
+        id: Optional[str] = None,
+        creator_user_id: Optional[str] = None,
+        created_by: Optional[str] = None,
+        vinculation_form_id: Optional[str] = None,
+        can_vinculate: Optional[bool] = None,
+        template: Optional[str] = None,
+        area: Optional[str] = None,
+        number: Optional[int] = None,
+        region: Optional[str] = None,
+        description: Optional[str] = None,
+        observation: Optional[str] = None,
+        expiration_date: Optional[int] = None,
+        creation_date: Optional[int] = None,
+        created_at: Optional[int] = None,
+        start_date: Optional[int] = None,
+        in_progress_at: Optional[int] = None,
+        conclusion_date: Optional[int] = None,
+        completed_at: Optional[int] = None,
+        cancelled_at: Optional[int] = None,
+        updated_at: Optional[int] = None,
+        justification: Justification = None,
+        comments: Optional[str] = None,
+        information_fields: Optional[List[InformationField]] = None,
+    ):
+        resolved_id = id or form_id
+        resolved_creator = created_by or creator_user_id
+        resolved_creation_date = created_at if created_at is not None else creation_date
+        resolved_start_date = in_progress_at if in_progress_at is not None else start_date
+        resolved_conclusion_date = completed_at if completed_at is not None else conclusion_date
+        resolved_description = observation if observation is not None else description
+        resolved_region = region if region is not None else area
+
+        resolved_updated_at = updated_at
+        if resolved_updated_at is None:
+            resolved_updated_at = resolved_conclusion_date or resolved_start_date or resolved_creation_date
+
         self.form_title = form_title
-        self.id = id
+        self.form_id = resolved_id
+        self.id = resolved_id
+        self.creator_user_id = resolved_creator
+        self.created_by = resolved_creator
         self.user_id = user_id
-        self.created_by = created_by
+        self.vinculation_form_id = vinculation_form_id
+        self.can_vinculate = bool(can_vinculate) if can_vinculate is not None else False
         self.template = template
         self.area = area
         self.system = system
@@ -51,27 +112,34 @@ class FormDynamoDTO:
         self.number = number
         self.latitude = latitude
         self.longitude = longitude
+        self.region = resolved_region
+        self.description = resolved_description
+        self.observation = resolved_description
         self.priority = priority
-        self.observation = observation
-        self.expiration_date = expiration_date
         self.status = status
-        self.in_progress_at = in_progress_at
+        self.expiration_date = expiration_date
+        self.creation_date = resolved_creation_date
+        self.created_at = resolved_creation_date
+        self.start_date = resolved_start_date
+        self.in_progress_at = resolved_start_date
+        self.conclusion_date = resolved_conclusion_date
+        self.completed_at = resolved_conclusion_date
         self.cancelled_at = cancelled_at
-        self.completed_at = completed_at
-        self.created_at = created_at
-        self.updated_at = updated_at
+        self.updated_at = resolved_updated_at
         self.justification = justification
+        self.comments = comments
         self.sections = sections
         self.information_fields = information_fields
-
 
     @staticmethod
     def from_entity(form: Form) -> "FormDynamoDTO":
         return FormDynamoDTO(
             form_title=form.form_title,
-            id=form.id,
+            form_id=form.form_id,
+            creator_user_id=form.creator_user_id,
             user_id=form.user_id,
-            created_by=form.created_by,
+            vinculation_form_id=form.vinculation_form_id,
+            can_vinculate=form.can_vinculate,
             template=form.template,
             area=form.area,
             system=form.system,
@@ -80,86 +148,114 @@ class FormDynamoDTO:
             number=form.number,
             latitude=form.latitude,
             longitude=form.longitude,
+            region=form.region,
+            description=form.description,
             priority=form.priority,
-            observation=form.observation,
-            expiration_date=form.expiration_date,
             status=form.status,
-            in_progress_at=form.in_progress_at,
+            expiration_date=form.expiration_date,
+            creation_date=form.creation_date,
+            start_date=form.start_date,
+            conclusion_date=form.conclusion_date,
             cancelled_at=form.cancelled_at,
-            completed_at=form.completed_at,
-            created_at=form.created_at,
             updated_at=form.updated_at,
             justification=form.justification,
+            comments=form.comments,
             sections=form.sections,
-            information_fields=form.information_fields
+            information_fields=form.information_fields,
         )
 
     def to_dynamo(self) -> dict:
         return {
-            'form_title': self.form_title,
-            'id': self.id,
-            'form_id': self.id,  # compat
-            'user_id': self.user_id,
-            'created_by': self.created_by,
-            'template': self.template,
-            'area': self.area,
-            'system': self.system,
-            'street': self.street,
-            'city': self.city,
-            'number': self.number,
-            'latitude': Decimal(str(self.latitude)),
-            'longitude': Decimal(str(self.longitude)),
-            'priority': self.priority.value,
-            'observation': self.observation,
-            'expiration_date': self.expiration_date,
-            'status': self.status.value,
-            'in_progress_at': self.in_progress_at,
-            'cancelled_at': self.cancelled_at,
-            'completed_at': self.completed_at,
-            'created_at': self.created_at,
-            'updated_at': self.updated_at,
-            'justification': JustificationDTO.from_entity(self.justification).to_dynamo() if self.justification else None,
-            'sections': [
+            "form_title": self.form_title,
+            "form_id": self.form_id,
+            "creator_user_id": self.creator_user_id,
+            "user_id": self.user_id,
+            "vinculation_form_id": self.vinculation_form_id,
+            "can_vinculate": self.can_vinculate,
+            "template": self.template,
+            "area": self.area,
+            "system": self.system,
+            "street": self.street,
+            "city": self.city,
+            "number": self.number,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "region": self.region,
+            "description": self.description,
+            "priority": self.priority.value if isinstance(self.priority, PRIORITY) else self.priority,
+            "status": self.status.value if isinstance(self.status, FORM_STATUS) else self.status,
+            "expiration_date": self.expiration_date,
+            "creation_date": self.creation_date,
+            "start_date": self.start_date,
+            "conclusion_date": self.conclusion_date,
+            "justification": JustificationDTO.from_entity(self.justification).to_dynamo() if self.justification else None,
+            "comments": self.comments,
+            "sections": [
                 SectionDTO.from_entity(section).to_dynamo() for section in self.sections
             ],
-            'information_fields': [InformationFieldDTO.from_entity(information_field).to_dynamo() for information_field in self.information_fields] if self.information_fields else None
+            "information_fields": [
+                InformationFieldDTO.from_entity(information_field).to_dynamo()
+                for information_field in self.information_fields
+            ] if self.information_fields else None,
         }
-    
+
     @staticmethod
     def from_dynamo(data: dict) -> "FormDynamoDTO":
+        creation_date = data.get("creation_date")
+        if creation_date is None:
+            creation_date = data.get("created_at")
+
+        start_date = data.get("start_date")
+        if start_date is None:
+            start_date = data.get("in_progress_at")
+
+        conclusion_date = data.get("conclusion_date")
+        if conclusion_date is None:
+            conclusion_date = data.get("completed_at")
+
         return FormDynamoDTO(
-            form_title=data['form_title'],
-            id=data.get('id') or data.get('form_id'),
-            user_id=data['user_id'],
-            created_by=data['created_by'],
-            template=data.get('template'),
-            area=data.get('area'),
-            system=data['system'],
-            street=data['street'],
-            city=data['city'],
-            number=int(data['number']) if data.get('number') is not None else None,
-            latitude=float(data['latitude']),
-            longitude=float(data['longitude']),
-            priority=PRIORITY(data['priority']),
-            observation=data.get('observation'),
-            expiration_date=int(data['expiration_date']) if data.get('expiration_date') is not None else None,
-            status=FORM_STATUS(data['status']),
-            in_progress_at=int(data['in_progress_at']) if data.get('in_progress_at') is not None else None,
-            cancelled_at=int(data['cancelled_at']) if data.get('cancelled_at') is not None else None,
-            completed_at=int(data['completed_at']) if data.get('completed_at') is not None else None,
-            created_at=int(data['created_at']),
-            updated_at=int(data['updated_at']),
-            justification=JustificationDTO.from_dynamo(data['justification']).to_entity() if data.get('justification') else None,
-            sections=[SectionDTO.from_dynamo(section).to_entity() for section in data['sections']],
-            information_fields=[InformationFieldDTO.from_dynamo(information_field).to_entity() for information_field in data['information_fields']] if data.get('information_fields') else None
+            form_title=data["form_title"],
+            form_id=data.get("form_id") or data.get("id"),
+            creator_user_id=data.get("creator_user_id") or data.get("created_by"),
+            user_id=data["user_id"],
+            vinculation_form_id=data.get("vinculation_form_id"),
+            can_vinculate=data.get("can_vinculate"),
+            template=data.get("template"),
+            area=data.get("area"),
+            system=data["system"],
+            street=data["street"],
+            city=data["city"],
+            number=int(data["number"]) if data.get("number") is not None else None,
+            latitude=float(data["latitude"]),
+            longitude=float(data["longitude"]),
+            region=data.get("region"),
+            description=data.get("description") or data.get("observation"),
+            priority=PRIORITY(data["priority"]),
+            status=FORM_STATUS(data["status"]),
+            expiration_date=int(data["expiration_date"]) if data.get("expiration_date") is not None else None,
+            creation_date=int(creation_date) if creation_date is not None else None,
+            start_date=int(start_date) if start_date is not None else None,
+            conclusion_date=int(conclusion_date) if conclusion_date is not None else None,
+            cancelled_at=int(data["cancelled_at"]) if data.get("cancelled_at") is not None else None,
+            updated_at=int(data["updated_at"]) if data.get("updated_at") is not None else None,
+            justification=JustificationDTO.from_dynamo(data["justification"]).to_entity() if data.get("justification") else None,
+            comments=data.get("comments"),
+            sections=[SectionDTO.from_dynamo(section).to_entity() for section in data.get("sections", [])],
+            information_fields=[
+                InformationFieldDTO.from_dynamo(information_field).to_entity()
+                for information_field in data["information_fields"]
+            ] if data.get("information_fields") else None,
         )
-    
+
     def to_entity(self) -> Form:
         return Form(
-            id=self.id,
             form_title=self.form_title,
+            form_id=self.form_id,
+            creator_user_id=self.creator_user_id,
             user_id=self.user_id,
             created_by=self.created_by,
+            vinculation_form_id=self.vinculation_form_id,
+            can_vinculate=self.can_vinculate,
             template=self.template,
             area=self.area,
             system=self.system,
@@ -168,16 +264,18 @@ class FormDynamoDTO:
             number=self.number,
             latitude=self.latitude,
             longitude=self.longitude,
+            region=self.region,
+            description=self.description,
             priority=self.priority,
-            observation=self.observation,
-            expiration_date=self.expiration_date,
             status=self.status,
-            in_progress_at=self.in_progress_at,
+            expiration_date=self.expiration_date,
+            in_progress_at=self.start_date,
             cancelled_at=self.cancelled_at,
-            completed_at=self.completed_at,
-            created_at=self.created_at,
+            completed_at=self.conclusion_date,
+            created_at=self.creation_date,
             updated_at=self.updated_at,
             justification=self.justification,
+            comments=self.comments,
             sections=self.sections,
-            information_fields=self.information_fields
+            information_fields=self.information_fields,
         )
