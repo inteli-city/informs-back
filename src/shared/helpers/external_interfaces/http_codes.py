@@ -16,7 +16,7 @@ class Created(HttpResponse):
 
 class NoContent(HttpResponse):
     def __init__(self) -> None:
-        super().__init__(HttpStatusCodeEnum.NO_CONTENT.value, None)
+        super().__init__(HttpStatusCodeEnum.NO_CONTENT.value, {})
 
 
 class BadRequest(HttpResponse):
