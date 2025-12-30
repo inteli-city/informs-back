@@ -10,7 +10,7 @@ from src.modules.update_template.app.update_template_usecase import UpdateTempla
 from src.shared.domain.entities.field import TextField
 from src.shared.domain.entities.section import Section
 from src.shared.helpers.errors.domain_errors import EntityError
-from src.shared.helpers.errors.usecase_errors import DuplicatedItem, NoItemsFound
+from src.shared.helpers.errors.usecase_errors import NoItemsFound
 from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
 
 
