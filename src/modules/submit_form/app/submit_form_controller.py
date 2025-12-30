@@ -45,20 +45,33 @@ class SubmitFormController:
             raise MissingParameters("sections")
 
         sections = [SectionDTO.from_request(section).to_entity() for section in sections_raw]
+        file_content_types = {}
+        for section in sections_raw:
+            section_id = section.get("section_id")
+            for field in section.get("fields", []):
+                if field.get("field_type") == "FILE_FIELD" and field.get("value") is not None:
+                    content_type = field.get("content_type")
+                    if content_type is None:
+                        raise MissingParameters("content_type")
+                    if not isinstance(content_type, str):
+                        raise WrongTypeParameter(fieldName="content_type", fieldTypeExpected="str", fieldTypeReceived=type(content_type))
+                    field_key = field.get("key")
+                    file_content_types[(section_id, field_key)] = content_type
 
-        return form_id, completed_at, sections
+        return form_id, completed_at, sections, file_content_types
     
     def __call__(self, request: IRequest) -> IResponse:
         try:
             data = request.data if isinstance(request.data, dict) else {}
             requester_user = self._validate_requester_user(data)
-            form_id, completed_at, sections = self._validate_endpoint_parameters(data)
+            form_id, completed_at, sections, file_content_types = self._validate_endpoint_parameters(data)
                 
-            form = self.submit_form_usecase(
+            _ = self.submit_form_usecase(
                 user_id=requester_user.user_id,
                 form_id=form_id,
                 sections=sections,
-                completed_at=completed_at
+                completed_at=completed_at,
+                file_content_types=file_content_types,
             )
 
             return NoContent()

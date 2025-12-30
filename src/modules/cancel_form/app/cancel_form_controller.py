@@ -40,18 +40,25 @@ class CancelFormController:
         if justification_image is not None and not isinstance(justification_image, str):
             raise WrongTypeParameter(fieldName="justification_image", fieldTypeExpected="str", fieldTypeReceived=type(justification_image))
 
+        content_type = data.get("content_type")
+        if justification_image is not None:
+            if content_type is None:
+                raise MissingParameters("content_type")
+            if not isinstance(content_type, str):
+                raise WrongTypeParameter(fieldName="content_type", fieldTypeExpected="str", fieldTypeReceived=type(content_type))
+
         cancelled_at = data.get("cancelled_at")
         if cancelled_at is not None:
             if isinstance(cancelled_at, bool) or not isinstance(cancelled_at, int):
                 raise WrongTypeParameter(fieldName="cancelled_at", fieldTypeExpected="int", fieldTypeReceived=type(cancelled_at))
-        return (form_id, selected_option, justification_text, justification_image, cancelled_at)
+        return (form_id, selected_option, justification_text, justification_image, content_type, cancelled_at)
     
     def __call__(self, request: IRequest) -> IResponse:
         try:
             data = request.data if isinstance(request.data, dict) else {}
             requester_user = self._validate_requester_user(data)
 
-            form_id, selected_option, justification_text, justification_image, cancelled_at = self._validate_endpoint_parameters(data)
+            form_id, selected_option, justification_text, justification_image, content_type, cancelled_at = self._validate_endpoint_parameters(data)
             
             form = self.usecase(
                 requester_id=requester_user.user_id,
@@ -59,6 +66,7 @@ class CancelFormController:
                 selected_option=selected_option,
                 justification_text=justification_text,
                 justification_image=justification_image,
+                content_type=content_type,
                 cancelled_at=cancelled_at
             )
 

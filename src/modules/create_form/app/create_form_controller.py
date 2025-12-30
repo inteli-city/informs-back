@@ -62,6 +62,7 @@ class CreateFormController:
         expiration_date_raw = data.get("expiration_date")
         number_raw = data.get("number")
         information_fields_raw = data.get("information_fields")
+        information_fields_content_types = None
 
         for field_name, value in [
             ("form_title", form_title),
@@ -80,6 +81,15 @@ class CreateFormController:
 
         if information_fields_raw is not None:
             _require_type("information_fields", information_fields_raw, list)
+            information_fields_content_types = [None] * len(information_fields_raw)
+            for idx, information_field in enumerate(information_fields_raw):
+                if information_field.get("information_field_type") == "IMAGE_INFORMATION_FIELD":
+                    content_type = information_field.get("content_type")
+                    if content_type is None:
+                        raise MissingParameters("content_type")
+                    if not isinstance(content_type, str):
+                        raise WrongTypeParameter("content_type", "str", type(content_type))
+                    information_fields_content_types[idx] = content_type
 
         priority_values = {priority.value for priority in PRIORITY}
         if isinstance(priority_payload, bool) or not isinstance(priority_payload, int):
@@ -138,6 +148,7 @@ class CreateFormController:
             observation,
             expiration_date,
             information_fields,
+            information_fields_content_types,
         )
     
     def __call__(self, request: IRequest) -> IResponse:
@@ -159,6 +170,7 @@ class CreateFormController:
                 observation,
                 expiration_date,
                 information_fields,
+                information_fields_content_types,
             ) = self._validate_endpoint_parameters(data)
 
             form = self.usecase(
@@ -177,6 +189,7 @@ class CreateFormController:
                 observation=observation,
                 expiration_date=expiration_date,
                 information_fields=information_fields,
+                information_fields_content_types=information_fields_content_types,
             )
 
             viewmodel = CreateFormViewmodel(form=form)

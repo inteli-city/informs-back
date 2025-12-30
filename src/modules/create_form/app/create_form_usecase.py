@@ -10,6 +10,7 @@ from src.shared.domain.enums.priority_enum import PRIORITY
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.image_repository_interface import IImageRepository
 from src.shared.environments import Environments
+from src.shared.helpers.errors.domain_errors import EntityError
 
 
 class CreateFormUsecase:
@@ -34,16 +35,27 @@ class CreateFormUsecase:
         observation: Optional[str] = None,
         expiration_date: Optional[int] = None,
         information_fields: Optional[List[InformationField]] = None,
+        information_fields_content_types: Optional[List[Optional[str]]] = None,
     ) -> Form:
         
         form_id = str(uuid.uuid4())
         now_timestamp = int(datetime.now(timezone.utc).timestamp() * 1000)
 
         if information_fields:
-            for information_field in information_fields:
+            content_types = information_fields_content_types or []
+            for idx, information_field in enumerate(information_fields):
                 if isinstance(information_field, ImageInformationField):
-                    image_path = f'{datetime.now(timezone.utc).year}/{form_id}/information_field/{str(uuid.uuid4())}.png'
-                    self.image_repo.put_image(base_64_image=information_field.file_path, image_path=image_path)
+                    if idx >= len(content_types):
+                        raise EntityError("content_type")
+                    content_type = content_types[idx]
+                    if not isinstance(content_type, str) or not content_type:
+                        raise EntityError("content_type")
+                    image_path = f'{datetime.now(timezone.utc).year}/{form_id}/information_field/{str(uuid.uuid4())}.{content_type.split("/")[-1]}'
+                    self.image_repo.put_image(
+                        base_64_image=information_field.file_path,
+                        image_path=image_path,
+                        content_type=content_type,
+                    )
                     information_field.file_path = f'https://{Environments.get_envs().bucket_name}.s3.sa-east-1.amazonaws.com/{image_path}'
 
         form = Form(
