@@ -19,8 +19,7 @@ class GetTemplateController:
         return UserGatewayDTO.from_api_gateway(requester_user)
 
     def _validate_endpoint_parameters(self, data: dict) -> str:
-        template_id = data.get("template_id") or data.get("templateId")
-
+        template_id = data.get("template_id")
         if template_id is None:
             raise MissingParameters("template_id")
 
