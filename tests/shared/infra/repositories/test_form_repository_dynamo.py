@@ -99,10 +99,11 @@ def test_form_repository_dynamo_get_all_forms_query_path():
         "LastEvaluatedKey": {"PK": "form#next", "SK": "METADATA"},
     }
     token = encode_pagination_token({"PK": "form#start", "SK": "METADATA"})
+    start_key = {"PK": "form#start", "SK": "METADATA"}
 
     forms, next_key = repo.get_all_forms(
         limit=10,
-        exclusive_start_key=token,
+        exclusive_start_key=start_key,
         status=FORM_STATUS.IN_PROGRESS,
         system="GAIA",
         user_id=form.user_id,

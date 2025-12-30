@@ -90,11 +90,12 @@ def test_template_repository_dynamo_get_all_and_update():
         "LastEvaluatedKey": {"PK": "template#next", "SK": "METADATA"},
     }
     token = encode_pagination_token({"PK": "template#start", "SK": "METADATA"})
+    start_key = {"PK": "template#start", "SK": "METADATA"}
 
     results, next_key = repo.get_all_templates(
         system="GAIA",
         limit=10,
-        exclusive_start_key=token,
+        exclusive_start_key=start_key,
         name_contains="Tem",
         is_active=True,
     )
