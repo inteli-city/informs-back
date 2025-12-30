@@ -28,3 +28,10 @@ def decode_pagination_token(token: Optional[str]) -> Optional[dict]:
         raise ValueError("Invalid pagination token content")
 
     return content
+
+
+def try_decode_pagination_token(token: Optional[str]) -> Optional[dict]:
+    try:
+        return decode_pagination_token(token)
+    except ValueError:
+        return None

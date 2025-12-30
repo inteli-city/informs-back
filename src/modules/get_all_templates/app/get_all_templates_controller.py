@@ -2,11 +2,10 @@ from .get_all_templates_usecase import GetAllTemplatesUsecase
 from .get_all_templates_viewmodel import GetAllTemplatesViewmodel
 from src.shared.helpers.errors.controller_errors import MissingParameters, WrongTypeParameter
 from src.shared.helpers.errors.domain_errors import EntityError
-from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
+from src.shared.helpers.errors.usecase_errors import ForbiddenAction, InvalidPaginationToken, NoItemsFound
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
 from src.shared.helpers.external_interfaces.http_codes import BadRequest, Forbidden, InternalServerError, NotFound, OK
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
-from src.shared.helpers.functions.pagination_token import decode_pagination_token
 
 
 class GetAllTemplatesController:
@@ -33,17 +32,13 @@ class GetAllTemplatesController:
 
         is_active_raw = data.get("is_active")
         is_active_field = "is_active"
-        if is_active_raw is None and "isActive" in data:
-            is_active_raw = data.get("isActive")
-            is_active_field = "isActive"
         if is_active_raw is None:
             is_active_raw = True
 
-        if isinstance(is_active_raw, bool):
-            is_active = is_active_raw
-        else:
+        if not isinstance(is_active_raw, bool):
             raise WrongTypeParameter(is_active_field, "bool", type(is_active_raw))
-
+        is_active = is_active_raw
+        
         system = data.get("system")
         if system is None:
             raise MissingParameters("system")
@@ -56,19 +51,12 @@ class GetAllTemplatesController:
 
         exclusive_start_key_field = "exclusive_start_key"
         exclusive_start_key_raw = data.get("exclusive_start_key")
-        if exclusive_start_key_raw is None and "exclusiveStartKey" in data:
-            exclusive_start_key_raw = data.get("exclusiveStartKey")
-            exclusive_start_key_field = "exclusiveStartKey"
 
         if exclusive_start_key_raw is None:
             exclusive_start_key = None
         else:
             if not isinstance(exclusive_start_key_raw, str):
                 raise WrongTypeParameter(exclusive_start_key_field, "str", type(exclusive_start_key_raw))
-            try:
-                decode_pagination_token(exclusive_start_key_raw)
-            except ValueError:
-                raise EntityError(exclusive_start_key_field)
             exclusive_start_key = exclusive_start_key_raw
 
         return limit, is_active, system, name_filter, exclusive_start_key
@@ -98,6 +86,8 @@ class GetAllTemplatesController:
         except ForbiddenAction as err:
             return Forbidden(body=err.message)
         except WrongTypeParameter as err:
+            return BadRequest(body=err.message)
+        except InvalidPaginationToken as err:
             return BadRequest(body=err.message)
         except EntityError as err:
             return BadRequest(body=f"Parâmetro inválido: {err.message}")

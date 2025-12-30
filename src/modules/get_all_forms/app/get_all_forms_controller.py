@@ -3,11 +3,10 @@ from .get_all_forms_viewmodel import GetAllFormsViewmodel
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.helpers.errors.controller_errors import MissingParameters, WrongTypeParameter
 from src.shared.helpers.errors.domain_errors import EntityError
-from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
+from src.shared.helpers.errors.usecase_errors import ForbiddenAction, InvalidPaginationToken, NoItemsFound
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
 from src.shared.helpers.external_interfaces.http_codes import BadRequest, InternalServerError, NotFound, OK
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
-from src.shared.helpers.functions.pagination_token import decode_pagination_token
 
 
 class GetAllFormsController:
@@ -56,20 +55,11 @@ class GetAllFormsController:
 
         exclusive_start_key_field = "exclusive_start_key"
         exclusive_start_key_raw = data.get("exclusive_start_key")
-        if exclusive_start_key_raw is None and "exclusiveStartKey" in data:
-            exclusive_start_key_raw = data.get("exclusiveStartKey")
-            exclusive_start_key_field = "exclusiveStartKey"
 
-        if exclusive_start_key_raw is None:
-            exclusive_start_key = None
-        else:
-            if not isinstance(exclusive_start_key_raw, str):
-                raise WrongTypeParameter(exclusive_start_key_field, "str", type(exclusive_start_key_raw))
-            try:
-                decode_pagination_token(exclusive_start_key_raw)
-            except ValueError:
-                raise EntityError(exclusive_start_key_field)
-            exclusive_start_key = exclusive_start_key_raw
+        if exclusive_start_key_raw is not None and not isinstance(exclusive_start_key_raw, str):
+            raise WrongTypeParameter(exclusive_start_key_field, "str", type(exclusive_start_key_raw))
+        
+        exclusive_start_key = exclusive_start_key_raw
 
         return limit, status, system, search, created_at_start, created_at_end, exclusive_start_key
 
@@ -109,6 +99,8 @@ class GetAllFormsController:
         except ForbiddenAction as err:
             return BadRequest(body=err.message)
         except WrongTypeParameter as err:
+            return BadRequest(body=err.message)
+        except InvalidPaginationToken as err:
             return BadRequest(body=err.message)
         except EntityError as err:
             return BadRequest(body=f"Parâmetro inválido: {err.message}")
