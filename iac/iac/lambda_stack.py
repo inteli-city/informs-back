@@ -45,6 +45,7 @@ class LambdaStack(Construct):
         form_id_resource = forms_resource.add_resource("{form_id}")
         templates_resource = api_gateway_resource.add_resource("templates")
         template_id_resource = templates_resource.add_resource("{template_id}")
+        docs_resource = api_gateway_resource.add_resource("docs")
 
         self.create_form = self.create_lambda_api_gateway_integration(
             module_name="create_form",
@@ -127,6 +128,14 @@ class LambdaStack(Construct):
             api_resource=templates_resource,
             environment_variables=environment_variables,
             authorizer=authorizer,
+        )
+
+        self.docs = self.create_lambda_api_gateway_integration(
+            module_name="docs",
+            method="GET",
+            api_resource=docs_resource,
+            environment_variables=environment_variables,
+            authorizer=None,
         )
 
         self.functions_that_need_dynamo_forms_permissions = [
