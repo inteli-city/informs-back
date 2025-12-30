@@ -18,7 +18,7 @@ class FieldViewmodel:
         self.field = field
     
     def to_dict(self):
-        return {attr: getattr(self.field, attr).value if isinstance(getattr(self.field, attr), Enum) else getattr(self.field, attr) for attr in vars(self.field)}
+        return self.field.to_legacy_dict()
 
 class InformationFieldViewmodel:
     information_field: InformationField
