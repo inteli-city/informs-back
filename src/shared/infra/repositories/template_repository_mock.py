@@ -6,7 +6,7 @@ from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.field import TextField
 from src.shared.domain.entities.template import Template
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
-from src.shared.helpers.functions.pagination_token import decode_pagination_token, encode_pagination_token
+from src.shared.helpers.functions.pagination_token import encode_pagination_token
 
 
 class TemplateRepositoryMock(ITemplateRepository):
@@ -80,7 +80,7 @@ class TemplateRepositoryMock(ITemplateRepository):
         self,
         system: str,
         limit: int,
-        exclusive_start_key: Optional[str] = None,
+        exclusive_start_key: Optional[dict] = None,
         name_contains: Optional[str] = None,
         is_active: Optional[bool] = True,
     ) -> tuple[List[Template], Optional[str]]:
@@ -95,7 +95,7 @@ class TemplateRepositoryMock(ITemplateRepository):
 
         filtered.sort(key=lambda tpl: tpl.name.lower())
 
-        start_key_dict = decode_pagination_token(exclusive_start_key)
+        start_key_dict = exclusive_start_key
 
         start = self._parse_start_index(filtered, start_key_dict)
         end = start + limit

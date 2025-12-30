@@ -6,7 +6,7 @@ from src.shared.domain.repositories.template_repository_interface import ITempla
 from src.shared.environments import Environments
 from src.shared.infra.dtos.template_dynamo_dto import TemplateDynamoDTO
 from src.shared.infra.external.dynamo.datasources.dynamo_datasource import DynamoDatasource
-from src.shared.helpers.functions.pagination_token import decode_pagination_token, encode_pagination_token
+from src.shared.helpers.functions.pagination_token import encode_pagination_token
 
 
 class TemplateRepositoryDynamo(ITemplateRepository):
@@ -61,7 +61,7 @@ class TemplateRepositoryDynamo(ITemplateRepository):
         self,
         system: str,
         limit: int,
-        exclusive_start_key: Optional[str] = None,
+        exclusive_start_key: Optional[dict] = None,
         name_contains: Optional[str] = None,
         is_active: Optional[bool] = True,
     ) -> Tuple[List[Template], Optional[str]]:
@@ -84,7 +84,7 @@ class TemplateRepositoryDynamo(ITemplateRepository):
             "Select": "ALL_ATTRIBUTES",
         }
 
-        start_key = decode_pagination_token(exclusive_start_key)
+        start_key = exclusive_start_key
         if start_key is not None:
             query_kwargs["ExclusiveStartKey"] = start_key
 

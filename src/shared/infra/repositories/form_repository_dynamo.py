@@ -11,7 +11,7 @@ from src.shared.infra.dtos.form_dynamo_dto import FormDynamoDTO
 from src.shared.infra.dtos.justification_dto import JustificationDTO
 from src.shared.infra.dtos.section_dto import SectionDTO
 from src.shared.infra.external.dynamo.datasources.dynamo_datasource import DynamoDatasource
-from src.shared.helpers.functions.pagination_token import decode_pagination_token, encode_pagination_token
+from src.shared.helpers.functions.pagination_token import encode_pagination_token
 from boto3.dynamodb.conditions import Key, Attr
 
 class FormRepositoryDynamo(IFormRepository):
@@ -61,7 +61,7 @@ class FormRepositoryDynamo(IFormRepository):
     def get_all_forms(
         self,
         limit: int,
-        exclusive_start_key: Optional[str] = None,
+        exclusive_start_key: Optional[dict] = None,
         status: Optional[FORM_STATUS] = None,
         system: Optional[str] = None,
         user_id: Optional[str] = None,
@@ -89,7 +89,7 @@ class FormRepositoryDynamo(IFormRepository):
             expr = Attr('created_at').lte(Decimal(created_at_end))
             filter_expression = expr if filter_expression is None else filter_expression & expr
 
-        start_key = decode_pagination_token(exclusive_start_key)
+        start_key = exclusive_start_key
 
         if user_id is not None:
             query = Key("GSI1PK").eq(self.form_gsi1_partition_key_format(user_id))

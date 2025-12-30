@@ -21,7 +21,7 @@ class IFormRepository(ABC):
     def get_all_forms(
         self,
         limit: int,
-        exclusive_start_key: Optional[str] = None,
+        exclusive_start_key: Optional[dict] = None,
         status: Optional[FORM_STATUS] = None,
         system: Optional[str] = None,
         user_id: Optional[str] = None,

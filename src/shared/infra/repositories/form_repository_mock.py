@@ -9,7 +9,7 @@ from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.enums.priority_enum import PRIORITY
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem
-from src.shared.helpers.functions.pagination_token import decode_pagination_token, encode_pagination_token
+from src.shared.helpers.functions.pagination_token import encode_pagination_token
 
 
 class FormRepositoryMock(IFormRepository):
@@ -155,7 +155,7 @@ class FormRepositoryMock(IFormRepository):
     def get_all_forms(
         self,
         limit: int,
-        exclusive_start_key: Optional[str] = None,
+        exclusive_start_key: Optional[dict] = None,
         status: Optional[FORM_STATUS] = None,
         system: Optional[str] = None,
         user_id: Optional[str] = None,
@@ -192,7 +192,7 @@ class FormRepositoryMock(IFormRepository):
 
         forms = sorted(forms, key=sort_key, reverse=True)
 
-        start_key_dict = decode_pagination_token(exclusive_start_key)
+        start_key_dict = exclusive_start_key
         start = self._parse_start_index(forms, start_key_dict)
         end = start + limit
         page = forms[start:end]
