@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.justification import Justification
@@ -18,7 +18,17 @@ class IFormRepository(ABC):
         pass
 
     @abstractmethod
-    def get_all_forms(self, page: int, limit: int, status: Optional[FORM_STATUS] = None, system: Optional[str] = None, user_id: Optional[str] = None, created_at_start: Optional[int] = None, created_at_end: Optional[int] = None, search: Optional[str] = None) -> List[Form]:
+    def get_all_forms(
+        self,
+        limit: int,
+        exclusive_start_key: Optional[str] = None,
+        status: Optional[FORM_STATUS] = None,
+        system: Optional[str] = None,
+        user_id: Optional[str] = None,
+        created_at_start: Optional[int] = None,
+        created_at_end: Optional[int] = None,
+        search: Optional[str] = None,
+    ) -> Tuple[List[Form], Optional[str]]:
         pass
 
     @abstractmethod

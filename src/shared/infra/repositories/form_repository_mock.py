@@ -9,6 +9,7 @@ from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.enums.priority_enum import PRIORITY
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem
+from src.shared.helpers.functions.pagination_token import decode_pagination_token, encode_pagination_token
 
 
 class FormRepositoryMock(IFormRepository):
@@ -134,7 +135,34 @@ class FormRepositoryMock(IFormRepository):
 
         return filtered_forms
 
-    def get_all_forms(self, page: int, limit: int, status: Optional[FORM_STATUS] = None, system: Optional[str] = None, user_id: Optional[str] = None, created_at_start: Optional[int] = None, created_at_end: Optional[int] = None, search: Optional[str] = None) -> List[Form]:
+    def _parse_start_index(self, forms: List[Form], last_evaluated_key: Optional[dict]) -> int:
+        if last_evaluated_key is None:
+            return 0
+
+        last_id = last_evaluated_key.get("id") or last_evaluated_key.get("form_id")
+        pk = last_evaluated_key.get("PK") or last_evaluated_key.get("pk")
+        if last_id is None and pk and isinstance(pk, str) and pk.startswith("form#"):
+            last_id = pk.split("form#", 1)[1]
+
+        if last_id is None:
+            return 0
+
+        for idx, form in enumerate(forms):
+            if form.id == last_id:
+                return idx + 1
+        return 0
+
+    def get_all_forms(
+        self,
+        limit: int,
+        exclusive_start_key: Optional[str] = None,
+        status: Optional[FORM_STATUS] = None,
+        system: Optional[str] = None,
+        user_id: Optional[str] = None,
+        created_at_start: Optional[int] = None,
+        created_at_end: Optional[int] = None,
+        search: Optional[str] = None,
+    ) -> tuple[List[Form], Optional[str]]:
         forms = self.forms
 
         if user_id is not None:
@@ -164,9 +192,25 @@ class FormRepositoryMock(IFormRepository):
 
         forms = sorted(forms, key=sort_key, reverse=True)
 
-        start = (page - 1) * limit
+        start_key_dict = decode_pagination_token(exclusive_start_key)
+        start = self._parse_start_index(forms, start_key_dict)
         end = start + limit
-        return forms[start:end]
+        page = forms[start:end]
+
+        next_key = None
+        if end < len(forms):
+            next_form = forms[end - 1]
+            next_key = {
+                "PK": f"form#{next_form.id}",
+                "SK": "METADATA",
+                "GSI1PK": f"user#{next_form.user_id}",
+                "GSI1SK": f"priority#{next_form.priority.value}#status#{next_form.status.value}#created_at#{next_form.created_at}",
+                "id": next_form.id,
+                "form_id": next_form.id,
+            }
+            next_key = encode_pagination_token(next_key)
+
+        return page, next_key
     
     def create_form(self, form: Form) -> Form:
         for item in self.forms:

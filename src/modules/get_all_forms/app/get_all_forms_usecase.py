@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from src.shared.domain.entities.form import Form
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
@@ -12,17 +12,17 @@ class GetAllFormsUsecase:
     def __call__(
         self,
         requester_user_id: str,
-        page: int,
         limit: int,
+        exclusive_start_key: Optional[str] = None,
         status: Optional[FORM_STATUS] = None,
         system: Optional[str] = None,
         created_at_start: Optional[int] = None,
         created_at_end: Optional[int] = None,
         search: Optional[str] = None,
-    ) -> List[Form]:
+    ) -> Tuple[List[Form], Optional[str]]:
         return self.form_repo.get_all_forms(
-            page=page,
             limit=limit,
+            exclusive_start_key=exclusive_start_key,
             status=status,
             system=system,
             user_id=requester_user_id,
