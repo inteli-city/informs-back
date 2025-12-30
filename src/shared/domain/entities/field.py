@@ -117,6 +117,16 @@ class NumberField(Field):
                 raise EntityError('value')
         self.value = value
 
+    def to_legacy_dict(self) -> dict:
+        base = super().to_legacy_dict()
+        base.update({
+            "max_value": self.max_value,
+            "min_value": self.min_value,
+            "decimal": self.decimal,
+            "value": self.value
+        })
+        return base
+
 
 class DropDownField(Field):
     options: List[str]
