@@ -1,8 +1,10 @@
 import json
+from pathlib import Path
 
 def lambda_handler(event, context):
     try:
-        with open('swagger.json', 'r') as file:
+        swagger_path = Path(__file__).with_name("swagger.json")
+        with swagger_path.open("r") as file:
             swagger_content = file.read()
     except FileNotFoundError:
         return {
