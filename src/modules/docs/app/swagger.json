@@ -159,7 +159,7 @@
           "name": { "type": "string" },
           "description": { "type": "string", "nullable": true },
           "system": { "type": "string" },
-          "isActive": { "type": "boolean", "default": true },
+          "is_active": { "type": "boolean", "default": true },
           "created_by": { "type": "string" },
           "created_at": { "type": "string", "format": "date-time", "readOnly": true },
           "updated_at": { "type": "string", "format": "date-time", "readOnly": true },
@@ -176,7 +176,7 @@
           "name": { "type": "string" },
           "system": { "type": "string" },
           "description": { "type": "string", "nullable": true },
-          "isActive": { "type": "boolean" },
+          "is_active": { "type": "boolean" },
           "sessions": {
             "type": "array",
             "items": { "$ref": "#/components/schemas/Section" }
@@ -227,7 +227,7 @@
           { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
           { "name": "status", "in": "query", "schema": { "type": "string" } },
           { "name": "system", "in": "query", "schema": { "type": "string" } },
-          { "name": "userId", "in": "query", "schema": { "type": "string" } }
+          { "name": "user_id", "in": "query", "schema": { "type": "string" } }
         ],
         "responses": {
           "200": {
@@ -396,7 +396,7 @@
         "parameters": [
           { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
           { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
-          { "name": "isActive", "in": "query", "schema": { "type": "boolean" } },
+          { "name": "is_active", "in": "query", "schema": { "type": "boolean" } },
           { "name": "system", "in": "query", "schema": { "type": "string" } }
         ],
         "responses": {
@@ -414,12 +414,12 @@
         }
       }
     },
-    "/templates/{templateId}": {
+    "/templates/{template_id}": {
       "get": {
         "summary": "Consulta template por ID",
         "tags": ["Templates"],
         "parameters": [
-          { "name": "templateId", "in": "path", "required": true, "schema": { "type": "string" } }
+          { "name": "template_id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "responses": {
           "200": {
@@ -437,7 +437,7 @@
         "summary": "Altera um template",
         "tags": ["Templates"],
         "parameters": [
-          { "name": "templateId", "in": "path", "required": true, "schema": { "type": "string" } }
+          { "name": "template_id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "requestBody": {
           "required": true,
