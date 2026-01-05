@@ -5,15 +5,17 @@ from datetime import datetime, timezone
 from src.shared.domain.entities.form import Form
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.image_repository_interface import IImageRepository
+from src.shared.domain.repositories.queue_repository_interface import IQueueRepository
 from src.shared.environments import Environments
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 
 
 class CancelFormUsecase:
-    def __init__(self, form_repo: IFormRepository, image_repo: IImageRepository):
+    def __init__(self, form_repo: IFormRepository, image_repo: IImageRepository, queue_repo: IQueueRepository):
         self.form_repo = form_repo
         self.image_repo = image_repo
+        self.queue_repo = queue_repo
 
     def __call__(
         self,
@@ -55,10 +57,13 @@ class CancelFormUsecase:
             updated_at=updated_at
         )
 
-        return self.form_repo.cancel_form(
+        updated_form = self.form_repo.cancel_form(
             user_id=requester_id,
             form_id=form_id,
             justification=form.justification,
             cancelled_at=form.cancelled_at,
             updated_at=form.updated_at
         )
+        if updated_form is not None:
+            self.queue_repo.send_form(updated_form)
+        return updated_form
