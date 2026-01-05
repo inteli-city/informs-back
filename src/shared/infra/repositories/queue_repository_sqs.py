@@ -14,7 +14,7 @@ class QueueRepositorySQS(IQueueRepository):
 
     def __init__(self):
         client_kwargs = {"region_name": Environments.get_envs().region}
-        endpoint_url = os.environ.get("AWS_SQS_ENDPOINT_URL")
+        endpoint_url = Environments.get_envs().sqs_endpoint_url
         if endpoint_url:
             client_kwargs["endpoint_url"] = endpoint_url
         self.client = boto3.client("sqs", **client_kwargs)
