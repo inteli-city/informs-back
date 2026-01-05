@@ -30,8 +30,4 @@ class StartFormUsecase:
             updated_at=form.updated_at,
         )
 
-        if updated_form is None:
-            raise NoItemsFound("Formulário não encontrado")
-
         self.queue_repo.send_form(updated_form)
-        return updated_form

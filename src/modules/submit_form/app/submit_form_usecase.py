@@ -70,6 +70,5 @@ class SubmitFormUsecase:
             completed_at=completed_at,
             updated_at=updated_at
         )
-        if updated_form is not None:
-            self.queue_repo.send_form(updated_form)
-        return updated_form
+        
+        self.queue_repo.send_form(updated_form)

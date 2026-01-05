@@ -67,5 +67,3 @@ class CancelFormUsecase:
         )
 
         self.queue_repo.send_form(updated_form)
-
-        return updated_form
