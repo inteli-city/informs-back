@@ -53,7 +53,7 @@ class Environments:
             self.bucket_name = "test"
             self.sqs_endpoint_url = "http://localhost:4566"
         else:
-            self.region = os.environ.get("AWS_REGION")
+            self.region = os.environ.get("REGION")
             self.endpoint_url = os.environ.get("ENDPOINT_URL")
             self.dynamo_table_name = os.environ.get("DYNAMO_TABLE_NAME")
             self.dynamo_partition_key = os.environ.get("DYNAMO_PARTITION_KEY")
