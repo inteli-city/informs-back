@@ -80,7 +80,7 @@ def test_form_repository_dynamo_create_and_get_by_user():
     repo, form, item = _make_repo_with_item()
     repo.create_form(form)
     assert repo.dynamo.put_calls
-    saved_item, pk, sk = repo.dynamo.put_calls[0]
+    saved_item, pk, sk, _ = repo.dynamo.put_calls[0]
     assert saved_item["GSI1PK"] == f"user#{form.user_id}"
     assert "GSI1SK" in saved_item
     assert pk == f"form#{form.id}"
