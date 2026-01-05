@@ -1,12 +1,14 @@
 from datetime import datetime, timezone
 from src.shared.domain.entities.form import Form
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
+from src.shared.domain.repositories.queue_repository_interface import IQueueRepository
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 
 
 class StartFormUsecase:
-    def __init__(self, form_repo: IFormRepository):
+    def __init__(self, form_repo: IFormRepository, queue_repo: IQueueRepository):
         self.form_repo = form_repo
+        self.queue_repo = queue_repo
 
     def __call__(self, requester_user_id: str, form_id: str, in_progress_at: int) -> Form:
         form = self.form_repo.get_form_by_id(user_id=requester_user_id, form_id=form_id)
@@ -31,4 +33,5 @@ class StartFormUsecase:
         if updated_form is None:
             raise NoItemsFound("Formulário não encontrado")
 
+        self.queue_repo.send_form(updated_form)
         return updated_form
