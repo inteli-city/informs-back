@@ -49,7 +49,3 @@ class IFormRepository(ABC):
         justification: Optional[Justification] = None,
     ) -> Form:
         pass
-
-    @abstractmethod
-    def cancel_form(self, user_id: str, form_id: str, justification: Justification, cancelled_at: int, updated_at: int) -> Form:
-        pass

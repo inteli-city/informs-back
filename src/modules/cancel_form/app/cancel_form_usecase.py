@@ -57,13 +57,15 @@ class CancelFormUsecase:
             updated_at=updated_at
         )
 
-        updated_form = self.form_repo.cancel_form(
+        updated_form = self.form_repo.update_form(
             user_id=requester_id,
             form_id=form_id,
+            status=form.status,
             justification=form.justification,
             cancelled_at=form.cancelled_at,
             updated_at=form.updated_at
         )
-        if updated_form is not None:
-            self.queue_repo.send_form(updated_form)
+
+        self.queue_repo.send_form(updated_form)
+
         return updated_form

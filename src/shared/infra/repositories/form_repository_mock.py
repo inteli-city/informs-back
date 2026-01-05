@@ -249,13 +249,3 @@ class FormRepositoryMock(IFormRepository):
                     form.justification = justification
                 return form
         return None
-    
-    def cancel_form(self, user_id: str, form_id: str, justification: Justification, cancelled_at: int, updated_at: int) -> Form:
-        for form in self.forms:
-            if form.id == form_id:
-                form.status = FORM_STATUS.CANCELLED
-                form.justification = justification
-                form.cancelled_at = cancelled_at
-                form.updated_at = updated_at
-                return form
-        return None

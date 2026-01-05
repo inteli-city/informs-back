@@ -146,9 +146,10 @@ def test_form_repository_dynamo_update_and_cancel():
     assert "sections" in repo.dynamo.last_update["update_dict"]
     assert "justification" in repo.dynamo.last_update["update_dict"]
 
-    cancelled = repo.cancel_form(
+    cancelled = repo.update_form(
         user_id=form.user_id,
         form_id=form.id,
+        status=FORM_STATUS.CANCELLED,
         justification=form.justification,
         cancelled_at=1,
         updated_at=2,
