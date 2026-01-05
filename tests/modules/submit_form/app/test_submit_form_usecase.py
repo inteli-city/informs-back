@@ -28,11 +28,11 @@ class Test_SubmitFormUsecase:
             )
         ]
 
-        result = usecase(user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001', form_id=form.form_id, sections=sections, completed_at=123)
+        usecase(user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001', form_id=form.form_id, sections=sections, completed_at=123)
 
-        assert result.status == FORM_STATUS.COMPLETED
-        assert result.sections[0].fields[0].value == 'poggers'
-        assert result.completed_at == 123
+        assert form.status == FORM_STATUS.COMPLETED
+        assert form.sections[0].fields[0].value == 'poggers'
+        assert form.completed_at == 123
         assert len(queue_repo.messages) == 1
     
     def test_submit_form_usecase_user_disabled(self):

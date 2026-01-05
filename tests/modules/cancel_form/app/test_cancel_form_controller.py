@@ -34,8 +34,8 @@ class Test_CancelFormController:
 
         response = controller(data)
 
-        assert response.status_code == 200
-        assert response.body['message'] == 'Formulário cancelado com sucesso!'
+        assert response.status_code == 204
+        assert response.body == {}
     
     def test_cancel_form_controller_missing_request_user(self):
         form_repo = FormRepositoryMock()

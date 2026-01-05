@@ -32,7 +32,7 @@ class Test_CancelFormUsecase:
 
         form_repo.forms[0].status = FORM_STATUS.IN_PROGRESS
         justification = make_justification()
-        form = usecase(
+        usecase(
             requester_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
             form_id=form_repo.forms[0].form_id,
             justification_image=justification.justification_image,
@@ -42,6 +42,7 @@ class Test_CancelFormUsecase:
             cancelled_at=1
         )
 
+        form = form_repo.forms[0]
         assert form.form_id == form_repo.forms[0].form_id
         assert form.status == FORM_STATUS.CANCELLED
         assert form.justification.selected_option == 'option'

@@ -20,14 +20,14 @@ class Test_StartFormUsecase:
         form = repo.forms[0]
         form.status = FORM_STATUS.PENDING
 
-        result = usecase(
+        usecase(
             requester_user_id=form.user_id,
             form_id=form.id,
             in_progress_at=int(datetime.now().timestamp() * 1000)
         )
 
-        assert result.status == FORM_STATUS.IN_PROGRESS
-        assert result.in_progress_at is not None
+        assert form.status == FORM_STATUS.IN_PROGRESS
+        assert form.in_progress_at is not None
         assert len(queue_repo.messages) == 1
 
     def test_start_form_wrong_user(self):
