@@ -13,7 +13,11 @@ from src.shared.infra.dtos.form_dynamo_dto import FormDynamoDTO
 class QueueRepositorySQS(IQueueRepository):
 
     def __init__(self):
-        self.client = boto3.client("sqs", region_name=Environments.get_envs().region)
+        client_kwargs = {"region_name": Environments.get_envs().region}
+        endpoint_url = os.environ.get("AWS_SQS_ENDPOINT_URL")
+        if endpoint_url:
+            client_kwargs["endpoint_url"] = endpoint_url
+        self.client = boto3.client("sqs", **client_kwargs)
         self._queue_urls = {}
         self._queue_names = {
             "GAIA": os.environ.get("GAIA_QUEUE_NAME", "FormulariosStackdev-Gaia-Queue"),

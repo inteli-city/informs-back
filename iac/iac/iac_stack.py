@@ -24,6 +24,8 @@ class IacStack(Stack):
         self.github_ref_name = os.environ.get("GITHUB_REF_NAME")
         self.bucket_name = os.environ.get("BUCKET_NAME")
         self.endpoint_url = os.environ.get("ENDPOINT_URL")
+        self.region = os.environ.get("REGION")
+        self.sqs_endpoint_url = os.environ.get("AWS_SQS_ENDPOINT_URL")
 
         self.dynamo_stack = DynamoStack(self)
 
@@ -54,7 +56,8 @@ class IacStack(Stack):
             "DYNAMO_SORT_KEY": "SK",
             "REGION": self.region,
             "BUCKET_NAME": self.bucket_name,
-            "ENDPOINT_URL": self.endpoint_url
+            "ENDPOINT_URL": self.endpoint_url,
+            "AWS_SQS_ENDPOINT_URL": self.sqs_endpoint_url,
         }
 
         api_gateway_resource = self.rest_api.root.add_resource("mss-formularios", default_cors_preflight_options={

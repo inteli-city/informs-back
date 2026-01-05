@@ -30,6 +30,7 @@ class Environments:
     dynamo_sort_key: str
     client_id: str
     bucket_name: str
+    sqs_endpoint_url: Optional[str]
 
     def _configure_local(self):
         from dotenv import load_dotenv
@@ -50,6 +51,7 @@ class Environments:
             self.dynamo_sort_key = "SK"
             self.client_id = "test"
             self.bucket_name = "test"
+            self.sqs_endpoint_url = "http://localhost:4566"
         else:
             self.region = os.environ.get("AWS_REGION")
             self.endpoint_url = os.environ.get("ENDPOINT_URL")
@@ -59,6 +61,7 @@ class Environments:
             self.user_pool_id = os.environ.get("USER_POOL_ID")
             self.client_id = os.environ.get("APP_CLIENT_ID")
             self.bucket_name = os.environ.get("BUCKET_NAME")
+            self.sqs_endpoint_url = os.environ.get("AWS_SQS_ENDPOINT_URL")
 
     @staticmethod
     def get_form_repo() -> IFormRepository:
