@@ -3,6 +3,7 @@ from src.modules.submit_form.app.submit_form_usecase import SubmitFormUsecase
 from src.shared.helpers.external_interfaces.http_models import HttpRequest
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 from src.shared.infra.repositories.image_repository_mock import ImageRepositoryMock
+from src.shared.infra.repositories.queue_repository_mock import QueueRepositoryMock
 
 
 class Test_SubmitFormController:
@@ -29,7 +30,8 @@ class Test_SubmitFormController:
     def test_submit_form_controller(self):
         repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = SubmitFormUsecase(repo, image_repo)
+        queue_repo = QueueRepositoryMock()
+        usecase = SubmitFormUsecase(repo, image_repo, queue_repo)
 
         controller = SubmitFormController(usecase)
 
@@ -52,7 +54,8 @@ class Test_SubmitFormController:
     def test_submit_form_controller_missing_requester_user(self):
         repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = SubmitFormUsecase(repo, image_repo)
+        queue_repo = QueueRepositoryMock()
+        usecase = SubmitFormUsecase(repo, image_repo, queue_repo)
 
         controller = SubmitFormController(usecase)
 
@@ -71,7 +74,8 @@ class Test_SubmitFormController:
     def test_submit_form_controller_missing_form_id(self):
         repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = SubmitFormUsecase(repo, image_repo)
+        queue_repo = QueueRepositoryMock()
+        usecase = SubmitFormUsecase(repo, image_repo, queue_repo)
 
         controller = SubmitFormController(usecase)
 
@@ -93,7 +97,8 @@ class Test_SubmitFormController:
     def test_submit_form_controller_missing_sections(self):
         repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = SubmitFormUsecase(repo, image_repo)
+        queue_repo = QueueRepositoryMock()
+        usecase = SubmitFormUsecase(repo, image_repo, queue_repo)
 
         controller = SubmitFormController(usecase)
 
@@ -115,7 +120,8 @@ class Test_SubmitFormController:
     def test_submit_form_controller_wrong_type_sections(self):
         repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = SubmitFormUsecase(repo, image_repo)
+        queue_repo = QueueRepositoryMock()
+        usecase = SubmitFormUsecase(repo, image_repo, queue_repo)
 
         controller = SubmitFormController(usecase)
 
@@ -138,7 +144,8 @@ class Test_SubmitFormController:
     def test_submit_form_controller_sections_empty(self):
         repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = SubmitFormUsecase(repo, image_repo)
+        queue_repo = QueueRepositoryMock()
+        usecase = SubmitFormUsecase(repo, image_repo, queue_repo)
 
         controller = SubmitFormController(usecase)
 
@@ -161,7 +168,8 @@ class Test_SubmitFormController:
     def test_submit_form_controller_missing_completed_at(self):
         repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = SubmitFormUsecase(repo, image_repo)
+        queue_repo = QueueRepositoryMock()
+        usecase = SubmitFormUsecase(repo, image_repo, queue_repo)
 
         controller = SubmitFormController(usecase)
 
@@ -183,7 +191,8 @@ class Test_SubmitFormController:
     def test_submit_form_controller_wrong_type_completed_at(self):
         repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = SubmitFormUsecase(repo, image_repo)
+        queue_repo = QueueRepositoryMock()
+        usecase = SubmitFormUsecase(repo, image_repo, queue_repo)
 
         controller = SubmitFormController(usecase)
 

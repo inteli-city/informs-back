@@ -7,6 +7,7 @@ from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.image_repository_interface import IImageRepository
+from src.shared.domain.repositories.queue_repository_interface import IQueueRepository
 from src.shared.environments import Environments
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
@@ -14,9 +15,10 @@ from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFou
 
 class SubmitFormUsecase:
 
-    def __init__(self, form_repo: IFormRepository, image_repo: IImageRepository):
+    def __init__(self, form_repo: IFormRepository, image_repo: IImageRepository, queue_repo: IQueueRepository):
         self.form_repo = form_repo
         self.image_repo = image_repo
+        self.queue_repo = queue_repo
     
     def __call__(
         self,
@@ -60,7 +62,7 @@ class SubmitFormUsecase:
         
         updated_at = int(datetime.now().timestamp() * 1000)
         
-        return self.form_repo.update_form(
+        updated_form = self.form_repo.update_form(
             user_id=user_id,
             form_id=form_id,
             status=FORM_STATUS.COMPLETED,
@@ -68,3 +70,6 @@ class SubmitFormUsecase:
             completed_at=completed_at,
             updated_at=updated_at
         )
+        if updated_form is not None:
+            self.queue_repo.send_form(updated_form)
+        return updated_form

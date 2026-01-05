@@ -6,6 +6,7 @@ from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 from src.shared.infra.repositories.image_repository_mock import ImageRepositoryMock
+from src.shared.infra.repositories.queue_repository_mock import QueueRepositoryMock
 
 
 class Test_SubmitFormUsecase:
@@ -13,7 +14,8 @@ class Test_SubmitFormUsecase:
     def test_submit_form_usecase(self):
         repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = SubmitFormUsecase(repo, image_repo)
+        queue_repo = QueueRepositoryMock()
+        usecase = SubmitFormUsecase(repo, image_repo, queue_repo)
 
         form = repo.forms[0]
         
@@ -31,11 +33,13 @@ class Test_SubmitFormUsecase:
         assert result.status == FORM_STATUS.COMPLETED
         assert result.sections[0].fields[0].value == 'poggers'
         assert result.completed_at == 123
+        assert len(queue_repo.messages) == 1
     
     def test_submit_form_usecase_user_disabled(self):
         repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = SubmitFormUsecase(repo, image_repo)
+        queue_repo = QueueRepositoryMock()
+        usecase = SubmitFormUsecase(repo, image_repo, queue_repo)
 
         form = repo.forms[1]
         
@@ -54,7 +58,8 @@ class Test_SubmitFormUsecase:
     def test_submit_form_usecase_form_not_found(self):
         repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = SubmitFormUsecase(repo, image_repo)
+        queue_repo = QueueRepositoryMock()
+        usecase = SubmitFormUsecase(repo, image_repo, queue_repo)
 
         
         text_field = TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='poggers')
@@ -72,7 +77,8 @@ class Test_SubmitFormUsecase:
     def test_submit_form_usecase_user_not_owner(self):
         repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = SubmitFormUsecase(repo, image_repo)
+        queue_repo = QueueRepositoryMock()
+        usecase = SubmitFormUsecase(repo, image_repo, queue_repo)
 
         form = repo.forms[0]
         
@@ -91,7 +97,8 @@ class Test_SubmitFormUsecase:
     def test_submit_form_usecase_form_already_concluded(self):
         repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = SubmitFormUsecase(repo, image_repo)
+        queue_repo = QueueRepositoryMock()
+        usecase = SubmitFormUsecase(repo, image_repo, queue_repo)
 
         form = repo.forms[1]
         
@@ -110,7 +117,8 @@ class Test_SubmitFormUsecase:
     def test_submit_form_usecase_required_field_not_filled(self):
         repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = SubmitFormUsecase(repo, image_repo)
+        queue_repo = QueueRepositoryMock()
+        usecase = SubmitFormUsecase(repo, image_repo, queue_repo)
 
         form = repo.forms[0]
         

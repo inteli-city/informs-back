@@ -7,7 +7,9 @@ from src.shared.helpers.external_interfaces.http_lambda_requests import LambdaHt
 
 repo = Environments.get_form_repo()
 image_repo = Environments.get_image_repo()
-usecase = SubmitFormUsecase(repo, image_repo)
+queue_repo = Environments.get_queue_repo()
+
+usecase = SubmitFormUsecase(repo, image_repo, queue_repo)
 controller = SubmitFormController(usecase)
 
 
