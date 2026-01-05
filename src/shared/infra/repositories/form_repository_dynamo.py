@@ -146,8 +146,7 @@ class FormRepositoryDynamo(IFormRepository):
         self.dynamo.put_item(
             item=item,
             partition_key=self.form_partition_key_format(form.id),
-            sort_key=self.form_sort_key_format(),
-            is_decimal=True
+            sort_key=self.form_sort_key_format()
         )
         
         return form
