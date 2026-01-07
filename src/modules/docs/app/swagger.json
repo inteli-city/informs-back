@@ -191,7 +191,7 @@
     }
   ],
   "paths": {
-    "/forms": {
+    "/mss-formularios/forms": {
       "post": {
         "summary": "Criação de novo formulário",
         "tags": ["Forms"],
@@ -246,7 +246,7 @@
         }
       }
     },
-    "/forms/{formId}": {
+    "/mss-formularios/forms/{formId}": {
       "get": {
         "summary": "Consulta formulário por ID",
         "tags": ["Forms"],
@@ -267,7 +267,7 @@
         }
       }
     },
-    "/forms/{formId}/start": {
+    "/mss-formularios/forms/{formId}/start": {
       "post": {
         "summary": "Inicia o preenchimento (Preenchedor)",
         "tags": ["Forms"],
@@ -292,7 +292,7 @@
         }
       }
     },
-    "/forms/{formId}/submit": {
+    "/mss-formularios/forms/{formId}/submit": {
       "post": {
         "summary": "Submete o formulário preenchido",
         "tags": ["Forms"],
@@ -337,7 +337,7 @@
         }
       }
     },
-    "/forms/{formId}/cancel": {
+    "/mss-formularios/forms/{formId}/cancel": {
       "post": {
         "summary": "Cancela o formulário",
         "tags": ["Forms"],
@@ -365,7 +365,7 @@
         }
       }
     },
-    "/templates": {
+    "/mss-formularios/templates": {
       "post": {
         "summary": "Criação de novo template",
         "tags": ["Templates"],
@@ -414,7 +414,7 @@
         }
       }
     },
-    "/templates/{template_id}": {
+    "/mss-formularios/templates/{template_id}": {
       "get": {
         "summary": "Consulta template por ID",
         "tags": ["Templates"],
