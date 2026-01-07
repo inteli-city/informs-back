@@ -6,6 +6,7 @@ from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 from src.shared.infra.repositories.image_repository_mock import ImageRepositoryMock
+from src.shared.infra.repositories.queue_repository_mock import QueueRepositoryMock
 
 def make_justification():
     justification_option = JustificationOption(
@@ -26,11 +27,12 @@ class Test_CancelFormUsecase:
     def test_cancel_form_usecase(self):
         form_repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo)
+        queue_repo = QueueRepositoryMock()
+        usecase = CancelFormUsecase(form_repo, image_repo, queue_repo)
 
         form_repo.forms[0].status = FORM_STATUS.IN_PROGRESS
         justification = make_justification()
-        form = usecase(
+        usecase(
             requester_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
             form_id=form_repo.forms[0].form_id,
             justification_image=justification.justification_image,
@@ -40,18 +42,21 @@ class Test_CancelFormUsecase:
             cancelled_at=1
         )
 
+        form = form_repo.forms[0]
         assert form.form_id == form_repo.forms[0].form_id
         assert form.status == FORM_STATUS.CANCELLED
         assert form.justification.selected_option == 'option'
         assert form.justification.justification_text == 'text'
         assert form.justification.justification_image.startswith('https://test')
         assert form.justification.justification_image.endswith('.jpeg')
+        assert len(queue_repo.messages) == 1
 
     
     def test_cancel_form_usecase_form_not_found(self):
         form_repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo)
+        queue_repo = QueueRepositoryMock()
+        usecase = CancelFormUsecase(form_repo, image_repo, queue_repo)
         
         with pytest.raises(NoItemsFound):
             usecase(
@@ -67,7 +72,8 @@ class Test_CancelFormUsecase:
     def test_cancel_form_usecase_user_cannot_cancel_form(self):
         form_repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo)
+        queue_repo = QueueRepositoryMock()
+        usecase = CancelFormUsecase(form_repo, image_repo, queue_repo)
         justification = make_justification()
         with pytest.raises(ForbiddenAction):
             usecase(
@@ -83,7 +89,8 @@ class Test_CancelFormUsecase:
     def test_cancel_form_usecase_form_already_finished(self):
         form_repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo)
+        queue_repo = QueueRepositoryMock()
+        usecase = CancelFormUsecase(form_repo, image_repo, queue_repo)
         justification = make_justification()
         form_repo.forms[0].status = FORM_STATUS.CANCELLED
         
@@ -101,7 +108,8 @@ class Test_CancelFormUsecase:
     def test_cancel_form_usecase_form_invalid_justification_option(self):
         form_repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo)
+        queue_repo = QueueRepositoryMock()
+        usecase = CancelFormUsecase(form_repo, image_repo, queue_repo)
         justification = make_justification()
 
         with pytest.raises(EntityError):
@@ -118,7 +126,8 @@ class Test_CancelFormUsecase:
     def test_cancel_form_usecase_form_missing_text_justification(self):
         form_repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo)
+        queue_repo = QueueRepositoryMock()
+        usecase = CancelFormUsecase(form_repo, image_repo, queue_repo)
         justification = make_justification()
 
         with pytest.raises(EntityError):
@@ -135,7 +144,8 @@ class Test_CancelFormUsecase:
     def test_cancel_form_usecase_form_missing_image_justification(self):
         form_repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo)
+        queue_repo = QueueRepositoryMock()
+        usecase = CancelFormUsecase(form_repo, image_repo, queue_repo)
         justification = make_justification()
 
         with pytest.raises(EntityError):

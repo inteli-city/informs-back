@@ -80,12 +80,11 @@ def test_form_repository_dynamo_create_and_get_by_user():
     repo, form, item = _make_repo_with_item()
     repo.create_form(form)
     assert repo.dynamo.put_calls
-    saved_item, pk, sk, is_decimal = repo.dynamo.put_calls[0]
+    saved_item, pk, sk, _ = repo.dynamo.put_calls[0]
     assert saved_item["GSI1PK"] == f"user#{form.user_id}"
     assert "GSI1SK" in saved_item
     assert pk == f"form#{form.id}"
     assert sk == "METADATA"
-    assert is_decimal is True
 
     repo.dynamo.query_response = {"Items": [item]}
     forms = repo.get_form_by_user_id(form.user_id)
@@ -98,7 +97,7 @@ def test_form_repository_dynamo_get_all_forms_query_path():
         "Items": [item],
         "LastEvaluatedKey": {"PK": "form#next", "SK": "METADATA"},
     }
-    token = encode_pagination_token({"PK": "form#start", "SK": "METADATA"})
+    _ = encode_pagination_token({"PK": "form#start", "SK": "METADATA"})
     start_key = {"PK": "form#start", "SK": "METADATA"}
 
     forms, next_key = repo.get_all_forms(
@@ -119,7 +118,7 @@ def test_form_repository_dynamo_get_all_forms_query_path():
 
 
 def test_form_repository_dynamo_get_all_forms_scan_path():
-    repo, form, item = _make_repo_with_item()
+    repo, _, item = _make_repo_with_item()
     repo.dynamo.dynamo_table.items = [item]
 
     forms, next_key = repo.get_all_forms(limit=10)
@@ -146,9 +145,10 @@ def test_form_repository_dynamo_update_and_cancel():
     assert "sections" in repo.dynamo.last_update["update_dict"]
     assert "justification" in repo.dynamo.last_update["update_dict"]
 
-    cancelled = repo.cancel_form(
+    cancelled = repo.update_form(
         user_id=form.user_id,
         form_id=form.id,
+        status=FORM_STATUS.CANCELLED,
         justification=form.justification,
         cancelled_at=1,
         updated_at=2,

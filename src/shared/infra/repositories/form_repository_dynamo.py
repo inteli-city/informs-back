@@ -146,8 +146,7 @@ class FormRepositoryDynamo(IFormRepository):
         self.dynamo.put_item(
             item=item,
             partition_key=self.form_partition_key_format(form.id),
-            sort_key=self.form_sort_key_format(),
-            is_decimal=True
+            sort_key=self.form_sort_key_format()
         )
         
         return form
@@ -194,22 +193,6 @@ class FormRepositoryDynamo(IFormRepository):
             update_dict=update_dict
         )
 
-        if "Attributes" not in resp:
-            return None
-        
-        return FormDynamoDTO.from_dynamo(resp['Attributes']).to_entity()
-    
-    def cancel_form(self, user_id: str, form_id: str, justification: Justification, cancelled_at: int, updated_at: int) -> Form:
-        
-        update_dict = {
-            "status": FORM_STATUS.CANCELLED.value,
-            "justification": JustificationDTO.from_entity(justification).to_dynamo(),
-            "cancelled_at": Decimal(cancelled_at),
-            "updated_at": Decimal(updated_at)
-        }
-
-        resp = self.dynamo.update_item(partition_key=self.form_partition_key_format(form_id), sort_key=self.form_sort_key_format(form_id), update_dict=update_dict)
-        
         if "Attributes" not in resp:
             return None
         

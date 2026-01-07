@@ -1,10 +1,9 @@
 from .cancel_form_usecase import CancelFormUsecase
-from .cancel_form_viewmodel import CancelFormViewmodel
 from src.shared.helpers.errors.controller_errors import MissingParameters, WrongTypeParameter
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction, NoItemsFound
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
-from src.shared.helpers.external_interfaces.http_codes import OK, BadRequest, Conflict, Forbidden, InternalServerError, NotFound
+from src.shared.helpers.external_interfaces.http_codes import OK, BadRequest, Conflict, Forbidden, InternalServerError, NoContent, NotFound
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 
 
@@ -60,7 +59,7 @@ class CancelFormController:
 
             form_id, selected_option, justification_text, justification_image, content_type, cancelled_at = self._validate_endpoint_parameters(data)
             
-            form = self.usecase(
+            self.usecase(
                 requester_id=requester_user.user_id,
                 form_id=form_id,
                 selected_option=selected_option,
@@ -70,9 +69,8 @@ class CancelFormController:
                 cancelled_at=cancelled_at
             )
 
-            viewmodel = CancelFormViewmodel(form=form)
             
-            return OK(viewmodel.to_dict())
+            return NoContent()
         
         except NoItemsFound as err:
             return NotFound(body=err.message)

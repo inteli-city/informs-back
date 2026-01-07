@@ -1,5 +1,4 @@
 from .submit_form_usecase import SubmitFormUsecase
-from .submit_form_viewmodel import SubmitFormViewmodel
 from src.shared.helpers.errors.controller_errors import MissingParameters, WrongTypeParameter
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
@@ -66,7 +65,7 @@ class SubmitFormController:
             requester_user = self._validate_requester_user(data)
             form_id, completed_at, sections, file_content_types = self._validate_endpoint_parameters(data)
                 
-            _ = self.submit_form_usecase(
+            self.submit_form_usecase(
                 user_id=requester_user.user_id,
                 form_id=form_id,
                 sections=sections,
