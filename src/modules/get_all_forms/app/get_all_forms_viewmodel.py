@@ -123,14 +123,14 @@ class FormItemViewmodel:
 
 
 class GetAllFormsViewmodel:
-    def __init__(self, forms: List[Form], page: int, limit: int):
+    def __init__(self, forms: List[Form], limit: int, last_evaluated_key: Optional[str]):
         self.forms = forms
-        self.page = page
         self.limit = limit
+        self.last_evaluated_key = last_evaluated_key
 
     def to_dict(self):
         return {
             'forms': [FormItemViewmodel(form).to_dict() for form in self.forms],
-            'page': self.page,
-            'limit': self.limit
+            'limit': self.limit,
+            'last_evaluated_key': self.last_evaluated_key
         }

@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Optional
 import os
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.image_repository_interface import IImageRepository
@@ -22,7 +23,7 @@ class Environments:
     
     stage: STAGE
     region: str
-    endpoint_url: str | None
+    endpoint_url: Optional[str]
     dynamo_table_name: str
     dynamo_partition_key: str
     dynamo_sort_key: str

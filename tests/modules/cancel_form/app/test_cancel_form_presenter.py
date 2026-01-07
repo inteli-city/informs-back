@@ -54,6 +54,7 @@ class Test_CancelFormPresenter:
                 "selected_option": "option",
                 "justification_text": "justification_test",
                 "justification_image": "image_test",
+                "content_type": "image/jpeg",
                 "cancelled_at": 1764960000000
             },
             "pathParameters": None,
@@ -65,9 +66,12 @@ class Test_CancelFormPresenter:
 
         response_json = json.loads(response["body"])
 
+        print(response_json)
+
         assert response["statusCode"] == 200
         assert response_json['message'] == 'Formulário cancelado com sucesso!'
         assert response_json['form']['form_id'] == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert response_json['form']['status'] == 'CANCELLED'
         assert response_json['form']['justification']['justification_text'] == 'justification_test'
         assert response_json['form']['justification']['justification_image'].startswith('https://test')
+        assert response_json['form']['justification']['justification_image'].endswith('.jpeg')

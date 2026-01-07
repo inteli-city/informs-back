@@ -15,12 +15,18 @@ class CreateTemplateController:
     def __init__(self, usecase: CreateTemplateUsecase):
         self.usecase = usecase
 
-    def _validate_and_extract_parameters(self, body: dict) -> tuple:
-        name = body.get("name")
-        system = body.get("system")
-        description: Optional[str] = body.get("description")
-        is_active = body.get("is_active")
-        sessions_raw = body.get("sessions")
+    def _validate_requester_user(self, data: dict) -> UserGatewayDTO:
+        requester_user = data.get("requester_user")
+        if requester_user is None:
+            raise MissingParameters("requester_user")
+        return UserGatewayDTO.from_api_gateway(requester_user)
+
+    def _validate_endpoint_parameters(self, data: dict) -> tuple:
+        name = data.get("name")
+        system = data.get("system")
+        description: Optional[str] = data.get("description")
+        is_active = data.get("is_active")
+        sessions_raw = data.get("sessions")
 
         if name is None:
             raise MissingParameters("name")
@@ -46,13 +52,9 @@ class CreateTemplateController:
 
     def __call__(self, request: IRequest) -> IResponse:
         try:
-            requester_user = request.data.get("requester_user")
-            if requester_user is None:
-                raise MissingParameters("requester_user")
-            requester = UserGatewayDTO.from_api_gateway(requester_user)
-
-            body = request.data if isinstance(request.data, dict) else {}
-            name, system, description, is_active, sessions_raw = self._validate_and_extract_parameters(body)
+            data = request.data if isinstance(request.data, dict) else {}
+            requester = self._validate_requester_user(data)
+            name, system, description, is_active, sessions_raw = self._validate_endpoint_parameters(data)
 
             sessions = [SectionDTO.from_request(session).to_entity() for session in sessions_raw]
 

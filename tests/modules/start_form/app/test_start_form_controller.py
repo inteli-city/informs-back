@@ -96,7 +96,7 @@ class Test_StartFormController:
         response = self.controller(request)
 
         assert response.status_code == 400
-        assert response.body == 'Parâmetro inválido: in_progress_at'
+        assert response.body == "Campo in_progress_at deveria ser do tipo int, mas foi recebido um campo do tipo <class 'str'>"
 
     def test_start_form_controller_wrong_user(self):
         request = HttpRequest(body={

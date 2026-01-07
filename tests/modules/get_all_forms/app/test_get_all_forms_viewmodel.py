@@ -12,11 +12,11 @@ class Test_GetAllFormsViewmodel:
         repo = FormRepositoryMock()
         form = repo.forms[0]
 
-        viewmodel = GetAllFormsViewmodel(forms=[form], page=1, limit=20)
+        viewmodel = GetAllFormsViewmodel(forms=[form], limit=20, last_evaluated_key=None)
         result = viewmodel.to_dict()
 
-        assert result["page"] == 1
         assert result["limit"] == 20
+        assert result["last_evaluated_key"] is None
         assert len(result["forms"]) == 1
         assert result["forms"][0]["id"] == form.id
         assert result["forms"][0]["status"] == form.status.value

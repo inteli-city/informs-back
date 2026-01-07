@@ -21,7 +21,7 @@ class LambdaHttpResponse(HttpResponse):
             headers: The headers of the response. Defaults to {"Content-Type": "application/json"}.
             **kwargs: Configuration of the HTTP response. Possible values: add_default_cors_headers (default is True)
         """
-        _body = body or LambdaHttpResponse.body
+        _body = body if body is not None else LambdaHttpResponse.body
         _headers = headers or LambdaHttpResponse.headers
         _headers['Access-Control-Allow-Origin'] = '*'
 

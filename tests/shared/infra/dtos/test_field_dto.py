@@ -156,7 +156,7 @@ class Test_FieldDTO:
             "key": "key",
             "options": ["option1", "option2"],
             "check_limit": 1,
-            "value": ["option1"]
+            "value": [True, False]
         }
 
         field_dto = FieldDTO.from_dynamo(field_dict)
@@ -167,7 +167,7 @@ class Test_FieldDTO:
         assert field_dto.field.key == "key"
         assert field_dto.field.options == ["option1", "option2"]
         assert field_dto.field.check_limit == 1
-        assert field_dto.field.value == ["option1"]
+        assert field_dto.field.value == [True, False]
     
     def test_field_dto_from_dynamo_switch_button_field(self):
         field_dict = {
@@ -219,9 +219,12 @@ class Test_FieldDTO:
 
         assert dynamo_dict == {
             "field_type": "TEXT_FIELD",
+            "label": "placeholder",
             "placeholder": "placeholder",
             "required": True,
             "key": "key",
+            "order": 0,
+            "help_text": None,
             "regex": "regex",
             "formatting": "formatting",
             "max_length": 10,
@@ -237,9 +240,12 @@ class Test_FieldDTO:
 
         assert dynamo_dict == {
             "field_type": "NUMBER_FIELD",
+            "label": "placeholder",
             "placeholder": "placeholder",
             "required": True,
             "key": "key",
+            "order": 0,
+            "help_text": None,
             "max_value": 10,
             "min_value": 1,
             "decimal": False,
@@ -255,9 +261,12 @@ class Test_FieldDTO:
 
         assert dynamo_dict == {
             "field_type": "DROPDOWN_FIELD",
+            "label": "placeholder",
             "placeholder": "placeholder",
             "required": True,
             "key": "key",
+            "order": 0,
+            "help_text": None,
             "options": ['option1', 'option2'],
             "value": 'option1'
         }
@@ -271,9 +280,12 @@ class Test_FieldDTO:
 
         assert dynamo_dict == {
             "field_type": "TYPEAHEAD_FIELD",
+            "label": "placeholder",
             "placeholder": "placeholder",
             "required": True,
             "key": "key",
+            "order": 0,
+            "help_text": None,
             "options": ['option1', 'option2'],
             "max_length": 10,
             "value": 'option1'
@@ -288,9 +300,12 @@ class Test_FieldDTO:
 
         assert dynamo_dict == {
             "field_type": "RADIO_GROUP_FIELD",
+            "label": "placeholder",
             "placeholder": "placeholder",
             "required": True,
             "key": "key",
+            "order": 0,
+            "help_text": None,
             "options": ['option1', 'option2'],
             "value": 'option1'
         }
@@ -304,9 +319,12 @@ class Test_FieldDTO:
 
         assert dynamo_dict == {
             "field_type": "DATE_FIELD",
+            "label": "placeholder",
             "placeholder": "placeholder",
             "required": True,
             "key": "key",
+            "order": 0,
+            "help_text": None,
             "min_date": 123456789,
             "max_date": 987654321,
             "value": 123456789
@@ -321,14 +339,17 @@ class Test_FieldDTO:
 
         assert dynamo_dict == {
             "field_type": "CHECKBOX_FIELD",
+            "label": "placeholder",
             "placeholder": "placeholder",
             "required": True,
             "key": "key",
+            "order": 0,
+            "help_text": None,
             "value": True
         }
     
     def test_field_dto_to_dynamo_checkbox_group_field(self):
-        field = CheckBoxGroupField(placeholder='placeholder', required=True, key='key', options=['option1', 'option2'], check_limit=1, value=['option1'])
+        field = CheckBoxGroupField(placeholder='placeholder', required=True, key='key', options=['option1', 'option2'], check_limit=1, value=[True, False])
 
         field_dto = FieldDTO(field)
 
@@ -336,12 +357,15 @@ class Test_FieldDTO:
 
         assert dynamo_dict == {
             "field_type": "CHECKBOX_GROUP_FIELD",
+            "label": "placeholder",
             "placeholder": "placeholder",
             "required": True,
             "key": "key",
+            "order": 0,
+            "help_text": None,
             "options": ['option1', 'option2'],
             "check_limit": 1,
-            "value": ['option1']
+            "value": [True, False]
         }
     
     def test_field_dto_to_dynamo_switch_button_field(self):
@@ -353,9 +377,12 @@ class Test_FieldDTO:
 
         assert dynamo_dict == {
             "field_type": "SWITCH_BUTTON_FIELD",
+            "label": "placeholder",
             "placeholder": "placeholder",
             "required": True,
             "key": "key",
+            "order": 0,
+            "help_text": None,
             "value": True
         }
     
@@ -368,9 +395,12 @@ class Test_FieldDTO:
 
         assert dynamo_dict == {
             "field_type": "FILE_FIELD",
+            "label": "placeholder",
             "placeholder": "placeholder",
             "required": True,
             "key": "key",
+            "order": 0,
+            "help_text": None,
             "value": ['value'],
             "file_type": "IMAGE",
             "min_quantity": 1,

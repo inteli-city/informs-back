@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import Section
@@ -11,6 +11,7 @@ from src.shared.infra.dtos.form_dynamo_dto import FormDynamoDTO
 from src.shared.infra.dtos.justification_dto import JustificationDTO
 from src.shared.infra.dtos.section_dto import SectionDTO
 from src.shared.infra.external.dynamo.datasources.dynamo_datasource import DynamoDatasource
+from src.shared.helpers.functions.pagination_token import encode_pagination_token
 from boto3.dynamodb.conditions import Key, Attr
 
 class FormRepositoryDynamo(IFormRepository):
@@ -57,7 +58,17 @@ class FormRepositoryDynamo(IFormRepository):
 
         return forms
 
-    def get_all_forms(self, page: int, limit: int, status: Optional[FORM_STATUS] = None, system: Optional[str] = None, user_id: Optional[str] = None, created_at_start: Optional[int] = None, created_at_end: Optional[int] = None, search: Optional[str] = None) -> List[Form]:
+    def get_all_forms(
+        self,
+        limit: int,
+        exclusive_start_key: Optional[dict] = None,
+        status: Optional[FORM_STATUS] = None,
+        system: Optional[str] = None,
+        user_id: Optional[str] = None,
+        created_at_start: Optional[int] = None,
+        created_at_end: Optional[int] = None,
+        search: Optional[str] = None,
+    ) -> Tuple[List[Form], Optional[str]]:
         forms: List[Form] = []
 
         items = []
@@ -78,23 +89,34 @@ class FormRepositoryDynamo(IFormRepository):
             expr = Attr('created_at').lte(Decimal(created_at_end))
             filter_expression = expr if filter_expression is None else filter_expression & expr
 
+        start_key = exclusive_start_key
+
         if user_id is not None:
             query = Key("GSI1PK").eq(self.form_gsi1_partition_key_format(user_id))
             query_kwargs = {
                 "key_condition_expression": query,
                 "IndexName": "GSI1",
-                "Select": 'ALL_ATTRIBUTES'
+                "Select": "ALL_ATTRIBUTES",
+                "Limit": limit,
             }
             if filter_expression is not None:
                 query_kwargs["FilterExpression"] = filter_expression
+            if start_key is not None:
+                query_kwargs["ExclusiveStartKey"] = start_key
             resp = self.dynamo.query(**query_kwargs)
-            items = resp.get('Items', [])
+            items = resp.get("Items", [])
         else:
+            scan_kwargs = {
+                "Select": "ALL_ATTRIBUTES",
+                "Limit": limit,
+            }
+            if start_key is not None:
+                scan_kwargs["ExclusiveStartKey"] = start_key
             if filter_expression is not None:
-                resp = self.dynamo.scan_items(filter_expression=filter_expression)
+                resp = self.dynamo.scan_items(filter_expression=filter_expression, **scan_kwargs)
             else:
-                resp = self.dynamo.get_all_items()
-            items = resp.get('Items', [])
+                resp = self.dynamo.dynamo_table.scan(**scan_kwargs)
+            items = resp.get("Items", [])
 
         for item in items:
             forms.append(FormDynamoDTO.from_dynamo(item).to_entity())
@@ -112,9 +134,8 @@ class FormRepositoryDynamo(IFormRepository):
 
         forms.sort(key=sort_key, reverse=True)
 
-        start = (page - 1) * limit
-        end = start + limit
-        return forms[start:end]
+        next_key = resp.get("LastEvaluatedKey")
+        return forms, encode_pagination_token(next_key)
 
     def create_form(self, form: Form) -> Form:
         item = FormDynamoDTO.from_entity(form).to_dynamo()

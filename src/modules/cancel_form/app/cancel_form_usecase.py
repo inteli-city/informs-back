@@ -6,6 +6,7 @@ from src.shared.domain.entities.form import Form
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.image_repository_interface import IImageRepository
 from src.shared.environments import Environments
+from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 
 
@@ -21,6 +22,7 @@ class CancelFormUsecase:
         selected_option: str,
         justification_text: Optional[str] = None,
         justification_image: Optional[str] = None,
+        content_type: Optional[str] = None,
         cancelled_at: Optional[int] = None,
     ) -> Form:
         
@@ -33,8 +35,14 @@ class CancelFormUsecase:
             raise ForbiddenAction("Usuário não pode cancelar um formulário não direcionado a ele")
         
         if justification_image:
-            image_path = f'{datetime.now().year}/{form_id}/justification/{str(uuid.uuid4())}.png'
-            self.image_repo.put_image(base_64_image=justification_image, image_path=image_path)
+            if not isinstance(content_type, str) or not content_type:
+                raise EntityError("content_type")
+            image_path = f'{datetime.now().year}/{form_id}/justification/{str(uuid.uuid4())}.{content_type.split("/")[-1]}'
+            self.image_repo.put_image(
+                base_64_image=justification_image,
+                image_path=image_path,
+                content_type=content_type,
+            )
             justification_image = f'https://{Environments.get_envs().bucket_name}.s3.sa-east-1.amazonaws.com/{image_path}'
 
         updated_at = int(datetime.now(timezone.utc).timestamp() * 1000)

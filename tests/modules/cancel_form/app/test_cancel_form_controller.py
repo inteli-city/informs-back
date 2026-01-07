@@ -26,7 +26,8 @@ class Test_CancelFormController:
             "form_id": form_repo.forms[0].form_id,
             "selected_option": "option",
             "justification_text": "justification_test",
-            "justification_image": "image_test"
+            "justification_image": "image_test",
+            "content_type": "image/png"
         })
 
         response = controller(data)
@@ -44,7 +45,8 @@ class Test_CancelFormController:
         data = HttpRequest(body={"form_id": form_repo.forms[0].form_id,
             "selected_option": "option",
             "justification_text": "justification_test",
-            "justification_image": "image_test"
+            "justification_image": "image_test",
+            "content_type": "image/png"
         })
 
         response = controller(data)
@@ -67,7 +69,8 @@ class Test_CancelFormController:
             },
             "selected_option": "option",
             "justification_text": "justification_test",
-            "justification_image": "image_test"
+            "justification_image": "image_test",
+            "content_type": "image/png"
         })
 
         response = controller(data)
@@ -90,7 +93,8 @@ class Test_CancelFormController:
             },
             "form_id": form_repo.forms[0].form_id,
             "justification_text": "justification_test",
-            "justification_image": "image_test"
+            "justification_image": "image_test",
+            "content_type": "image/png"
         })
     
         response = controller(data)
@@ -114,7 +118,8 @@ class Test_CancelFormController:
             "form_id": form_repo.forms[0].form_id,
             "selected_option": 123,
             "justification_text": "justification_test",
-            "justification_image": "image_test"
+            "justification_image": "image_test",
+            "content_type": "image/png"
         })
 
         response = controller(data)
@@ -138,7 +143,8 @@ class Test_CancelFormController:
             "form_id": form_repo.forms[0].form_id,
             "selected_option": "selected",
             "justification_text": 123,
-            "justification_image": "image_test"
+            "justification_image": "image_test",
+            "content_type": "image/png"
         })
 
         response = controller(data)

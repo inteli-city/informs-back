@@ -28,8 +28,7 @@ class Test_GetAllFormsPresenter:
                 }
             },
             "queryStringParameters": {
-                "page": "1",
-                "limit": "20",
+                "limit": 20,
                 "status": "PENDING"
             }
         }
@@ -39,5 +38,5 @@ class Test_GetAllFormsPresenter:
         assert response["statusCode"] == 200
         body = json.loads(response["body"])
         assert "forms" in body
-        assert body["page"] == 1
         assert body["limit"] == 20
+        assert body["last_evaluated_key"] is None

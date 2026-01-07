@@ -13,13 +13,13 @@ class TestUpdateTemplatePresenter:
         template = repo.templates[0]
         event = {
             "version": "2.0",
-            "routeKey": "PUT /templates/{templateId}",
-            "rawPath": "/templates/{templateId}",
+            "routeKey": "PUT /templates/{template_id}",
+            "rawPath": "/templates/{template_id}",
             "rawQueryString": "",
             "requestContext": {
                 "authorizer": {"claims": {"sub": "user-1", "name": "Tester", "email": "t@example.com", "cognito:groups": "FORMULARIOS"}},
             },
-            "pathParameters": {"templateId": template.id},
+            "pathParameters": {"template_id": template.id},
             "body": json.dumps({
                 "name": "Presenter Updated",
                 "is_active": False

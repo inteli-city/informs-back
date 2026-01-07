@@ -13,25 +13,25 @@ class Test_GetAllFormsUsecase:
         repo = FormRepositoryMock()
         usecase = GetAllFormsUsecase(repo)
 
-        forms = usecase(
+        forms, next_key = usecase(
             requester_user_id=repo.forms[0].user_id,
-            page=1,
             limit=20
         )
 
         assert len(forms) == 2
         assert all(form.user_id == repo.forms[0].user_id for form in forms)
+        assert next_key is None
 
     def test_get_all_forms_usecase_filter_by_status(self):
         repo = FormRepositoryMock()
         usecase = GetAllFormsUsecase(repo)
 
-        forms = usecase(
+        forms, next_key = usecase(
             requester_user_id=repo.forms[0].user_id,
-            page=1,
             limit=20,
             status=FORM_STATUS.PENDING
         )
 
         assert len(forms) == 1
         assert forms[0].status == FORM_STATUS.PENDING
+        assert next_key is None

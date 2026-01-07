@@ -15,24 +15,24 @@ class UpdateTemplateController:
     def __init__(self, usecase: UpdateTemplateUsecase):
         self.usecase = usecase
 
-    def _validate_and_extract_requester(self, request: IRequest) -> UserGatewayDTO:
-        requester_user = request.data.get("requester_user")
+    def _validate_requester_user(self, data: dict) -> UserGatewayDTO:
+        requester_user = data.get("requester_user")
         if requester_user is None:
             raise MissingParameters("requester_user")
         return UserGatewayDTO.from_api_gateway(requester_user)
 
-    def _validate_and_extract_template_id(self, request: IRequest) -> str:
-        template_id = request.data.get("template_id") or request.data.get("templateId")
+    def _validate_endpoint_parameters(self, data: dict) -> tuple:
+        template_id = data.get("template_id")
         if template_id is None:
             raise MissingParameters("template_id")
-        return template_id
+        if not isinstance(template_id, str):
+            raise WrongTypeParameter("template_id", "str", type(template_id))
 
-    def _validate_and_extract_body_params(self, body: dict):
-        name: Optional[str] = body.get("name")
-        system: Optional[str] = body.get("system")
-        description: Optional[str] = body.get("description")
-        is_active = body.get("is_active")
-        sessions_raw = body.get("sessions")
+        name: Optional[str] = data.get("name")
+        system: Optional[str] = data.get("system")
+        description: Optional[str] = data.get("description")
+        is_active = data.get("is_active")
+        sessions_raw = data.get("sessions")
 
         if name is not None and not isinstance(name, str):
             raise WrongTypeParameter("name", "str", type(name))
@@ -47,15 +47,13 @@ class UpdateTemplateController:
 
         sessions = [SectionDTO.from_request(session).to_entity() for session in sessions_raw] if sessions_raw is not None else None
 
-        return name, system, description, is_active, sessions
+        return template_id, name, system, description, is_active, sessions
 
     def __call__(self, request: IRequest) -> IResponse:
         try:
-            requester = self._validate_and_extract_requester(request)
-            template_id = self._validate_and_extract_template_id(request)
-            body = request.data if isinstance(request.data, dict) else {}
-
-            name, system, description, is_active, sessions = self._validate_and_extract_body_params(body)
+            data = request.data if isinstance(request.data, dict) else {}
+            requester = self._validate_requester_user(data)
+            template_id, name, system, description, is_active, sessions = self._validate_endpoint_parameters(data)
 
             updated_template = self.usecase(
                 template_id=template_id,

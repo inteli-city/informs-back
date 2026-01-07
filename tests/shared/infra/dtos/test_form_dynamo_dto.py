@@ -14,6 +14,7 @@ class Test_FormDynamoDTO:
         form = Form(
             form_title='form_title',
             form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
+            created_by='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             creator_user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             vinculation_form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
@@ -31,9 +32,10 @@ class Test_FormDynamoDTO:
             priority=PRIORITY.EMERGENCY,
             status=FORM_STATUS.IN_PROGRESS,
             expiration_date=12345678,
-            creation_date=12345678,
-            start_date=12345678,
-            conclusion_date=12345678,
+            created_at=12345678,
+            updated_at=12345678,
+            in_progress_at=12345678,
+            completed_at=12345678,
             justification=Justification(
                 options=[
                     JustificationOption(
@@ -49,7 +51,7 @@ class Test_FormDynamoDTO:
             comments='comments',
             sections=[
                 Section(
-                    section_id='0',
+                    section_id=0,
                     fields=[
                         TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='poggers')
                     ]
@@ -93,7 +95,7 @@ class Test_FormDynamoDTO:
         assert form_dto.justification.justification_text == 'justification_text'
         assert form_dto.justification.justification_image == 'justification_image'
         assert form_dto.comments == 'comments'
-        assert form_dto.sections[0].section_id == '0'
+        assert form_dto.sections[0].section_id == 0
         assert form_dto.sections[0].fields[0].placeholder == 'placeholder'
         assert form_dto.sections[0].fields[0].required == True
         assert form_dto.sections[0].fields[0].key == 'key'
@@ -142,7 +144,7 @@ class Test_FormDynamoDTO:
             comments='comments',
             sections=[
                 Section(
-                    section_id='0',
+                    section_id=0,
                     fields=[
                         TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='poggers')
                     ]
@@ -287,7 +289,7 @@ class Test_FormDynamoDTO:
         assert form.justification.justification_text == 'justification_text'
         assert form.justification.justification_image == 'justification_image'
         assert form.comments == 'comments'
-        assert form.sections[0].section_id == '0'
+        assert form.sections[0].section_id == 0
         assert form.sections[0].fields[0].placeholder == 'placeholder'
         assert form.sections[0].fields[0].required == True
         assert form.sections[0].fields[0].key == 'key'
@@ -336,7 +338,7 @@ class Test_FormDynamoDTO:
             comments='comments',
             sections=[
                 Section(
-                    section_id='0',
+                    section_id=0,
                     fields=[
                         TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='poggers')
                     ]
@@ -380,7 +382,7 @@ class Test_FormDynamoDTO:
         assert form.justification.justification_text == 'justification_text'
         assert form.justification.justification_image == 'justification_image'
         assert form.comments == 'comments'
-        assert form.sections[0].section_id == '0'
+        assert form.sections[0].section_id == 0
         assert form.sections[0].fields[0].placeholder == 'placeholder'
         assert form.sections[0].fields[0].required == True
         assert form.sections[0].fields[0].key == 'key'

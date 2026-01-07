@@ -15,7 +15,14 @@ class ITemplateRepository(ABC):
         pass
 
     @abstractmethod
-    def get_all_templates(self) -> List[Template]:
+    def get_all_templates(
+        self,
+        system: str,
+        limit: int,
+        exclusive_start_key: Optional[dict] = None,
+        name_contains: Optional[str] = None,
+        is_active: Optional[bool] = True,
+    ) -> tuple[List[Template], Optional[str]]:
         pass
 
     @abstractmethod

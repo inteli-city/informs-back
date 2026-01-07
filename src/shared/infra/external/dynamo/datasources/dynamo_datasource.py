@@ -218,3 +218,87 @@ class DynamoDatasource:
             }
         )
         return resp
+    
+    def transact_write_items(self, transact_items):
+        """
+        Perform a transactional write operation on multiple items in one or more tables.
+        @param transact_items: list of dicts with the transactional write operations
+        Example: transact_items=[
+            {
+                'Put': {
+                    'TableName': 'YourTableName',
+                    'Item': {
+                        'Partition': {'S': 'partition1'},
+                        'Sort': {'S': 'sort1'},
+                        'Attribute1': {'S': 'value1'}
+                    }
+                }
+            },
+            {
+                'Delete': {
+                    'TableName': 'YourTableName',
+                    'Key': {
+                        'Partition': {'S': 'partition2'},
+                        'Sort': {'S': 'sort2'}
+                    }
+                }
+            }
+        ]
+        """
+
+        resp = self.dynamo_resource.transact_write_items(
+            TransactItems=transact_items
+        )
+        return resp
+    
+    def build_transaction_item_put(self, item: dict, partition_key: str, sort_key: str = None):
+        """
+        Build a transaction item for a Put operation.
+        @param item: dict with the keys (Partition and Sort) and data to insert
+        @param partition_key: string with the partition key
+        @param sort_key: string with the sort key (optional)
+        @return: dict with the transaction item for Put operation
+        """
+        from boto3.dynamodb.types import TypeSerializer
+        
+        item = DynamoDatasource._parse_float_to_decimal(item)
+
+        item[self.partition_key] = partition_key
+        if sort_key:
+            item[self.sort_key] = sort_key
+
+        # Serialize item with type descriptors for transact_write_items
+        serializer = TypeSerializer()
+        serialized_item = {k: serializer.serialize(v) for k, v in item.items()}
+
+        transaction_item = {
+            'Put': {
+                'TableName': self.dynamo_table.name,
+                'Item': serialized_item
+            }
+        }
+
+        return transaction_item
+    
+    def build_transaction_item_delete(self, partition_key: str, sort_key: str = None):
+        """
+        Build a transaction item for a Delete operation.
+        @param partition_key: string with the partition key
+        @param sort_key: string with the sort key (optional)
+        @return: dict with the transaction item for Delete operation
+        """
+        from boto3.dynamodb.types import TypeSerializer
+        
+        serializer = TypeSerializer()
+        key = {self.partition_key: serializer.serialize(partition_key)}
+        if sort_key:
+            key[self.sort_key] = serializer.serialize(sort_key)
+
+        transaction_item = {
+            'Delete': {
+                'TableName': self.dynamo_table.name,
+                'Key': key
+            }
+        }
+
+        return transaction_item

@@ -14,7 +14,7 @@ controller = UpdateTemplateController(usecase)
 def lambda_handler(event, context):
     http_request = LambdaHttpRequest(data=event)
     http_request.data["requester_user"] = event.get("requestContext", {}).get("authorizer", {}).get("claims", None)
-    path_template_id = event.get("pathParameters", {}).get("templateId") if event.get("pathParameters") else None
+    path_template_id = event.get("pathParameters", {}).get("template_id") if event.get("pathParameters") else None
     if path_template_id:
         http_request.data["template_id"] = path_template_id
     response = controller(http_request)

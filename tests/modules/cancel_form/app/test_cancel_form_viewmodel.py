@@ -95,7 +95,7 @@ class Test_CancelFormViewmodel:
 
         viewmodel = SectionViewmodel(
             section=Section(
-                section_id='section_id',
+                section_id=1,
                 fields=[field]
             )
         )
@@ -103,7 +103,7 @@ class Test_CancelFormViewmodel:
         response = viewmodel.to_dict()
 
         excepted = {
-            'section_id': 'section_id',
+            'section_id': 1,
             'fields': [{
                 'field_type': 'FILE_FIELD',
                 'placeholder': 'placeholder',
@@ -155,7 +155,7 @@ class Test_CancelFormViewmodel:
         field = FileField(placeholder='placeholder', required=True, key='key', file_type=FILE_TYPE.IMAGE, min_quantity=1, max_quantity=10, value=['value'])
 
         section = Section(
-                section_id='section_id',
+                section_id=1,
                 fields=[field]
             )
         
@@ -163,6 +163,7 @@ class Test_CancelFormViewmodel:
             form=Form(
                 form_title='FORM_TITLE',
                 form_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
+                created_by='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 creator_user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 vinculation_form_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
@@ -180,9 +181,10 @@ class Test_CancelFormViewmodel:
                 priority=PRIORITY.HIGH,
                 status=FORM_STATUS.IN_PROGRESS,
                 expiration_date=1,
-                creation_date=1,
-                start_date=1,
-                conclusion_date=1,
+                created_at=1,
+                updated_at=1,
+                in_progress_at=1,
+                completed_at=1,
                 justification=justification,
                 comments='comments',
                 sections=[section],
@@ -213,7 +215,7 @@ class Test_CancelFormViewmodel:
             'longitude': 1.0,
             'region': 'region',
             'description': 'description',
-            'priority': 'HIGH',
+            'priority': '2',
             'status': 'IN_PROGRESS',
             'expiration_date': 1,
             'creation_date': 1,
@@ -232,7 +234,7 @@ class Test_CancelFormViewmodel:
             },
             'comments': 'comments',
             'sections': [{
-                'section_id': 'section_id',
+                'section_id': 1,
                 'fields': [{
                     'field_type': 'FILE_FIELD',
                     'placeholder': 'placeholder',
@@ -267,13 +269,14 @@ class Test_CancelFormViewmodel:
         field = FileField(placeholder='placeholder', required=True, key='key', file_type=FILE_TYPE.IMAGE, min_quantity=1, max_quantity=10, value=['value'])
 
         section = Section(
-                section_id='section_id',
+                section_id=1,
                 fields=[field]
             )
         
         form = Form(
                 form_title='FORM TITLE',
                 form_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
+                created_by='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 creator_user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 vinculation_form_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
@@ -291,9 +294,10 @@ class Test_CancelFormViewmodel:
                 priority=PRIORITY.HIGH,
                 status=FORM_STATUS.IN_PROGRESS,
                 expiration_date=1,
-                creation_date=1,
-                start_date=1,
-                conclusion_date=1,
+                created_at=1,
+                updated_at=1,
+                in_progress_at=1,
+                completed_at=1,
                 justification=justification,
                 comments='comments',
                 sections=[section],
@@ -328,7 +332,7 @@ class Test_CancelFormViewmodel:
                     'longitude': 1.0,
                     'region': 'region',
                     'description': 'description',
-                    'priority': 'HIGH',
+                    'priority': '2',
                     'status': 'IN_PROGRESS',
                     'expiration_date': 1,
                     'creation_date': 1,
@@ -347,7 +351,7 @@ class Test_CancelFormViewmodel:
                     'comments': 'comments',
                     'sections': [
                         {
-                            'section_id': 'section_id',
+                            'section_id': 1,
                             'fields': [
                                 {
                                     'field_type': 'FILE_FIELD',

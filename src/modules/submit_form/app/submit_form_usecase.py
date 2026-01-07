@@ -8,6 +8,7 @@ from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.image_repository_interface import IImageRepository
 from src.shared.environments import Environments
+from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 
 
@@ -17,7 +18,14 @@ class SubmitFormUsecase:
         self.form_repo = form_repo
         self.image_repo = image_repo
     
-    def __call__(self, user_id: str, form_id: str, sections: List[Section], completed_at: int) -> Form:
+    def __call__(
+        self,
+        user_id: str,
+        form_id: str,
+        sections: List[Section],
+        completed_at: int,
+        file_content_types: Optional[dict] = None,
+    ) -> Form:
         form = self.form_repo.get_form_by_id(user_id=user_id, form_id=form_id)
 
         if form is None:
@@ -36,9 +44,18 @@ class SubmitFormUsecase:
         
         for section in sections:
             for field in section.fields:
-                if isinstance(field, FileField):
-                    image_path = f'{datetime.now().year}/{form_id}/sections/{section.section_id}/{str(uuid.uuid4())}.png'
-                    self.image_repo.put_image(base_64_image=field.value, image_path=image_path)
+                if isinstance(field, FileField) and field.value is not None:
+                    content_type = None
+                    if file_content_types is not None:
+                        content_type = file_content_types.get((section.section_id, field.key))
+                    if not isinstance(content_type, str) or not content_type:
+                        raise EntityError("content_type")
+                    image_path = f'{datetime.now().year}/{form_id}/sections/{section.section_id}/{str(uuid.uuid4())}.{content_type.split("/")[-1]}'
+                    self.image_repo.put_image(
+                        base_64_image=field.value,
+                        image_path=image_path,
+                        content_type=content_type,
+                    )
                     field.value = f'https://{Environments.get_envs().bucket_name}.s3.sa-east-1.amazonaws.com/{image_path}'
         
         updated_at = int(datetime.now().timestamp() * 1000)
