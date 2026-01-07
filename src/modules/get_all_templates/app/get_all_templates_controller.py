@@ -22,7 +22,13 @@ class GetAllTemplatesController:
         def _parse_optional_int(field: str, value, default=None):
             if value is None:
                 return default
-            if isinstance(value, bool) or not isinstance(value, int):
+            if isinstance(value, bool):
+                raise WrongTypeParameter(field, "int", type(value))
+            if isinstance(value, str):
+                if value.isdigit() or (value.startswith("-") and value[1:].isdigit()):
+                    return int(value)
+                raise WrongTypeParameter(field, "int", type(value))
+            if not isinstance(value, int):
                 raise WrongTypeParameter(field, "int", type(value))
             return value
 
