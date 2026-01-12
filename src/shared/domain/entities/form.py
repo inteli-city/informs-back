@@ -66,11 +66,7 @@ class Form(abc.ABC):
         information_fields: Optional[List[InformationField]] = None,
         form_id: Optional[str] = None,
         creator_user_id: Optional[str] = None,
-        vinculation_form_id: Optional[str] = None,
-        can_vinculate: Optional[bool] = None,
-        region: Optional[str] = None,
         description: Optional[str] = None,
-        comments: Optional[str] = None,
         **kwargs
     ):
 
@@ -181,12 +177,6 @@ class Form(abc.ABC):
             if not isinstance(information_fields, list) or not information_fields or not all(isinstance(information_field, InformationField) for information_field in information_fields):
                 raise EntityError('information_fields')
         self.information_fields = information_fields
-
-        # compatibility attrs
-        self.vinculation_form_id = vinculation_form_id
-        self.can_vinculate = bool(can_vinculate) if can_vinculate is not None else False
-        self.comments = comments
-        self.region = region if region is not None else (area if area is not None else "")
 
     @staticmethod
     def validate_id(id_to_validate: str) -> bool:

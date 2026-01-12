@@ -18,8 +18,6 @@ class FormDynamoDTO:
     creator_user_id: str
     created_by: str
     user_id: str
-    vinculation_form_id: Optional[str]
-    can_vinculate: bool
     template: Optional[str]
     area: Optional[str]
     system: str
@@ -28,7 +26,6 @@ class FormDynamoDTO:
     number: Optional[int]
     latitude: float
     longitude: float
-    region: Optional[str]
     description: Optional[str]
     observation: Optional[str]
     priority: PRIORITY
@@ -43,7 +40,6 @@ class FormDynamoDTO:
     cancelled_at: Optional[int]
     updated_at: int
     justification: Justification
-    comments: Optional[str]
     sections: List[Section]
     information_fields: Optional[List[InformationField]]
 
@@ -63,12 +59,9 @@ class FormDynamoDTO:
         id: Optional[str] = None,
         creator_user_id: Optional[str] = None,
         created_by: Optional[str] = None,
-        vinculation_form_id: Optional[str] = None,
-        can_vinculate: Optional[bool] = None,
         template: Optional[str] = None,
         area: Optional[str] = None,
         number: Optional[int] = None,
-        region: Optional[str] = None,
         description: Optional[str] = None,
         observation: Optional[str] = None,
         expiration_date: Optional[int] = None,
@@ -81,7 +74,6 @@ class FormDynamoDTO:
         cancelled_at: Optional[int] = None,
         updated_at: Optional[int] = None,
         justification: Justification = None,
-        comments: Optional[str] = None,
         information_fields: Optional[List[InformationField]] = None,
     ):
         resolved_id = id or form_id
@@ -90,7 +82,6 @@ class FormDynamoDTO:
         resolved_start_date = in_progress_at if in_progress_at is not None else start_date
         resolved_conclusion_date = completed_at if completed_at is not None else conclusion_date
         resolved_description = observation if observation is not None else description
-        resolved_region = region if region is not None else area
 
         resolved_updated_at = updated_at
         if resolved_updated_at is None:
@@ -102,8 +93,6 @@ class FormDynamoDTO:
         self.creator_user_id = resolved_creator
         self.created_by = resolved_creator
         self.user_id = user_id
-        self.vinculation_form_id = vinculation_form_id
-        self.can_vinculate = bool(can_vinculate) if can_vinculate is not None else False
         self.template = template
         self.area = area
         self.system = system
@@ -112,7 +101,6 @@ class FormDynamoDTO:
         self.number = number
         self.latitude = latitude
         self.longitude = longitude
-        self.region = resolved_region
         self.description = resolved_description
         self.observation = resolved_description
         self.priority = priority
@@ -127,7 +115,6 @@ class FormDynamoDTO:
         self.cancelled_at = cancelled_at
         self.updated_at = resolved_updated_at
         self.justification = justification
-        self.comments = comments
         self.sections = sections
         self.information_fields = information_fields
 
@@ -138,8 +125,6 @@ class FormDynamoDTO:
             form_id=form.form_id,
             creator_user_id=form.creator_user_id,
             user_id=form.user_id,
-            vinculation_form_id=form.vinculation_form_id,
-            can_vinculate=form.can_vinculate,
             template=form.template,
             area=form.area,
             system=form.system,
@@ -148,7 +133,6 @@ class FormDynamoDTO:
             number=form.number,
             latitude=form.latitude,
             longitude=form.longitude,
-            region=form.region,
             description=form.description,
             priority=form.priority,
             status=form.status,
@@ -159,7 +143,6 @@ class FormDynamoDTO:
             cancelled_at=form.cancelled_at,
             updated_at=form.updated_at,
             justification=form.justification,
-            comments=form.comments,
             sections=form.sections,
             information_fields=form.information_fields,
         )
@@ -170,8 +153,6 @@ class FormDynamoDTO:
             "form_id": self.form_id,
             "creator_user_id": self.creator_user_id,
             "user_id": self.user_id,
-            "vinculation_form_id": self.vinculation_form_id,
-            "can_vinculate": self.can_vinculate,
             "template": self.template,
             "area": self.area,
             "system": self.system,
@@ -180,7 +161,6 @@ class FormDynamoDTO:
             "number": self.number,
             "latitude": self.latitude,
             "longitude": self.longitude,
-            "region": self.region,
             "description": self.description,
             "priority": self.priority.value if isinstance(self.priority, PRIORITY) else self.priority,
             "status": self.status.value if isinstance(self.status, FORM_STATUS) else self.status,
@@ -189,7 +169,6 @@ class FormDynamoDTO:
             "start_date": self.start_date,
             "conclusion_date": self.conclusion_date,
             "justification": JustificationDTO.from_entity(self.justification).to_dynamo() if self.justification else None,
-            "comments": self.comments,
             "sections": [
                 SectionDTO.from_entity(section).to_dynamo() for section in self.sections
             ],
@@ -218,8 +197,6 @@ class FormDynamoDTO:
             form_id=data.get("form_id") or data.get("id"),
             creator_user_id=data.get("creator_user_id") or data.get("created_by"),
             user_id=data["user_id"],
-            vinculation_form_id=data.get("vinculation_form_id"),
-            can_vinculate=data.get("can_vinculate"),
             template=data.get("template"),
             area=data.get("area"),
             system=data["system"],
@@ -228,7 +205,6 @@ class FormDynamoDTO:
             number=int(data["number"]) if data.get("number") is not None else None,
             latitude=float(data["latitude"]),
             longitude=float(data["longitude"]),
-            region=data.get("region"),
             description=data.get("description") or data.get("observation"),
             priority=PRIORITY(data["priority"]),
             status=FORM_STATUS(data["status"]),
@@ -239,7 +215,6 @@ class FormDynamoDTO:
             cancelled_at=int(data["cancelled_at"]) if data.get("cancelled_at") is not None else None,
             updated_at=int(data["updated_at"]) if data.get("updated_at") is not None else None,
             justification=JustificationDTO.from_dynamo(data["justification"]).to_entity() if data.get("justification") else None,
-            comments=data.get("comments"),
             sections=[SectionDTO.from_dynamo(section).to_entity() for section in data.get("sections", [])],
             information_fields=[
                 InformationFieldDTO.from_dynamo(information_field).to_entity()
@@ -254,8 +229,6 @@ class FormDynamoDTO:
             creator_user_id=self.creator_user_id,
             user_id=self.user_id,
             created_by=self.created_by,
-            vinculation_form_id=self.vinculation_form_id,
-            can_vinculate=self.can_vinculate,
             template=self.template,
             area=self.area,
             system=self.system,
@@ -264,7 +237,6 @@ class FormDynamoDTO:
             number=self.number,
             latitude=self.latitude,
             longitude=self.longitude,
-            region=self.region,
             description=self.description,
             priority=self.priority,
             status=self.status,
@@ -275,7 +247,6 @@ class FormDynamoDTO:
             created_at=self.creation_date,
             updated_at=self.updated_at,
             justification=self.justification,
-            comments=self.comments,
             sections=self.sections,
             information_fields=self.information_fields,
         )

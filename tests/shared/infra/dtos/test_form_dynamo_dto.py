@@ -17,8 +17,6 @@ class Test_FormDynamoDTO:
             created_by='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             creator_user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-            vinculation_form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-            can_vinculate=True,
             template='template',
             area='area',
             system='system',
@@ -27,7 +25,6 @@ class Test_FormDynamoDTO:
             number=123,
             latitude=0.0,
             longitude=0.0,
-            region='region',
             description='description',
             priority=PRIORITY.EMERGENCY,
             status=FORM_STATUS.IN_PROGRESS,
@@ -48,7 +45,6 @@ class Test_FormDynamoDTO:
                 justification_text='justification_text',
                 justification_image='justification_image'
             ),
-            comments='comments',
             sections=[
                 Section(
                     section_id=0,
@@ -70,8 +66,6 @@ class Test_FormDynamoDTO:
         assert form_dto.form_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form_dto.creator_user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form_dto.user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form_dto.vinculation_form_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form_dto.can_vinculate == True
         assert form_dto.template == 'template'
         assert form_dto.area == 'area'
         assert form_dto.system == 'system'
@@ -80,7 +74,6 @@ class Test_FormDynamoDTO:
         assert form_dto.number == 123
         assert form_dto.latitude == 0.0
         assert form_dto.longitude == 0.0
-        assert form_dto.region == 'region'
         assert form_dto.description == 'description'
         assert form_dto.priority == PRIORITY.EMERGENCY
         assert form_dto.status == FORM_STATUS.IN_PROGRESS
@@ -94,7 +87,6 @@ class Test_FormDynamoDTO:
         assert form_dto.justification.selected_option == 'option'
         assert form_dto.justification.justification_text == 'justification_text'
         assert form_dto.justification.justification_image == 'justification_image'
-        assert form_dto.comments == 'comments'
         assert form_dto.sections[0].section_id == 0
         assert form_dto.sections[0].fields[0].placeholder == 'placeholder'
         assert form_dto.sections[0].fields[0].required == True
@@ -111,8 +103,6 @@ class Test_FormDynamoDTO:
             form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             creator_user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-            vinculation_form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-            can_vinculate=True,
             template='template',
             area='area',
             system='system',
@@ -121,7 +111,6 @@ class Test_FormDynamoDTO:
             number=123,
             latitude=0.0,
             longitude=0.0,
-            region='region',
             description='description',
             priority=PRIORITY.EMERGENCY,
             status=FORM_STATUS.IN_PROGRESS,
@@ -141,7 +130,6 @@ class Test_FormDynamoDTO:
                 justification_text='justification_text',
                 justification_image='justification_image'
             ),
-            comments='comments',
             sections=[
                 Section(
                     section_id=0,
@@ -163,8 +151,6 @@ class Test_FormDynamoDTO:
         assert form['form_id'] == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form['creator_user_id'] == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form['user_id'] == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form['vinculation_form_id'] == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form['can_vinculate'] == True
         assert form['template'] == 'template'
         assert form['area'] == 'area'
         assert form['system'] == 'system'
@@ -173,7 +159,6 @@ class Test_FormDynamoDTO:
         assert form['number'] == 123
         assert form['latitude'] == 0.0
         assert form['longitude'] == 0.0
-        assert form['region'] == 'region'
         assert form['description'] == 'description'
         assert form['priority'] == PRIORITY.EMERGENCY.value
         assert form['status'] == FORM_STATUS.IN_PROGRESS.value
@@ -187,7 +172,6 @@ class Test_FormDynamoDTO:
         assert form['justification']['selected_option'] == 'option'
         assert form['justification']['justification_text'] == 'justification_text'
         assert form['justification']['justification_image'] == 'justification_image'
-        assert form['comments'] == 'comments'
         assert form['sections'][0]['section_id'] == '0'
         assert form['sections'][0]['fields'][0]['placeholder'] == 'placeholder'
         assert form['sections'][0]['fields'][0]['required'] == True
@@ -204,8 +188,6 @@ class Test_FormDynamoDTO:
             'form_id': 'd61dbf66-a10f-11ed-a8fc-0242ac120010',
             'creator_user_id': 'd61dbf66-a10f-11ed-a8fc-0242ac120010',
             'user_id': 'd61dbf66-a10f-11ed-a8fc-0242ac120010',
-            'vinculation_form_id': 'd61dbf66-a10f-11ed-a8fc-0242ac120010',
-            'can_vinculate': True,
             'template': 'template',
             'area': 'area',
             'system': 'system',
@@ -214,7 +196,6 @@ class Test_FormDynamoDTO:
             'number': 123,
             'latitude': 0.0,
             'longitude': 0.0,
-            'region': 'region',
             'description': 'description',
             'priority': PRIORITY.EMERGENCY.value,
             'status': FORM_STATUS.IN_PROGRESS.value,
@@ -234,7 +215,6 @@ class Test_FormDynamoDTO:
                 'justification_text': 'justification_text',
                 'justification_image': 'justification_image'
             },
-            'comments': 'comments',
             'sections': [
                 {
                     'section_id': '0',
@@ -264,8 +244,6 @@ class Test_FormDynamoDTO:
         assert form.form_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form.creator_user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form.user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form.vinculation_form_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form.can_vinculate == True
         assert form.template == 'template'
         assert form.area == 'area'
         assert form.system == 'system'
@@ -274,7 +252,6 @@ class Test_FormDynamoDTO:
         assert form.number == 123
         assert form.latitude == 0.0
         assert form.longitude == 0.0
-        assert form.region == 'region'
         assert form.description == 'description'
         assert form.priority == PRIORITY.EMERGENCY
         assert form.status == FORM_STATUS.IN_PROGRESS
@@ -288,7 +265,6 @@ class Test_FormDynamoDTO:
         assert form.justification.selected_option == 'option'
         assert form.justification.justification_text == 'justification_text'
         assert form.justification.justification_image == 'justification_image'
-        assert form.comments == 'comments'
         assert form.sections[0].section_id == 0
         assert form.sections[0].fields[0].placeholder == 'placeholder'
         assert form.sections[0].fields[0].required == True
@@ -305,8 +281,6 @@ class Test_FormDynamoDTO:
             form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             creator_user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-            vinculation_form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-            can_vinculate=True,
             template='template',
             area='area',
             system='system',
@@ -315,7 +289,6 @@ class Test_FormDynamoDTO:
             number=123,
             latitude=0.0,
             longitude=0.0,
-            region='region',
             description='description',
             priority=PRIORITY.EMERGENCY,
             status=FORM_STATUS.IN_PROGRESS,
@@ -335,7 +308,6 @@ class Test_FormDynamoDTO:
                 justification_text='justification_text',
                 justification_image='justification_image'
             ),
-            comments='comments',
             sections=[
                 Section(
                     section_id=0,
@@ -357,8 +329,6 @@ class Test_FormDynamoDTO:
         assert form.form_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form.creator_user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form.user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form.vinculation_form_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form.can_vinculate == True
         assert form.template == 'template'
         assert form.area == 'area'
         assert form.system == 'system'
@@ -367,7 +337,6 @@ class Test_FormDynamoDTO:
         assert form.number == 123
         assert form.latitude == 0.0
         assert form.longitude == 0.0
-        assert form.region == 'region'
         assert form.description == 'description'
         assert form.priority == PRIORITY.EMERGENCY
         assert form.status == FORM_STATUS.IN_PROGRESS
@@ -381,7 +350,6 @@ class Test_FormDynamoDTO:
         assert form.justification.selected_option == 'option'
         assert form.justification.justification_text == 'justification_text'
         assert form.justification.justification_image == 'justification_image'
-        assert form.comments == 'comments'
         assert form.sections[0].section_id == 0
         assert form.sections[0].fields[0].placeholder == 'placeholder'
         assert form.sections[0].fields[0].required == True
