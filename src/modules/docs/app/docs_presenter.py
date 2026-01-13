@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 JSON_PATH_SUFFIXES = ("/docs/json", "/docs/swagger.json", "/docs/openapi.json")
+JSON_QUERY_KEYS = ("format", "output")
 
 
 def _get_request_path(event: dict) -> str:
@@ -12,6 +13,22 @@ def _get_request_path(event: dict) -> str:
         or event.get("path")
         or event.get("requestContext", {}).get("http", {}).get("path", "")
     )
+
+
+def _get_query_params(event: dict) -> dict:
+    if not event:
+        return {}
+    return event.get("queryStringParameters") or {}
+
+
+def _should_return_json_by_query(params: dict) -> bool:
+    if not params:
+        return False
+    for key in JSON_QUERY_KEYS:
+        value = params.get(key)
+        if isinstance(value, str) and value.lower() in {"json", "swagger", "openapi"}:
+            return True
+    return False
 
 
 def _should_return_json(path: str) -> bool:
@@ -38,7 +55,8 @@ def lambda_handler(event, context):
         }
     
     request_path = _get_request_path(event)
-    if _should_return_json(request_path):
+    query_params = _get_query_params(event)
+    if _should_return_json_by_query(query_params) or _should_return_json(request_path):
         return {
             "statusCode": 200,
             "headers": {
