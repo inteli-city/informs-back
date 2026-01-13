@@ -1,6 +1,25 @@
 import json
 from pathlib import Path
 
+JSON_PATH_SUFFIXES = ("/docs/json", "/docs/swagger.json", "/docs/openapi.json")
+
+
+def _get_request_path(event: dict) -> str:
+    if not event:
+        return ""
+    return (
+        event.get("rawPath")
+        or event.get("path")
+        or event.get("requestContext", {}).get("http", {}).get("path", "")
+    )
+
+
+def _should_return_json(path: str) -> bool:
+    if not path:
+        return False
+    normalized = path.rstrip("/")
+    return normalized.endswith(JSON_PATH_SUFFIXES)
+
 def lambda_handler(event, context):
     try:
         swagger_path = Path(__file__).with_name("swagger.json")
@@ -11,13 +30,24 @@ def lambda_handler(event, context):
             "statusCode": 500,
             "body": "Swagger documentation not found."
         }
-    
     except Exception as e:
         print(f"Erro ao ler swagger.json: {str(e)}")
         return {
             "statusCode": 500,
             "body": json.dumps({"message": "Erro interno: Arquivo de documentação não encontrado."})
         }
+    
+    request_path = _get_request_path(event)
+    if _should_return_json(request_path):
+        return {
+            "statusCode": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*"
+            },
+            "body": swagger_content
+        }
+
     
 
     html = f"""

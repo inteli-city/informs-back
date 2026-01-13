@@ -118,12 +118,12 @@
           "observation": { "type": "string", "nullable": true },
           "expiration_date": { "type": "number", "nullable": true, "description": "Timestamp em ms" },
           "status": { "type": "string", "enum": ["PENDING", "IN_PROGRESS", "COMPLETED", "SENT", "CANCELLED"], "default": "PENDING" },
-          "in_progress_at": { "type": "string", "format": "date-time", "nullable": true },
-          "cancelled_at": { "type": "string", "format": "date-time", "nullable": true },
-          "completed_at": { "type": "string", "format": "date-time", "nullable": true },
+          "in_progress_at": { "type": "integer", "format": "int64", "nullable": true, "description": "Timestamp em ms" },
+          "cancelled_at": { "type": "integer", "format": "int64", "nullable": true, "description": "Timestamp em ms" },
+          "completed_at": { "type": "integer", "format": "int64", "nullable": true, "description": "Timestamp em ms" },
           "created_by": { "type": "string" },
-          "created_at": { "type": "string", "format": "date-time", "readOnly": true },
-          "updated_at": { "type": "string", "format": "date-time", "readOnly": true },
+          "created_at": { "type": "integer", "format": "int64", "readOnly": true, "description": "Timestamp em ms" },
+          "updated_at": { "type": "integer", "format": "int64", "readOnly": true, "description": "Timestamp em ms" },
           "justification": { "$ref": "#/components/schemas/JustificationWrapper" },
           "sessions": {
             "type": "array",
@@ -164,8 +164,8 @@
           "system": { "type": "string" },
           "is_active": { "type": "boolean", "default": true },
           "created_by": { "type": "string" },
-          "created_at": { "type": "string", "format": "date-time", "readOnly": true },
-          "updated_at": { "type": "string", "format": "date-time", "readOnly": true },
+          "created_at": { "type": "integer", "format": "int64", "readOnly": true, "description": "Timestamp em ms" },
+          "updated_at": { "type": "integer", "format": "int64", "readOnly": true, "description": "Timestamp em ms" },
           "sessions": {
             "type": "array",
             "items": { "$ref": "#/components/schemas/Section" }
@@ -283,7 +283,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "in_progress_at": { "type": "string", "format": "date-time" }
+                  "in_progress_at": { "type": "integer", "format": "int64", "description": "Timestamp em ms" }
                 }
               }
             }
@@ -328,7 +328,7 @@
                       }
                     }
                   },
-                  "completed_at": { "type": "string", "format": "date-time" }
+                  "completed_at": { "type": "integer", "format": "int64", "description": "Timestamp em ms" }
                 }
               }
             }
@@ -357,7 +357,7 @@
                   "option": { "type": "string" },
                   "text": { "type": "string", "nullable": true },
                   "image": { "type": "string", "format": "byte", "nullable": true },
-                  "cancelled_at": { "type": "number", "description": "Timestamp" }
+                  "cancelled_at": { "type": "integer", "format": "int64", "description": "Timestamp em ms" }
                 }
               }
             }
