@@ -238,9 +238,6 @@ class Form(abc.ABC):
         if not isinstance(updated_at, int):
             raise EntityError('updated_at')
 
-        if self.status in [FORM_STATUS.CANCELLED, FORM_STATUS.COMPLETED]:
-            raise ForbiddenAction("Formulário já finalizado")
-
         option = next((item for item in self.justification.options if item.option == selected_option), None)
         if option is None:
             raise EntityError("Opção de justificativa inválida")

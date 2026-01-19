@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime, timezone
 
 from src.shared.domain.entities.form import Form
+from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.image_repository_interface import IImageRepository
 from src.shared.domain.repositories.queue_repository_interface import IQueueRepository
@@ -35,6 +36,9 @@ class CancelFormUsecase:
         
         if requester_id != form.user_id:
             raise ForbiddenAction("Usuário não pode cancelar um formulário não direcionado a ele")
+        
+        if form.status in [FORM_STATUS.CANCELLED, FORM_STATUS.COMPLETED]:
+            raise ForbiddenAction("Formulário já está finalizado e não pode ser cancelado")
         
         if justification_image:
             if not isinstance(content_type, str) or not content_type:
