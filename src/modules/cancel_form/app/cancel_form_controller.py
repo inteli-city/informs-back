@@ -1,9 +1,10 @@
 from .cancel_form_usecase import CancelFormUsecase
+from .cancel_form_viewmodel import CancelFormViewmodel
 from src.shared.helpers.errors.controller_errors import MissingParameters, WrongTypeParameter
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction, NoItemsFound
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
-from src.shared.helpers.external_interfaces.http_codes import OK, BadRequest, Conflict, Forbidden, InternalServerError, NoContent, NotFound
+from src.shared.helpers.external_interfaces.http_codes import OK, BadRequest, Conflict, Forbidden, InternalServerError, NotFound
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 
 
@@ -36,41 +37,44 @@ class CancelFormController:
             raise WrongTypeParameter(fieldName="justification_text", fieldTypeExpected="str", fieldTypeReceived=type(justification_text))
         
         justification_image = data.get("justification_image") or data.get("image")
-        if justification_image is not None and not isinstance(justification_image, str):
-            raise WrongTypeParameter(fieldName="justification_image", fieldTypeExpected="str", fieldTypeReceived=type(justification_image))
-
-        content_type = data.get("content_type")
         if justification_image is not None:
-            if content_type is None:
-                raise MissingParameters("content_type")
-            if not isinstance(content_type, str):
-                raise WrongTypeParameter(fieldName="content_type", fieldTypeExpected="str", fieldTypeReceived=type(content_type))
+            if not isinstance(justification_image, dict):
+                raise WrongTypeParameter(fieldName="justification_image", fieldTypeExpected="dict", fieldTypeReceived=type(justification_image))
+            filename = justification_image.get("filename")
+            if filename is None:
+                raise MissingParameters("filename")
+            if not isinstance(filename, str):
+                raise WrongTypeParameter(fieldName="filename", fieldTypeExpected="str", fieldTypeReceived=type(filename))
+            mimetype = justification_image.get("mimetype")
+            if mimetype is None:
+                raise MissingParameters("mimetype")
+            if not isinstance(mimetype, str):
+                raise WrongTypeParameter(fieldName="mimetype", fieldTypeExpected="str", fieldTypeReceived=type(mimetype))
 
         cancelled_at = data.get("cancelled_at")
         if cancelled_at is not None:
             if isinstance(cancelled_at, bool) or not isinstance(cancelled_at, int):
                 raise WrongTypeParameter(fieldName="cancelled_at", fieldTypeExpected="int", fieldTypeReceived=type(cancelled_at))
-        return (form_id, selected_option, justification_text, justification_image, content_type, cancelled_at)
+        return (form_id, selected_option, justification_text, justification_image, cancelled_at)
     
     def __call__(self, request: IRequest) -> IResponse:
         try:
             data = request.data if isinstance(request.data, dict) else {}
             requester_user = self._validate_requester_user(data)
 
-            form_id, selected_option, justification_text, justification_image, content_type, cancelled_at = self._validate_endpoint_parameters(data)
+            form_id, selected_option, justification_text, justification_image, cancelled_at = self._validate_endpoint_parameters(data)
             
-            self.usecase(
+            image = self.usecase(
                 requester_id=requester_user.user_id,
                 form_id=form_id,
                 selected_option=selected_option,
                 justification_text=justification_text,
                 justification_image=justification_image,
-                content_type=content_type,
                 cancelled_at=cancelled_at
             )
 
-            
-            return NoContent()
+            viewmodel = CancelFormViewmodel(image=image)
+            return OK(viewmodel.to_dict())
         
         except NoItemsFound as err:
             return NotFound(body=err.message)
