@@ -1,7 +1,8 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 
 
 class IImageRepository(ABC):
 
-    def put_image(self, base_64_image: str, image_path: str, content_type: str = 'image/png') -> None:
+    @abstractmethod
+    def generate_presigned_url(self, image_path: str, mimetype: str, expires_in: int = 3600) -> str:
         pass
