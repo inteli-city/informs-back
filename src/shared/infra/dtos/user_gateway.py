@@ -1,4 +1,5 @@
 from typing import List
+import json
 
 from src.shared.environments import Environments
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction
@@ -20,6 +21,8 @@ class UserGatewayDTO:
         """
         This method is used to convert the user data from the API Gateway to a UserApiGatewayDTO object.
         """
+        if isinstance(user_data, str):
+            user_data = json.loads(user_data)
 
         systems = [item.strip() for item in user_data['cognito:groups'].split(",")]
 
