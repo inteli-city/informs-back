@@ -34,7 +34,12 @@ class DynamoDatasource:
         Parse float to Decimal
         @param item: dict with the keys (Partition and Sort) and data to insert
         """
-        item_parsed = json.loads(json.dumps(item), parse_float=Decimal)
+        def _json_default(value):
+            if isinstance(value, Decimal):
+                return float(value)
+            raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
+
+        item_parsed = json.loads(json.dumps(item, default=_json_default), parse_float=Decimal)
         return item_parsed
 
     def put_item(self, item: dict, partition_key: str, sort_key: str = None, **kwargs):
