@@ -327,7 +327,7 @@ class FileField(Field):
 
         if value is not None:
             if isinstance(value, list):
-                if not all(isinstance(item, str) for item in value):
+                if not all(isinstance(item, (str, dict)) for item in value):
                     raise EntityError('value')
                 if self.min_quantity is not None and len(value) < self.min_quantity:
                     raise EntityError('value')
