@@ -1,4 +1,3 @@
-import base64
 import os
 import sys
 
@@ -21,30 +20,37 @@ class FakeS3Client:
         self.calls.append(kwargs)
         return {"ok": True}
 
+    def generate_presigned_url(self, **kwargs):
+        if self.should_fail:
+            raise RuntimeError("boom")
+        self.calls.append(kwargs)
+        return "https://presigned.example/test"
 
-def test_image_repository_s3_put_image(monkeypatch):
+
+def test_image_repository_s3_generate_presigned_url(monkeypatch):
     os.environ["STAGE"] = "TEST"
     client = FakeS3Client()
     monkeypatch.setattr("boto3.client", lambda *args, **kwargs: client)
 
     repo = ImageRepositoryS3()
-    payload = base64.b64encode(b"data").decode("ascii")
-    repo.put_image(base_64_image=payload, image_path="path/file.jpg", content_type="image/jpeg")
+    url = repo.generate_presigned_url(image_path="path/file.jpg", mimetype="image/jpeg", expires_in=1200)
 
+    assert url == "https://presigned.example/test"
     assert client.calls
     call = client.calls[0]
-    assert call["Body"] == b"data"
-    assert call["Key"] == "path/file.jpg"
-    assert call["ContentType"] == "image/jpeg"
+    assert call["ClientMethod"] == "put_object"
+    assert call["Params"]["Key"] == "path/file.jpg"
+    assert call["Params"]["ContentType"] == "image/jpeg"
+    assert call["ExpiresIn"] == 1200
+    assert call["HttpMethod"] == "PUT"
 
 
-def test_image_repository_s3_put_image_error(monkeypatch):
+def test_image_repository_s3_generate_presigned_url_error(monkeypatch):
     os.environ["STAGE"] = "TEST"
     client = FakeS3Client(should_fail=True)
     monkeypatch.setattr("boto3.client", lambda *args, **kwargs: client)
 
     repo = ImageRepositoryS3()
-    payload = base64.b64encode(b"data").decode("ascii")
 
     with pytest.raises(ErrorWithImage):
-        repo.put_image(base_64_image=payload, image_path="path/file.jpg", content_type="image/jpeg")
+        repo.generate_presigned_url(image_path="path/file.jpg", mimetype="image/jpeg", expires_in=1200)
