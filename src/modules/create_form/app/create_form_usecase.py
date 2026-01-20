@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 import uuid
 from src.shared.domain.entities.form import Form
+from src.shared.domain.entities.image_upload import ImageUpload
 from src.shared.domain.entities.information_field import ImageInformationField, InformationField
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import Section
@@ -9,7 +10,7 @@ from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.enums.priority_enum import PRIORITY
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.image_repository_interface import IImageRepository
-from src.shared.environments import Environments
+from src.shared.helpers.functions.s3_url import build_s3_url
 from src.shared.helpers.errors.domain_errors import EntityError
 
 
@@ -35,28 +36,40 @@ class CreateFormUsecase:
         observation: Optional[str] = None,
         expiration_date: Optional[int] = None,
         information_fields: Optional[List[InformationField]] = None,
-        information_fields_content_types: Optional[List[Optional[str]]] = None,
-    ) -> Form:
+        information_fields_uploads: Optional[List[Optional[dict]]] = None,
+    ) -> tuple[Form, list[ImageUpload]]:
         
         form_id = str(uuid.uuid4())
         now_timestamp = int(datetime.now(timezone.utc).timestamp() * 1000)
+        images: list[ImageUpload] = []
 
         if information_fields:
-            content_types = information_fields_content_types or []
+            uploads = information_fields_uploads or []
             for idx, information_field in enumerate(information_fields):
                 if isinstance(information_field, ImageInformationField):
-                    if idx >= len(content_types):
-                        raise EntityError("content_type")
-                    content_type = content_types[idx]
-                    if not isinstance(content_type, str) or not content_type:
-                        raise EntityError("content_type")
-                    image_path = f'{datetime.now(timezone.utc).year}/{form_id}/information_field/{str(uuid.uuid4())}.{content_type.split("/")[-1]}'
-                    self.image_repo.put_image(
-                        base_64_image=information_field.file_path,
+                    if idx >= len(uploads) or uploads[idx] is None:
+                        raise EntityError("mimetype")
+                    upload = uploads[idx]
+                    mimetype = upload.get("mimetype")
+                    filename = upload.get("filename")
+                    if not isinstance(mimetype, str) or not mimetype:
+                        raise EntityError("mimetype")
+                    image_path = f'{datetime.now(timezone.utc).year}/{system}/{form_id}/information_field/{str(uuid.uuid4())}.{mimetype.split("/")[-1]}'
+                    presigned_url = self.image_repo.generate_presigned_url(
                         image_path=image_path,
-                        content_type=content_type,
+                        mimetype=mimetype,
                     )
-                    information_field.file_path = f'https://{Environments.get_envs().bucket_name}.s3.sa-east-1.amazonaws.com/{image_path}'
+                    image_url = build_s3_url(image_path)
+                    information_field.file_path = image_url
+                    images.append(
+                        ImageUpload(
+                            filename=filename,
+                            mimetype=mimetype,
+                            pre_signed_url=presigned_url,
+                            image_path=image_path,
+                            image_url=image_url,
+                        )
+                    )
 
         form = Form(
             form_title=form_title,
@@ -80,4 +93,5 @@ class CreateFormUsecase:
             information_fields=information_fields
         )
 
-        return self.form_repo.create_form(form)
+        created_form = self.form_repo.create_form(form)
+        return created_form, images
