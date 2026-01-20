@@ -48,8 +48,8 @@ class Test_SubmitFormController:
 
         response = controller(data)
 
-        assert response.status_code == 204
-        assert response.body == {}
+        assert response.status_code == 200
+        assert response.body["images"] == []
     
     def test_submit_form_controller_missing_requester_user(self):
         repo = FormRepositoryMock()

@@ -89,3 +89,4 @@ class Test_CreateFormViewmodel:
         result = vm.to_dict()
         assert result["id"] == form.id
         assert result["created_by"] == form.created_by
+        assert result["images"] == []

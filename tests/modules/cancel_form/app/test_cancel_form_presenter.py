@@ -1,10 +1,15 @@
 import json
-from src.modules.cancel_form.app.cancel_form_presenter import lambda_handler
+import os
+import importlib
 
 
 class Test_CancelFormPresenter:
 
     def test_cancel_form_presenter(self):
+        os.environ["STAGE"] = "TEST"
+        from src.modules.cancel_form.app import cancel_form_presenter
+        importlib.reload(cancel_form_presenter)
+
         event = {
             "version": "2.0",
             "routeKey": "$default",
@@ -53,8 +58,7 @@ class Test_CancelFormPresenter:
                 "form_id": "d61dbf66-a10f-11ed-a8fc-0242ac120010",
                 "selected_option": "option",
                 "justification_text": "justification_test",
-                "justification_image": "image_test",
-                "content_type": "image/jpeg",
+                "justification_image": {"filename": "a.jpg", "mimetype": "image/jpeg"},
                 "cancelled_at": 1764960000000
             },
             "pathParameters": None,
@@ -62,9 +66,9 @@ class Test_CancelFormPresenter:
             "stageVariables": None
         }
 
-        response = lambda_handler(event, None)
+        response = cancel_form_presenter.lambda_handler(event, None)
 
         response_json = json.loads(response["body"])
 
-        assert response["statusCode"] == 204
-        assert response_json == {}
+        assert response["statusCode"] == 200
+        assert response_json["image"]["filename"] == "a.jpg"

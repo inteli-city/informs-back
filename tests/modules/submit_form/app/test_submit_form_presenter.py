@@ -1,10 +1,15 @@
 import json
-from src.modules.submit_form.app.submit_form_presenter import lambda_handler
+import os
+import importlib
 
 
 class Test_SubmitFormPresenter:
 
     def test_submit_form_presenter(self):
+        os.environ["STAGE"] = "TEST"
+        from src.modules.submit_form.app import submit_form_presenter
+        importlib.reload(submit_form_presenter)
+
         event = {
             "version": "2.0",
             "routeKey": "$default",
@@ -75,7 +80,9 @@ class Test_SubmitFormPresenter:
             "stageVariables": None
         }
 
-        response = lambda_handler(event, None)
+        response = submit_form_presenter.lambda_handler(event, None)
 
-        assert response["statusCode"] == 204
-        assert json.loads(response["body"]) == {}
+        response_json = json.loads(response["body"])
+
+        assert response["statusCode"] == 200
+        assert response_json["images"] == []
