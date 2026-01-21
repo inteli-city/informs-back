@@ -6,7 +6,7 @@ import boto3
 
 from src.shared.domain.entities.form import Form
 from src.shared.domain.repositories.queue_repository_interface import IQueueRepository
-from src.shared.environments import Environments
+from src.shared.environments import Environments, STAGE
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.infra.dtos.form_dynamo_dto import FormDynamoDTO
 
@@ -36,6 +36,9 @@ class QueueRepositorySQS(IQueueRepository):
     def send_form(self, form: Form) -> None:
         queue_name = self._queue_names.get(form.system)
         if queue_name is None:
+            stage = Environments.get_envs().stage
+            if stage in [STAGE.DEV, STAGE.DOTENV, STAGE.TEST, STAGE.HOMOLOG]:
+                return
             raise EntityError("system")
 
         queue_url = self._get_queue_url(queue_name)
