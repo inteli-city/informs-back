@@ -41,7 +41,7 @@ class Test_SubmitFormController:
                 "email": 'gabriel@gmail.com',
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
-            "form_id": repo.forms[0].form_id,
+            "form_id": repo.forms[0].id,
             "completed_at": 123,
             "sections": self._build_sections(),
         })
@@ -60,7 +60,7 @@ class Test_SubmitFormController:
         controller = SubmitFormController(usecase)
 
         data = HttpRequest(body={
-            "form_id": repo.forms[0].form_id,
+            "form_id": repo.forms[0].id,
             "sections": self._build_sections(),
             "completed_at": 123
         })
@@ -108,7 +108,7 @@ class Test_SubmitFormController:
                 "email": 'gabriel@gmail.com',
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
-            "form_id": repo.forms[0].form_id,
+            "form_id": repo.forms[0].id,
             "completed_at": 123
         })
 
@@ -131,7 +131,7 @@ class Test_SubmitFormController:
                 "email": 'gabriel@gmail.com',
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
-            "form_id": repo.forms[0].form_id,
+            "form_id": repo.forms[0].id,
             "sections": 'sections',
             "completed_at": 123
         })
@@ -155,7 +155,7 @@ class Test_SubmitFormController:
                 "email": 'gabriel@gmail.com',
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
-            "form_id": repo.forms[0].form_id,
+            "form_id": repo.forms[0].id,
             "sections": [],
             "completed_at": 123
         })
@@ -179,7 +179,7 @@ class Test_SubmitFormController:
                 "email": 'gabriel@gmail.com',
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
-            "form_id": repo.forms[0].form_id,
+            "form_id": repo.forms[0].id,
             "sections": self._build_sections(),
         })
 
@@ -202,7 +202,7 @@ class Test_SubmitFormController:
                 "email": 'gabriel@gmail.com',
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
-            "form_id": repo.forms[0].form_id,
+            "form_id": repo.forms[0].id,
             "sections": self._build_sections(),
             "completed_at": "invalid",
         })

@@ -25,7 +25,7 @@ class Test_CancelFormController:
                 "email": 'gabriel@gmail.com',
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
-            "form_id": form_repo.forms[0].form_id,
+            "form_id": form_repo.forms[0].id,
             "selected_option": "option",
             "justification_text": "justification_test",
             "justification_image": {"filename": "a.jpg", "mimetype": "image/png"}
@@ -44,7 +44,7 @@ class Test_CancelFormController:
 
         controller = CancelFormController(usecase)
 
-        data = HttpRequest(body={"form_id": form_repo.forms[0].form_id,
+        data = HttpRequest(body={"form_id": form_repo.forms[0].id,
             "selected_option": "option",
             "justification_text": "justification_test",
             "justification_image": {"filename": "a.jpg", "mimetype": "image/png"}
@@ -93,7 +93,7 @@ class Test_CancelFormController:
                 "email": 'gabriel@gmail.com',
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
-            "form_id": form_repo.forms[0].form_id,
+            "form_id": form_repo.forms[0].id,
             "justification_text": "justification_test",
             "justification_image": {"filename": "a.jpg", "mimetype": "image/png"}
         })
@@ -117,7 +117,7 @@ class Test_CancelFormController:
                 "email": 'gabriel@gmail.com',
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
-            "form_id": form_repo.forms[0].form_id,
+            "form_id": form_repo.forms[0].id,
             "selected_option": 123,
             "justification_text": "justification_test",
             "justification_image": {"filename": "a.jpg", "mimetype": "image/png"}
@@ -142,7 +142,7 @@ class Test_CancelFormController:
                 "email": 'gabriel@gmail.com',
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
-            "form_id": form_repo.forms[0].form_id,
+            "form_id": form_repo.forms[0].id,
             "selected_option": "selected",
             "justification_text": 123,
             "justification_image": {"filename": "a.jpg", "mimetype": "image/png"}
@@ -167,7 +167,7 @@ class Test_CancelFormController:
                 "email": 'gabriel@gmail.com',
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
-            "form_id": form_repo.forms[0].form_id,
+            "form_id": form_repo.forms[0].id,
             "selected_option": "selected",
             "justification_text": "justification_test",
             "justification_image": 123

@@ -12,5 +12,5 @@ def test_queue_repository_mock_stores_message():
     assert len(queue_repo.messages) == 1
     message = queue_repo.messages[0]
     assert message["system"] == form.system
-    assert message["payload"]["form_id"] == form.form_id
+    assert message["payload"]["form_title"] == form.form_title
     assert message["payload"]["sections"]

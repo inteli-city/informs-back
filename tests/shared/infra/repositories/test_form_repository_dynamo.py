@@ -61,6 +61,8 @@ class FakeFormDynamo:
 def _make_repo_with_item():
     form = FormRepositoryMock().forms[0]
     item = FormDynamoDTO.from_entity(form).to_dynamo()
+    item["PK"] = f"form#{form.id}"
+    item["SK"] = "METADATA"
     repo = FormRepositoryDynamo.__new__(FormRepositoryDynamo)
     repo.dynamo = FakeFormDynamo([item])
     return repo, form, item

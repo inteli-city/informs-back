@@ -13,7 +13,7 @@ class Test_FormDynamoDTO:
     def test_from_entity(self):
         form = Form(
             form_title='form_title',
-            form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
+            id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             created_by='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             template='template',
@@ -24,7 +24,7 @@ class Test_FormDynamoDTO:
             number=123,
             latitude=0.0,
             longitude=0.0,
-            description='description',
+            observation='observation',
             priority=PRIORITY.EMERGENCY,
             status=FORM_STATUS.IN_PROGRESS,
             expiration_date=12345678,
@@ -62,7 +62,7 @@ class Test_FormDynamoDTO:
         form_dto = FormDynamoDTO.from_entity(form)
 
         assert form_dto.form_title == 'form_title'
-        assert form_dto.form_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
+        assert form_dto.id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form_dto.created_by == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form_dto.user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form_dto.template == 'template'
@@ -73,7 +73,7 @@ class Test_FormDynamoDTO:
         assert form_dto.number == 123
         assert form_dto.latitude == 0.0
         assert form_dto.longitude == 0.0
-        assert form_dto.description == 'description'
+        assert form_dto.observation == 'observation'
         assert form_dto.priority == PRIORITY.EMERGENCY
         assert form_dto.status == FORM_STATUS.IN_PROGRESS
         assert form_dto.expiration_date == 12345678
@@ -99,7 +99,7 @@ class Test_FormDynamoDTO:
     def test_to_dynamo(self):
         form_dto = FormDynamoDTO(
             form_title='form_title',
-            form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
+            id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             created_by='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             template='template',
@@ -110,11 +110,12 @@ class Test_FormDynamoDTO:
             number=123,
             latitude=0.0,
             longitude=0.0,
-            description='description',
+            observation='observation',
             priority=PRIORITY.EMERGENCY,
             status=FORM_STATUS.IN_PROGRESS,
             expiration_date=12345678,
             created_at=12345678,
+            updated_at=12345678,
             in_progress_at=12345678,
             completed_at=12345678,
             justification=Justification(
@@ -147,7 +148,6 @@ class Test_FormDynamoDTO:
         form = form_dto.to_dynamo()
 
         assert form['form_title'] == 'form_title'
-        assert form['form_id'] == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form['created_by'] == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form['user_id'] == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form['template'] == 'template'
@@ -158,11 +158,11 @@ class Test_FormDynamoDTO:
         assert form['number'] == 123
         assert form['latitude'] == 0.0
         assert form['longitude'] == 0.0
-        assert form['description'] == 'description'
         assert form['priority'] == PRIORITY.EMERGENCY.value
         assert form['status'] == FORM_STATUS.IN_PROGRESS.value
         assert form['expiration_date'] == 12345678
         assert form['created_at'] == 12345678
+        assert form['updated_at'] == 12345678
         assert form['in_progress_at'] == 12345678
         assert form['completed_at'] == 12345678
         assert form['justification']['options'][0]['option'] == 'option'
@@ -184,9 +184,10 @@ class Test_FormDynamoDTO:
     def test_from_dynamo(self):
         form = FormDynamoDTO.from_dynamo({
             'form_title': 'form_title',
-            'form_id': 'd61dbf66-a10f-11ed-a8fc-0242ac120010',
             'created_by': 'd61dbf66-a10f-11ed-a8fc-0242ac120010',
             'user_id': 'd61dbf66-a10f-11ed-a8fc-0242ac120010',
+            'PK': 'form#d61dbf66-a10f-11ed-a8fc-0242ac120010',
+            'SK': 'METADATA',
             'template': 'template',
             'area': 'area',
             'system': 'system',
@@ -195,11 +196,12 @@ class Test_FormDynamoDTO:
             'number': 123,
             'latitude': 0.0,
             'longitude': 0.0,
-            'description': 'description',
+            'observation': 'observation',
             'priority': PRIORITY.EMERGENCY.value,
             'status': FORM_STATUS.IN_PROGRESS.value,
             'expiration_date': 12345678,
             'created_at': 12345678,
+            'updated_at': 12345678,
             'in_progress_at': 12345678,
             'completed_at': 12345678,
             'justification': {
@@ -240,7 +242,7 @@ class Test_FormDynamoDTO:
         })
 
         assert form.form_title == 'form_title'
-        assert form.form_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
+        assert form.id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form.created_by == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form.user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form.template == 'template'
@@ -251,7 +253,7 @@ class Test_FormDynamoDTO:
         assert form.number == 123
         assert form.latitude == 0.0
         assert form.longitude == 0.0
-        assert form.description == 'description'
+        assert form.observation == 'observation'
         assert form.priority == PRIORITY.EMERGENCY
         assert form.status == FORM_STATUS.IN_PROGRESS
         assert form.expiration_date == 12345678
@@ -277,7 +279,7 @@ class Test_FormDynamoDTO:
     def test_to_entity(self):
         form_dto = FormDynamoDTO(
             form_title='form_title',
-            form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
+            id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             created_by='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             template='template',
@@ -288,11 +290,12 @@ class Test_FormDynamoDTO:
             number=123,
             latitude=0.0,
             longitude=0.0,
-            description='description',
+            observation='observation',
             priority=PRIORITY.EMERGENCY,
             status=FORM_STATUS.IN_PROGRESS,
             expiration_date=12345678,
             created_at=12345678,
+            updated_at=12345678,
             in_progress_at=12345678,
             completed_at=12345678,
             justification=Justification(
@@ -325,7 +328,7 @@ class Test_FormDynamoDTO:
         form = form_dto.to_entity()
 
         assert form.form_title == 'form_title'
-        assert form.form_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
+        assert form.id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form.created_by == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form.user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form.template == 'template'
@@ -336,11 +339,12 @@ class Test_FormDynamoDTO:
         assert form.number == 123
         assert form.latitude == 0.0
         assert form.longitude == 0.0
-        assert form.description == 'description'
+        assert form.observation == 'observation'
         assert form.priority == PRIORITY.EMERGENCY
         assert form.status == FORM_STATUS.IN_PROGRESS
         assert form.expiration_date == 12345678
         assert form.created_at == 12345678
+        assert form.updated_at == 12345678
         assert form.in_progress_at == 12345678
         assert form.completed_at == 12345678
         assert form.justification.options[0].option == 'option'

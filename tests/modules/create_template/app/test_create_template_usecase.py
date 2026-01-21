@@ -22,7 +22,7 @@ class TestCreateTemplateUsecase:
         usecase = CreateTemplateUsecase(repo)
 
         template = usecase(
-            creator_user_id="user-123",
+            created_by="user-123",
             name="Template X",
             system="GAIA",
             description="Description",
@@ -41,7 +41,7 @@ class TestCreateTemplateUsecase:
 
         with pytest.raises(EntityError):
             usecase(
-                creator_user_id="user-123",
+                created_by="user-123",
                 name="Template X",
                 system="GAIA",
                 description=None,
@@ -59,7 +59,7 @@ class TestCreateTemplateUsecase:
 
         with pytest.raises(EntityError):
             usecase(
-                creator_user_id="user-123",
+                created_by="user-123",
                 name="Template X",
                 system="GAIA",
                 description=None,

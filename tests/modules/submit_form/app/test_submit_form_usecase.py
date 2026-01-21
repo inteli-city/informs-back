@@ -29,7 +29,7 @@ class Test_SubmitFormUsecase:
             )
         ]
 
-        usecase(user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001', form_id=form.form_id, sections=sections, completed_at=123)
+        usecase(user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001', form_id=form.id, sections=sections, completed_at=123)
 
         assert form.status == FORM_STATUS.COMPLETED
         assert form.sections[0].fields[0].value == 'poggers'
@@ -54,7 +54,7 @@ class Test_SubmitFormUsecase:
         ]
 
         with pytest.raises(ForbiddenAction):
-            usecase('d61dbf66-a10f-11ed-a8fc-0242ac120001', form.form_id, sections, completed_at=123)
+            usecase('d61dbf66-a10f-11ed-a8fc-0242ac120001', form.id, sections, completed_at=123)
 
     def test_submit_form_usecase_form_not_found(self):
         repo = FormRepositoryMock()
@@ -93,7 +93,7 @@ class Test_SubmitFormUsecase:
         ]
 
         with pytest.raises(ForbiddenAction):
-            usecase('d61dbf66-a10f-11ed-a8fc-0242ac120002', form.form_id, sections, completed_at=123)
+            usecase('d61dbf66-a10f-11ed-a8fc-0242ac120002', form.id, sections, completed_at=123)
     
     def test_submit_form_usecase_form_already_concluded(self):
         repo = FormRepositoryMock()
@@ -113,7 +113,7 @@ class Test_SubmitFormUsecase:
         ]
 
         with pytest.raises(ForbiddenAction):
-            usecase('d61dbf66-a10f-11ed-a8fc-0242ac120001', form.form_id, sections, completed_at=123)
+            usecase('d61dbf66-a10f-11ed-a8fc-0242ac120001', form.id, sections, completed_at=123)
     
     def test_submit_form_usecase_required_field_not_filled(self):
         repo = FormRepositoryMock()
@@ -133,7 +133,7 @@ class Test_SubmitFormUsecase:
         ]
 
         with pytest.raises(ForbiddenAction):
-            usecase('d61dbf66-a10f-11ed-a8fc-0242ac120001', form.form_id, sections, completed_at=123)
+            usecase('d61dbf66-a10f-11ed-a8fc-0242ac120001', form.id, sections, completed_at=123)
 
     def test_submit_form_usecase_with_file_uploads(self):
         repo = FormRepositoryMock()
@@ -161,7 +161,7 @@ class Test_SubmitFormUsecase:
 
         images = usecase(
             user_id=form.user_id,
-            form_id=form.form_id,
+            form_id=form.id,
             sections=sections,
             completed_at=123,
             file_uploads={(1, "file_key"): [{"filename": "a.jpg", "mimetype": "image/jpeg"}]},

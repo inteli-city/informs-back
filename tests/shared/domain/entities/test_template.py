@@ -50,18 +50,3 @@ class TestTemplateEntity:
         tpl.change_sections([new_section])
         assert tpl.sections[0].section_id == 2
         assert tpl.updated_at == previous_updated_at
-
-    def test_accepts_template_id_alias(self):
-        now = int(datetime.now(timezone.utc).timestamp() * 1000)
-        section = Section(section_id=1, fields=[TextField(label="Field", required=True, key="field", order=1)])
-        tpl = Template(
-            name="Template B",
-            system="GAIA",
-            created_by="user-1",
-            created_at=now,
-            updated_at=now,
-            sections=[section],
-            template_id="d61dbf66-a10f-11ed-a8fc-0242ac120099",
-        )
-        assert tpl.id == "d61dbf66-a10f-11ed-a8fc-0242ac120099"
-        assert tpl.template_id == tpl.id

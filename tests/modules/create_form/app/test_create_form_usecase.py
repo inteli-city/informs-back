@@ -36,7 +36,7 @@ def _make_usecase_and_payload():
 
     payload = {
         "form_title": 'FORM TITLE',
-        "creator_user_id": 'd61dbf66-a10f-11ed-a8fc-0242ac120001',
+        "created_by": 'd61dbf66-a10f-11ed-a8fc-0242ac120001',
         "user_id": 'd61dbf66-a10f-11ed-a8fc-0242ac120001',
         "system": 'GAIA',
         "street": '1',

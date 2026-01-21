@@ -71,7 +71,10 @@ def test_template_repository_dynamo_create_and_get():
     assert partition_key == f"template#{template.id}"
     assert sort_key == "METADATA"
 
-    repo.dynamo.get_item_response = {"Item": TemplateDynamoDTO.from_entity(template).to_dynamo()}
+    item = TemplateDynamoDTO.from_entity(template).to_dynamo()
+    item["PK"] = f"template#{template.id}"
+    item["SK"] = "METADATA"
+    repo.dynamo.get_item_response = {"Item": item}
     fetched = repo.get_template(template.id)
     assert fetched.id == template.id
 
@@ -85,6 +88,8 @@ def test_template_repository_dynamo_get_all_and_update():
     template = _make_template()
 
     item = TemplateDynamoDTO.from_entity(template).to_dynamo()
+    item["PK"] = f"template#{template.id}"
+    item["SK"] = "METADATA"
     repo.dynamo.query_response = {
         "Items": [item],
         "LastEvaluatedKey": {"PK": "template#next", "SK": "METADATA"},

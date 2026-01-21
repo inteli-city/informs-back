@@ -32,7 +32,6 @@ def test_template_dynamo_dto_roundtrip():
     dto = TemplateDynamoDTO.from_entity(template)
     data = dto.to_dynamo()
 
-    assert data["template_id"] == template.id
     assert data["name"] == template.name
     assert data["description"] == template.description
     assert data["system"] == template.system
@@ -42,7 +41,8 @@ def test_template_dynamo_dto_roundtrip():
     assert data["updated_at"] == template.updated_at
     assert data["sections"][0]["section_id"] == "1"
 
-    roundtrip = TemplateDynamoDTO.from_dynamo(data).to_entity()
+    data_with_pk = {**data, "PK": f"template#{template.id}", "SK": "METADATA"}
+    roundtrip = TemplateDynamoDTO.from_dynamo(data_with_pk).to_entity()
     assert roundtrip.id == template.id
     assert roundtrip.name == template.name
     assert roundtrip.description == template.description
@@ -54,5 +54,6 @@ def test_template_dynamo_dto_description_optional():
     template = _make_template(description=None)
     data = TemplateDynamoDTO.from_entity(template).to_dynamo()
     assert data["description"] is None
-    roundtrip = TemplateDynamoDTO.from_dynamo(data).to_entity()
+    data_with_pk = {**data, "PK": f"template#{template.id}", "SK": "METADATA"}
+    roundtrip = TemplateDynamoDTO.from_dynamo(data_with_pk).to_entity()
     assert roundtrip.description is None
