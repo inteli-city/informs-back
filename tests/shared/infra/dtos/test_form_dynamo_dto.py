@@ -15,7 +15,6 @@ class Test_FormDynamoDTO:
             form_title='form_title',
             form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             created_by='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-            creator_user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             template='template',
             area='area',
@@ -64,7 +63,7 @@ class Test_FormDynamoDTO:
 
         assert form_dto.form_title == 'form_title'
         assert form_dto.form_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form_dto.creator_user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
+        assert form_dto.created_by == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form_dto.user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form_dto.template == 'template'
         assert form_dto.area == 'area'
@@ -78,9 +77,9 @@ class Test_FormDynamoDTO:
         assert form_dto.priority == PRIORITY.EMERGENCY
         assert form_dto.status == FORM_STATUS.IN_PROGRESS
         assert form_dto.expiration_date == 12345678
-        assert form_dto.creation_date == 12345678
-        assert form_dto.start_date == 12345678
-        assert form_dto.conclusion_date == 12345678
+        assert form_dto.created_at == 12345678
+        assert form_dto.in_progress_at == 12345678
+        assert form_dto.completed_at == 12345678
         assert form_dto.justification.options[0].option == 'option'
         assert form_dto.justification.options[0].required_image == True
         assert form_dto.justification.options[0].required_text == True
@@ -101,7 +100,7 @@ class Test_FormDynamoDTO:
         form_dto = FormDynamoDTO(
             form_title='form_title',
             form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-            creator_user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
+            created_by='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             template='template',
             area='area',
@@ -115,9 +114,9 @@ class Test_FormDynamoDTO:
             priority=PRIORITY.EMERGENCY,
             status=FORM_STATUS.IN_PROGRESS,
             expiration_date=12345678,
-            creation_date=12345678,
-            start_date=12345678,
-            conclusion_date=12345678,
+            created_at=12345678,
+            in_progress_at=12345678,
+            completed_at=12345678,
             justification=Justification(
                 options=[
                     JustificationOption(
@@ -149,7 +148,7 @@ class Test_FormDynamoDTO:
 
         assert form['form_title'] == 'form_title'
         assert form['form_id'] == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form['creator_user_id'] == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
+        assert form['created_by'] == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form['user_id'] == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form['template'] == 'template'
         assert form['area'] == 'area'
@@ -163,9 +162,9 @@ class Test_FormDynamoDTO:
         assert form['priority'] == PRIORITY.EMERGENCY.value
         assert form['status'] == FORM_STATUS.IN_PROGRESS.value
         assert form['expiration_date'] == 12345678
-        assert form['creation_date'] == 12345678
-        assert form['start_date'] == 12345678
-        assert form['conclusion_date'] == 12345678
+        assert form['created_at'] == 12345678
+        assert form['in_progress_at'] == 12345678
+        assert form['completed_at'] == 12345678
         assert form['justification']['options'][0]['option'] == 'option'
         assert form['justification']['options'][0]['required_image'] == True
         assert form['justification']['options'][0]['required_text'] == True
@@ -186,7 +185,7 @@ class Test_FormDynamoDTO:
         form = FormDynamoDTO.from_dynamo({
             'form_title': 'form_title',
             'form_id': 'd61dbf66-a10f-11ed-a8fc-0242ac120010',
-            'creator_user_id': 'd61dbf66-a10f-11ed-a8fc-0242ac120010',
+            'created_by': 'd61dbf66-a10f-11ed-a8fc-0242ac120010',
             'user_id': 'd61dbf66-a10f-11ed-a8fc-0242ac120010',
             'template': 'template',
             'area': 'area',
@@ -200,9 +199,9 @@ class Test_FormDynamoDTO:
             'priority': PRIORITY.EMERGENCY.value,
             'status': FORM_STATUS.IN_PROGRESS.value,
             'expiration_date': 12345678,
-            'creation_date': 12345678,
-            'start_date': 12345678,
-            'conclusion_date': 12345678,
+            'created_at': 12345678,
+            'in_progress_at': 12345678,
+            'completed_at': 12345678,
             'justification': {
                 'options': [
                     {
@@ -242,7 +241,7 @@ class Test_FormDynamoDTO:
 
         assert form.form_title == 'form_title'
         assert form.form_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form.creator_user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
+        assert form.created_by == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form.user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form.template == 'template'
         assert form.area == 'area'
@@ -256,9 +255,9 @@ class Test_FormDynamoDTO:
         assert form.priority == PRIORITY.EMERGENCY
         assert form.status == FORM_STATUS.IN_PROGRESS
         assert form.expiration_date == 12345678
-        assert form.creation_date == 12345678
-        assert form.start_date == 12345678
-        assert form.conclusion_date == 12345678
+        assert form.created_at == 12345678
+        assert form.in_progress_at == 12345678
+        assert form.completed_at == 12345678
         assert form.justification.options[0].option == 'option'
         assert form.justification.options[0].required_image == True
         assert form.justification.options[0].required_text == True
@@ -279,7 +278,7 @@ class Test_FormDynamoDTO:
         form_dto = FormDynamoDTO(
             form_title='form_title',
             form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-            creator_user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
+            created_by='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             template='template',
             area='area',
@@ -293,9 +292,9 @@ class Test_FormDynamoDTO:
             priority=PRIORITY.EMERGENCY,
             status=FORM_STATUS.IN_PROGRESS,
             expiration_date=12345678,
-            creation_date=12345678,
-            start_date=12345678,
-            conclusion_date=12345678,
+            created_at=12345678,
+            in_progress_at=12345678,
+            completed_at=12345678,
             justification=Justification(
                 options=[
                     JustificationOption(
@@ -327,7 +326,7 @@ class Test_FormDynamoDTO:
 
         assert form.form_title == 'form_title'
         assert form.form_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form.creator_user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
+        assert form.created_by == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form.user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form.template == 'template'
         assert form.area == 'area'
@@ -341,9 +340,9 @@ class Test_FormDynamoDTO:
         assert form.priority == PRIORITY.EMERGENCY
         assert form.status == FORM_STATUS.IN_PROGRESS
         assert form.expiration_date == 12345678
-        assert form.creation_date == 12345678
-        assert form.start_date == 12345678
-        assert form.conclusion_date == 12345678
+        assert form.created_at == 12345678
+        assert form.in_progress_at == 12345678
+        assert form.completed_at == 12345678
         assert form.justification.options[0].option == 'option'
         assert form.justification.options[0].required_image == True
         assert form.justification.options[0].required_text == True
