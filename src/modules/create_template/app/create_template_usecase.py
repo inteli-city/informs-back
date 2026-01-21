@@ -12,7 +12,7 @@ class CreateTemplateUsecase:
 
     def __call__(
         self,
-        creator_user_id: str,
+        created_by: str,
         name: str,
         system: str,
         description: Optional[str],
@@ -31,7 +31,7 @@ class CreateTemplateUsecase:
             system=system,
             description=description,
             is_active=is_active,
-            created_by=creator_user_id,
+            created_by=created_by,
             created_at=now_ts,
             updated_at=now_ts,
             sections=sessions,

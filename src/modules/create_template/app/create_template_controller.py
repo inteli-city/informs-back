@@ -59,7 +59,7 @@ class CreateTemplateController:
             sessions = [SectionDTO.from_request(session).to_entity() for session in sessions_raw]
 
             template = self.usecase(
-                creator_user_id=requester.user_id,
+                created_by=requester.user_id,
                 name=name,
                 system=system,
                 description=description,

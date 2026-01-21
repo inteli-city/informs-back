@@ -62,7 +62,7 @@ class TemplateRepositoryMock(ITemplateRepository):
         if last_evaluated_key is None:
             return 0
 
-        last_id = last_evaluated_key.get("id") or last_evaluated_key.get("template_id")
+        last_id = last_evaluated_key.get("id")
 
         pk = last_evaluated_key.get("PK") or last_evaluated_key.get("pk")
         if last_id is None and pk and isinstance(pk, str) and pk.startswith("template#"):

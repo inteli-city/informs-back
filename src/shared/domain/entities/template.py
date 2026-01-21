@@ -9,7 +9,6 @@ from src.shared.helpers.errors.domain_errors import EntityError
 
 class Template:
     id: str
-    template_id: str
     name: str
     system: str
     description: Optional[str]
@@ -30,14 +29,12 @@ class Template:
         description: Optional[str] = None,
         is_active: bool = True,
         id: Optional[str] = None,
-        template_id: Optional[str] = None,
         created_at: Optional[int] = None,
         updated_at: Optional[int] = None,
     ):
-        template_identifier = id or template_id or str(uuid.uuid4())
+        template_identifier = id or str(uuid.uuid4())
         self._validate_id(template_identifier)
         self.id = template_identifier
-        self.template_id = self.id
 
         self._validate_name(name)
         self.name = name

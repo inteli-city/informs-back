@@ -22,7 +22,7 @@ class CreateFormUsecase:
     def __call__(
         self,
         form_title: str,
-        creator_user_id: str,
+        created_by: str,
         user_id: str,
         system: str,
         street: str,
@@ -75,7 +75,7 @@ class CreateFormUsecase:
         form = Form(
             form_title=form_title,
             id=form_id,
-            created_by=creator_user_id,
+            created_by=created_by,
             user_id=user_id,
             template=template,
             system=system,

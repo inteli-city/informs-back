@@ -64,14 +64,7 @@ class Form(abc.ABC):
         completed_at: Optional[int] = None,
         justification: Optional[Justification] = None,
         information_fields: Optional[List[InformationField]] = None,
-        form_id: Optional[str] = None,
-        creator_user_id: Optional[str] = None,
-        description: Optional[str] = None,
-        **kwargs
     ):
-
-        if id is None and form_id is not None:
-            id = form_id
 
         if not isinstance(form_title, str):
             raise EntityError('form_title')
@@ -80,17 +73,14 @@ class Form(abc.ABC):
         if not Form.validate_id(id):
             raise EntityError('id')
         self.id = id
-        self.form_id = id  # compat
 
         if not Form.validate_id(user_id):
             raise EntityError('user_id')
         self.user_id = user_id
 
-        created_by_value = created_by or creator_user_id
-        if not Form.validate_id(created_by_value):
+        if not Form.validate_id(created_by):
             raise EntityError('created_by')
-        self.created_by = created_by_value
-        self.creator_user_id = created_by_value  # compat
+        self.created_by = created_by
 
         if template is not None and not isinstance(template, str):
             raise EntityError('template')
@@ -128,11 +118,9 @@ class Form(abc.ABC):
             raise EntityError('priority')
         self.priority = priority
 
-        observation_val = observation if observation is not None else description
-        if observation_val is not None and not isinstance(observation_val, str):
+        if observation is not None and not isinstance(observation, str):
             raise EntityError('observation')
-        self.observation = observation_val
-        self.description = observation_val  # compatibility
+        self.observation = observation
 
         if expiration_date is not None and not isinstance(expiration_date, int):
             raise EntityError('expiration_date')
@@ -145,7 +133,6 @@ class Form(abc.ABC):
         if in_progress_at is not None and not isinstance(in_progress_at, int):
             raise EntityError('in_progress_at')
         self.in_progress_at = in_progress_at
-        self.start_date = in_progress_at  # compat
 
         if cancelled_at is not None and not isinstance(cancelled_at, int):
             raise EntityError('cancelled_at')
@@ -154,12 +141,10 @@ class Form(abc.ABC):
         if completed_at is not None and not isinstance(completed_at, int):
             raise EntityError('completed_at')
         self.completed_at = completed_at
-        self.conclusion_date = completed_at  # compat
 
         if not isinstance(created_at, int):
             raise EntityError('created_at')
         self.created_at = created_at
-        self.creation_date = created_at  # compat
 
         if not isinstance(updated_at, int):
             raise EntityError('updated_at')
@@ -197,7 +182,6 @@ class Form(abc.ABC):
 
         self.status = FORM_STATUS.IN_PROGRESS
         self.in_progress_at = in_progress_at
-        self.start_date = in_progress_at  # compat
         self.updated_at = updated_at
 
     def update_status(self, new_status: FORM_STATUS, updated_at: int):
@@ -217,10 +201,8 @@ class Form(abc.ABC):
 
         if new_status is FORM_STATUS.PENDING and self.status is FORM_STATUS.IN_PROGRESS:
             self.in_progress_at = None
-            self.start_date = None
         elif new_status is FORM_STATUS.IN_PROGRESS:
             self.in_progress_at = updated_at
-            self.start_date = updated_at
 
         self.status = new_status
         self.updated_at = updated_at

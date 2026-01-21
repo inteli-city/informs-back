@@ -6,7 +6,7 @@ from src.shared.infra.dtos.section_dto import SectionDTO
 
 
 class TemplateDynamoDTO:
-    template_id: str
+    id: str
     name: str
     description: Optional[str]
     system: str
@@ -18,7 +18,7 @@ class TemplateDynamoDTO:
 
     def __init__(
         self,
-        template_id: str,
+        id: str,
         name: str,
         system: str,
         is_active: bool,
@@ -28,7 +28,7 @@ class TemplateDynamoDTO:
         sections: List[Section],
         description: Optional[str] = None,
     ):
-        self.template_id = template_id
+        self.id = id
         self.name = name
         self.description = description
         self.system = system
@@ -41,7 +41,7 @@ class TemplateDynamoDTO:
     @staticmethod
     def from_entity(template: Template) -> "TemplateDynamoDTO":
         return TemplateDynamoDTO(
-            template_id=template.id,
+            id=template.id,
             name=template.name,
             description=template.description,
             system=template.system,
@@ -54,7 +54,6 @@ class TemplateDynamoDTO:
 
     def to_dynamo(self) -> dict:
         return {
-            "template_id": self.template_id,
             "name": self.name,
             "description": self.description,
             "system": self.system,
@@ -67,9 +66,12 @@ class TemplateDynamoDTO:
 
     @staticmethod
     def from_dynamo(data: dict) -> "TemplateDynamoDTO":
-        template_id = data.get("template_id") or data.get("id")
+        pk = data["PK"]
+        if not isinstance(pk, str) or not pk.startswith("template#"):
+            raise KeyError("PK")
+        template_id = pk.split("template#", 1)[1]
         return TemplateDynamoDTO(
-            template_id=template_id,
+            id=template_id,
             name=data["name"],
             description=data.get("description"),
             system=data["system"],
@@ -82,7 +84,7 @@ class TemplateDynamoDTO:
 
     def to_entity(self) -> Template:
         return Template(
-            id=self.template_id,
+            id=self.id,
             name=self.name,
             description=self.description,
             system=self.system,

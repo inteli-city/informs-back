@@ -139,7 +139,7 @@ class FormRepositoryMock(IFormRepository):
         if last_evaluated_key is None:
             return 0
 
-        last_id = last_evaluated_key.get("id") or last_evaluated_key.get("form_id")
+        last_id = last_evaluated_key.get("id")
         pk = last_evaluated_key.get("PK") or last_evaluated_key.get("pk")
         if last_id is None and pk and isinstance(pk, str) and pk.startswith("form#"):
             last_id = pk.split("form#", 1)[1]
@@ -206,7 +206,6 @@ class FormRepositoryMock(IFormRepository):
                 "GSI1PK": f"user#{next_form.user_id}",
                 "GSI1SK": f"priority#{next_form.priority.value}#status#{next_form.status.value}#created_at#{next_form.created_at}",
                 "id": next_form.id,
-                "form_id": next_form.id,
             }
             next_key = encode_pagination_token(next_key)
 
