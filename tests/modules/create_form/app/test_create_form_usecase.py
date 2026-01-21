@@ -1,6 +1,6 @@
 import os
 import sys
-from datetime import datetime
+from copy import deepcopy
 
 sys.path.append(os.getcwd())
 
@@ -15,34 +15,50 @@ from src.shared.infra.repositories.form_repository_mock import FormRepositoryMoc
 from src.shared.infra.repositories.image_repository_mock import ImageRepositoryMock
 
 
+def _make_usecase_and_payload():
+    repo = FormRepositoryMock()
+    image_repo = ImageRepositoryMock()
+    usecase = CreateFormUsecase(repo, image_repo)
+
+    text_field = TextField(
+        placeholder='placeholder',
+        required=True,
+        key='key',
+        regex='regex',
+        formatting='formatting',
+        max_length=10,
+        value='value',
+    )
+    section = Section(section_id=1, fields=[text_field])
+    justification = Justification(
+        options=[JustificationOption(option='option', required_image=True, required_text=True)]
+    )
+
+    payload = {
+        "form_title": 'FORM TITLE',
+        "creator_user_id": 'd61dbf66-a10f-11ed-a8fc-0242ac120001',
+        "user_id": 'd61dbf66-a10f-11ed-a8fc-0242ac120001',
+        "system": 'GAIA',
+        "street": '1',
+        "city": '1',
+        "latitude": 1.0,
+        "longitude": 1.0,
+        "priority": PRIORITY.EMERGENCY,
+        "sections": [section],
+        "justification": justification,
+        "information_fields": [TextInformationField(value='info')],
+        "observation": 'obs',
+        "expiration_date": 946407600000,
+    }
+
+    return usecase, payload
+
+
 class Test_CreateFormUsecase:
     def test_create_form_usecase(self):
-        repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        usecase = CreateFormUsecase(repo, image_repo)
+        usecase, payload = _make_usecase_and_payload()
 
-        text_field = TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='value')
-        section = Section(section_id=1, fields=[text_field])
-        justification = Justification(
-            options=[JustificationOption(option='option', required_image=True, required_text=True)]
-        )
-
-        form, images = usecase(
-            form_title='FORM TITLE',
-            creator_user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
-            user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
-            system='GAIA',
-            street='1',
-            city='1',
-            latitude=1.0,
-            longitude=1.0,
-            priority=PRIORITY.EMERGENCY,
-            sections=[section],
-            justification=justification,
-            information_fields=[TextInformationField(value='info')],
-            observation='obs',
-            expiration_date=946407600000
-        )
+        form, images = usecase(**payload)
 
         assert len(form.id) == 36
         assert form.status == FORM_STATUS.PENDING
@@ -54,31 +70,12 @@ class Test_CreateFormUsecase:
         assert images == []
 
     def test_create_form_usecase_with_images(self):
-        repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        usecase = CreateFormUsecase(repo, image_repo)
+        usecase, payload = _make_usecase_and_payload()
+        payload = deepcopy(payload)
+        payload["information_fields"] = [ImageInformationField(file_path="")]
+        payload["information_fields_uploads"] = [{"filename": "a.jpg", "mimetype": "image/jpeg"}]
 
-        text_field = TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='value')
-        section = Section(section_id=1, fields=[text_field])
-        justification = Justification(
-            options=[JustificationOption(option='option', required_image=True, required_text=True)]
-        )
-
-        form, images = usecase(
-            form_title='FORM TITLE',
-            creator_user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
-            user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
-            system='GAIA',
-            street='1',
-            city='1',
-            latitude=1.0,
-            longitude=1.0,
-            priority=PRIORITY.EMERGENCY,
-            sections=[section],
-            justification=justification,
-            information_fields=[ImageInformationField(file_path="")],
-            information_fields_uploads=[{"filename": "a.jpg", "mimetype": "image/jpeg"}],
-        )
+        form, images = usecase(**payload)
 
         assert form.information_fields[0].file_path.startswith("https://")
         assert len(images) == 1
