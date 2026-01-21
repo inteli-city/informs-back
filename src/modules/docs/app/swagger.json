@@ -137,6 +137,7 @@
         "properties": {
           "form_title": { "type": "string" },
           "user_id": { "type": "string" },
+          "template": { "type": "string", "nullable": true },
           "system": { "type": "string" },
           "city": { "type": "string" },
           "street": { "type": "string" },
