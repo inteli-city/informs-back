@@ -3,11 +3,12 @@ import uuid
 from datetime import datetime, timezone
 
 from src.shared.domain.entities.form import Form
+from src.shared.domain.entities.image_upload import ImageUpload
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.image_repository_interface import IImageRepository
 from src.shared.domain.repositories.queue_repository_interface import IQueueRepository
-from src.shared.environments import Environments
+from src.shared.helpers.functions.s3_url import build_s3_url
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 
@@ -24,10 +25,9 @@ class CancelFormUsecase:
         form_id: str,
         selected_option: str,
         justification_text: Optional[str] = None,
-        justification_image: Optional[str] = None,
-        content_type: Optional[str] = None,
+        justification_image: Optional[dict] = None,
         cancelled_at: Optional[int] = None,
-    ) -> Form:
+    ) -> Optional[ImageUpload]:
         
         form = self.form_repo.get_form_by_id(user_id=requester_id, form_id=form_id)
 
@@ -39,17 +39,28 @@ class CancelFormUsecase:
         
         if form.status in [FORM_STATUS.CANCELLED, FORM_STATUS.COMPLETED]:
             raise ForbiddenAction("Formulário já está finalizado e não pode ser cancelado")
-        
+
+        image_upload: Optional[ImageUpload] = None
         if justification_image:
-            if not isinstance(content_type, str) or not content_type:
-                raise EntityError("content_type")
-            image_path = f'{datetime.now().year}/{form_id}/justification/{str(uuid.uuid4())}.{content_type.split("/")[-1]}'
-            self.image_repo.put_image(
-                base_64_image=justification_image,
+            mimetype = justification_image.get("mimetype")
+            filename = justification_image.get("filename")
+            if not isinstance(mimetype, str) or not mimetype:
+                raise EntityError("mimetype")
+            image_path = f'{datetime.now().year}/{form_id}/justification/{str(uuid.uuid4())}.{mimetype.split("/")[-1]}'
+            presigned_url = self.image_repo.generate_presigned_url(
                 image_path=image_path,
-                content_type=content_type,
+                mimetype=mimetype,
             )
-            justification_image = f'https://{Environments.get_envs().bucket_name}.s3.sa-east-1.amazonaws.com/{image_path}'
+            image_url = build_s3_url(image_path)
+            justification_image = image_url
+            image_upload = ImageUpload(
+                filename=filename,
+                mimetype=mimetype,
+                pre_signed_url=presigned_url,
+                image_path=image_path,
+                image_url=image_url,
+            )
+            
 
         updated_at = int(datetime.now(timezone.utc).timestamp() * 1000)
 
@@ -71,3 +82,4 @@ class CancelFormUsecase:
         )
 
         self.queue_repo.send_form(updated_form)
+        return image_upload

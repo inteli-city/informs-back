@@ -25,6 +25,8 @@ def make_justification():
 class Test_CancelFormUsecase:
 
     def test_cancel_form_usecase(self):
+        import os
+        os.environ["STAGE"] = "TEST"
         form_repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
         queue_repo = QueueRepositoryMock()
@@ -32,11 +34,10 @@ class Test_CancelFormUsecase:
 
         form_repo.forms[0].status = FORM_STATUS.IN_PROGRESS
         justification = make_justification()
-        usecase(
+        image = usecase(
             requester_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
             form_id=form_repo.forms[0].form_id,
-            justification_image=justification.justification_image,
-            content_type='image/jpeg',
+            justification_image={"filename": "a.jpg", "mimetype": "image/jpeg"},
             selected_option=justification.selected_option,
             justification_text=justification.justification_text,
             cancelled_at=1
@@ -50,6 +51,9 @@ class Test_CancelFormUsecase:
         assert form.justification.justification_image.startswith('https://test')
         assert form.justification.justification_image.endswith('.jpeg')
         assert len(queue_repo.messages) == 1
+        assert image is not None
+        assert image.filename == "a.jpg"
+        assert image.mimetype == "image/jpeg"
 
     
     def test_cancel_form_usecase_form_not_found(self):
@@ -62,8 +66,7 @@ class Test_CancelFormUsecase:
             usecase(
                 requester_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 form_id='invalid_id',
-                justification_image='image',
-                content_type='image/png',
+                justification_image={"filename": "a.jpg", "mimetype": "image/png"},
                 selected_option='option',
                 justification_text='text',
                 cancelled_at=1
@@ -79,8 +82,7 @@ class Test_CancelFormUsecase:
             usecase(
                 requester_id='d61dbf66-a10f-11ed-a8fc-0242ac120002',
                 form_id=form_repo.forms[0].form_id,
-                justification_image=justification.justification_image,
-                content_type='image/png',
+                justification_image={"filename": "a.jpg", "mimetype": "image/png"},
                 selected_option=justification.selected_option,
                 justification_text=justification.justification_text,
                 cancelled_at=1
@@ -98,8 +100,7 @@ class Test_CancelFormUsecase:
             usecase(
                 requester_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 form_id=form_repo.forms[0].form_id,
-                justification_image=justification.justification_image,
-                content_type='image/png',
+                justification_image={"filename": "a.jpg", "mimetype": "image/png"},
                 selected_option=justification.selected_option,
                 justification_text=justification.justification_text,
                 cancelled_at=1
@@ -116,8 +117,7 @@ class Test_CancelFormUsecase:
             usecase(
                 requester_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 form_id=form_repo.forms[0].form_id,
-                justification_image=justification.justification_image,
-                content_type='image/png',
+                justification_image={"filename": "a.jpg", "mimetype": "image/png"},
                 selected_option='invalid_option',
                 justification_text=justification.justification_text,
                 cancelled_at=1
@@ -134,8 +134,7 @@ class Test_CancelFormUsecase:
             usecase(
                 requester_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 form_id=form_repo.forms[0].form_id,
-                justification_image=justification.justification_image,
-                content_type='image/png',
+                justification_image={"filename": "a.jpg", "mimetype": "image/png"},
                 selected_option=justification.selected_option,
                 justification_text='',
                 cancelled_at=1
@@ -152,7 +151,7 @@ class Test_CancelFormUsecase:
             usecase(
                 requester_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 form_id=form_repo.forms[0].form_id,
-                justification_image='',
+                justification_image=None,
                 selected_option=justification.selected_option,
                 justification_text=justification.justification_text,
                 cancelled_at=1

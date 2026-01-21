@@ -64,6 +64,27 @@ class Test_CreateFormController:
         assert response.body["form_title"] == "FORM TITLE"
         assert response.body["user_id"] == "d61dbf66-a10f-11ed-a8fc-0242ac120001"
         assert len(response.body["sessions"]) == 1
+        assert response.body["images"] == []
+
+    def test_create_form_controller_with_images(self):
+        repo = FormRepositoryMock()
+        image_repo = ImageRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, image_repo))
+
+        body = self._make_base_body()
+        body["information_fields"] = [
+            {
+                "information_field_type": "IMAGE_INFORMATION_FIELD",
+                "filename": "a.jpg",
+                "mimetype": "image/jpeg"
+            }
+        ]
+        request = HttpRequest(body=body)
+        response = controller(request)
+
+        assert response.status_code == 201
+        assert len(response.body["images"]) == 1
+        assert response.body["images"][0]["filename"] == "a.jpg"
 
     def test_create_form_controller_missing_requester(self):
         repo = FormRepositoryMock()

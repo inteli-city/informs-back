@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal
 
 from src.shared.helpers.external_interfaces.http_models import HttpRequest, HttpResponse
 
@@ -43,9 +44,14 @@ class LambdaHttpResponse(HttpResponse):
                 'isBase64Encoded': bool
             }
         """
+        def _json_default(value):
+            if isinstance(value, Decimal):
+                return int(value) if value % 1 == 0 else float(value)
+            raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
+
         return {
             "statusCode": self.status_code,
-            "body": json.dumps(self.body),
+            "body": json.dumps(self.body, default=_json_default),
             "headers": self.headers,
             "isBase64Encoded": False
         }

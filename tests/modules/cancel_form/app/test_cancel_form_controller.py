@@ -28,14 +28,13 @@ class Test_CancelFormController:
             "form_id": form_repo.forms[0].form_id,
             "selected_option": "option",
             "justification_text": "justification_test",
-            "justification_image": "image_test",
-            "content_type": "image/png"
+            "justification_image": {"filename": "a.jpg", "mimetype": "image/png"}
         })
 
         response = controller(data)
 
-        assert response.status_code == 204
-        assert response.body == {}
+        assert response.status_code == 200
+        assert response.body["image"]["filename"] == "a.jpg"
     
     def test_cancel_form_controller_missing_request_user(self):
         form_repo = FormRepositoryMock()
@@ -48,8 +47,7 @@ class Test_CancelFormController:
         data = HttpRequest(body={"form_id": form_repo.forms[0].form_id,
             "selected_option": "option",
             "justification_text": "justification_test",
-            "justification_image": "image_test",
-            "content_type": "image/png"
+            "justification_image": {"filename": "a.jpg", "mimetype": "image/png"}
         })
 
         response = controller(data)
@@ -73,8 +71,7 @@ class Test_CancelFormController:
             },
             "selected_option": "option",
             "justification_text": "justification_test",
-            "justification_image": "image_test",
-            "content_type": "image/png"
+            "justification_image": {"filename": "a.jpg", "mimetype": "image/png"}
         })
 
         response = controller(data)
@@ -98,8 +95,7 @@ class Test_CancelFormController:
             },
             "form_id": form_repo.forms[0].form_id,
             "justification_text": "justification_test",
-            "justification_image": "image_test",
-            "content_type": "image/png"
+            "justification_image": {"filename": "a.jpg", "mimetype": "image/png"}
         })
     
         response = controller(data)
@@ -124,8 +120,7 @@ class Test_CancelFormController:
             "form_id": form_repo.forms[0].form_id,
             "selected_option": 123,
             "justification_text": "justification_test",
-            "justification_image": "image_test",
-            "content_type": "image/png"
+            "justification_image": {"filename": "a.jpg", "mimetype": "image/png"}
         })
 
         response = controller(data)
@@ -150,8 +145,7 @@ class Test_CancelFormController:
             "form_id": form_repo.forms[0].form_id,
             "selected_option": "selected",
             "justification_text": 123,
-            "justification_image": "image_test",
-            "content_type": "image/png"
+            "justification_image": {"filename": "a.jpg", "mimetype": "image/png"}
         })
 
         response = controller(data)
@@ -182,4 +176,4 @@ class Test_CancelFormController:
         response = controller(data)
 
         assert response.status_code == 400
-        assert response.body == 'Campo justification_image deveria ser do tipo str, mas foi recebido um campo do tipo <class \'int\'>'
+        assert response.body == 'Campo justification_image deveria ser do tipo dict, mas foi recebido um campo do tipo <class \'int\'>'

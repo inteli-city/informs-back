@@ -31,6 +31,7 @@ class Environments:
     client_id: str
     bucket_name: str
     sqs_endpoint_url: Optional[str]
+    s3_endpoint_url: Optional[str]
 
     def _configure_local(self):
         from dotenv import load_dotenv
@@ -52,6 +53,7 @@ class Environments:
             self.client_id = "test"
             self.bucket_name = "test"
             self.sqs_endpoint_url = "http://localhost:4566"
+            self.s3_endpoint_url = None
         else:
             self.region = os.environ.get("REGION")
             self.endpoint_url = os.environ.get("ENDPOINT_URL")
@@ -62,6 +64,7 @@ class Environments:
             self.client_id = os.environ.get("APP_CLIENT_ID")
             self.bucket_name = os.environ.get("BUCKET_NAME")
             self.sqs_endpoint_url = os.environ.get("AWS_SQS_ENDPOINT_URL")
+            self.s3_endpoint_url = os.environ.get("S3_ENDPOINT_URL")
 
     @staticmethod
     def get_form_repo() -> IFormRepository:
