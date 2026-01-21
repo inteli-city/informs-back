@@ -32,7 +32,7 @@ def test_template_dynamo_dto_roundtrip():
     dto = TemplateDynamoDTO.from_entity(template)
     data = dto.to_dynamo()
 
-    assert data["id"] == template.id
+    assert data["template_id"] == template.id
     assert data["name"] == template.name
     assert data["description"] == template.description
     assert data["system"] == template.system
