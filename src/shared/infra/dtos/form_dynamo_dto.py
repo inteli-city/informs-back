@@ -15,7 +15,6 @@ class FormDynamoDTO:
     form_title: str
     form_id: str
     id: str
-    creator_user_id: str
     created_by: str
     user_id: str
     template: Optional[str]
@@ -31,7 +30,6 @@ class FormDynamoDTO:
     priority: PRIORITY
     status: FORM_STATUS
     expiration_date: Optional[int]
-    creation_date: int
     created_at: int
     start_date: Optional[int]
     in_progress_at: Optional[int]
@@ -57,7 +55,6 @@ class FormDynamoDTO:
         sections: List[Section],
         form_id: Optional[str] = None,
         id: Optional[str] = None,
-        creator_user_id: Optional[str] = None,
         created_by: Optional[str] = None,
         template: Optional[str] = None,
         area: Optional[str] = None,
@@ -65,7 +62,6 @@ class FormDynamoDTO:
         description: Optional[str] = None,
         observation: Optional[str] = None,
         expiration_date: Optional[int] = None,
-        creation_date: Optional[int] = None,
         created_at: Optional[int] = None,
         start_date: Optional[int] = None,
         in_progress_at: Optional[int] = None,
@@ -75,6 +71,8 @@ class FormDynamoDTO:
         updated_at: Optional[int] = None,
         justification: Justification = None,
         information_fields: Optional[List[InformationField]] = None,
+        creator_user_id: Optional[str] = None,
+        creation_date: Optional[int] = None,
     ):
         resolved_id = id or form_id
         resolved_creator = created_by or creator_user_id
@@ -90,7 +88,6 @@ class FormDynamoDTO:
         self.form_title = form_title
         self.form_id = resolved_id
         self.id = resolved_id
-        self.creator_user_id = resolved_creator
         self.created_by = resolved_creator
         self.user_id = user_id
         self.template = template
@@ -106,7 +103,6 @@ class FormDynamoDTO:
         self.priority = priority
         self.status = status
         self.expiration_date = expiration_date
-        self.creation_date = resolved_creation_date
         self.created_at = resolved_creation_date
         self.start_date = resolved_start_date
         self.in_progress_at = resolved_start_date
@@ -123,7 +119,7 @@ class FormDynamoDTO:
         return FormDynamoDTO(
             form_title=form.form_title,
             form_id=form.form_id,
-            creator_user_id=form.creator_user_id,
+            created_by=form.created_by,
             user_id=form.user_id,
             template=form.template,
             area=form.area,
@@ -137,7 +133,7 @@ class FormDynamoDTO:
             priority=form.priority,
             status=form.status,
             expiration_date=form.expiration_date,
-            creation_date=form.creation_date,
+            created_at=form.created_at,
             start_date=form.start_date,
             conclusion_date=form.conclusion_date,
             cancelled_at=form.cancelled_at,
@@ -151,7 +147,7 @@ class FormDynamoDTO:
         return {
             "form_title": self.form_title,
             "form_id": self.form_id,
-            "creator_user_id": self.creator_user_id,
+            "created_by": self.created_by,
             "user_id": self.user_id,
             "template": self.template,
             "area": self.area,
@@ -165,9 +161,11 @@ class FormDynamoDTO:
             "priority": self.priority.value if isinstance(self.priority, PRIORITY) else self.priority,
             "status": self.status.value if isinstance(self.status, FORM_STATUS) else self.status,
             "expiration_date": self.expiration_date,
-            "creation_date": self.creation_date,
-            "start_date": self.start_date,
-            "conclusion_date": self.conclusion_date,
+            "created_at": self.created_at,
+            "in_progress_at": self.in_progress_at,
+            "completed_at": self.completed_at,
+            "cancelled_at": self.cancelled_at,
+            "updated_at": self.updated_at,
             "justification": JustificationDTO.from_entity(self.justification).to_dynamo() if self.justification else None,
             "sections": [
                 SectionDTO.from_entity(section).to_dynamo() for section in self.sections
@@ -180,22 +178,10 @@ class FormDynamoDTO:
 
     @staticmethod
     def from_dynamo(data: dict) -> "FormDynamoDTO":
-        creation_date = data.get("creation_date")
-        if creation_date is None:
-            creation_date = data.get("created_at")
-
-        start_date = data.get("start_date")
-        if start_date is None:
-            start_date = data.get("in_progress_at")
-
-        conclusion_date = data.get("conclusion_date")
-        if conclusion_date is None:
-            conclusion_date = data.get("completed_at")
-
         return FormDynamoDTO(
             form_title=data["form_title"],
             form_id=data.get("form_id") or data.get("id"),
-            creator_user_id=data.get("creator_user_id") or data.get("created_by"),
+            created_by=data.get("created_by"),
             user_id=data["user_id"],
             template=data.get("template"),
             area=data.get("area"),
@@ -209,9 +195,9 @@ class FormDynamoDTO:
             priority=PRIORITY(data["priority"]),
             status=FORM_STATUS(data["status"]),
             expiration_date=int(data["expiration_date"]) if data.get("expiration_date") is not None else None,
-            creation_date=int(creation_date) if creation_date is not None else None,
-            start_date=int(start_date) if start_date is not None else None,
-            conclusion_date=int(conclusion_date) if conclusion_date is not None else None,
+            created_at=int(data["created_at"]) if data.get("created_at") is not None else None,
+            in_progress_at=int(data["in_progress_at"]) if data.get("in_progress_at") is not None else None,
+            completed_at=int(data["completed_at"]) if data.get("completed_at") is not None else None,
             cancelled_at=int(data["cancelled_at"]) if data.get("cancelled_at") is not None else None,
             updated_at=int(data["updated_at"]) if data.get("updated_at") is not None else None,
             justification=JustificationDTO.from_dynamo(data["justification"]).to_entity() if data.get("justification") else None,
@@ -226,7 +212,6 @@ class FormDynamoDTO:
         return Form(
             form_title=self.form_title,
             form_id=self.form_id,
-            creator_user_id=self.creator_user_id,
             user_id=self.user_id,
             created_by=self.created_by,
             template=self.template,
@@ -241,10 +226,10 @@ class FormDynamoDTO:
             priority=self.priority,
             status=self.status,
             expiration_date=self.expiration_date,
-            in_progress_at=self.start_date,
+            in_progress_at=self.in_progress_at,
             cancelled_at=self.cancelled_at,
-            completed_at=self.conclusion_date,
-            created_at=self.creation_date,
+            completed_at=self.completed_at,
+            created_at=self.created_at,
             updated_at=self.updated_at,
             justification=self.justification,
             sections=self.sections,

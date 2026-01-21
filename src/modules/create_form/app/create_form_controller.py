@@ -61,6 +61,7 @@ class CreateFormController:
         observation = data.get("observation")
         expiration_date_raw = data.get("expiration_date")
         number_raw = data.get("number")
+        template = data.get("template")
         information_fields_raw = data.get("information_fields")
         information_fields_content_types = None
 
@@ -75,6 +76,8 @@ class CreateFormController:
 
         if observation is not None:
             _require_type("observation", observation, str)
+        if template is not None:
+            _require_type("template", template, str)
 
         _require_type("justifications", raw_justifications, list)
         _require_type("sessions", sessions_raw, list)
@@ -147,6 +150,7 @@ class CreateFormController:
             number,
             observation,
             expiration_date,
+            template,
             information_fields,
             information_fields_content_types,
         )
@@ -169,6 +173,7 @@ class CreateFormController:
                 number,
                 observation,
                 expiration_date,
+                template,
                 information_fields,
                 information_fields_content_types,
             ) = self._validate_endpoint_parameters(data)
@@ -188,6 +193,7 @@ class CreateFormController:
                 number=number,
                 observation=observation,
                 expiration_date=expiration_date,
+                template=template,
                 information_fields=information_fields,
                 information_fields_content_types=information_fields_content_types,
             )

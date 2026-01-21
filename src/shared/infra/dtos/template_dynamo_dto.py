@@ -6,7 +6,7 @@ from src.shared.infra.dtos.section_dto import SectionDTO
 
 
 class TemplateDynamoDTO:
-    id: str
+    template_id: str
     name: str
     description: Optional[str]
     system: str
@@ -18,7 +18,7 @@ class TemplateDynamoDTO:
 
     def __init__(
         self,
-        id: str,
+        template_id: str,
         name: str,
         system: str,
         is_active: bool,
@@ -28,7 +28,7 @@ class TemplateDynamoDTO:
         sections: List[Section],
         description: Optional[str] = None,
     ):
-        self.id = id
+        self.template_id = template_id
         self.name = name
         self.description = description
         self.system = system
@@ -41,7 +41,7 @@ class TemplateDynamoDTO:
     @staticmethod
     def from_entity(template: Template) -> "TemplateDynamoDTO":
         return TemplateDynamoDTO(
-            id=template.id,
+            template_id=template.id,
             name=template.name,
             description=template.description,
             system=template.system,
@@ -54,7 +54,7 @@ class TemplateDynamoDTO:
 
     def to_dynamo(self) -> dict:
         return {
-            "id": self.id,
+            "template_id": self.template_id,
             "name": self.name,
             "description": self.description,
             "system": self.system,
@@ -67,8 +67,9 @@ class TemplateDynamoDTO:
 
     @staticmethod
     def from_dynamo(data: dict) -> "TemplateDynamoDTO":
+        template_id = data.get("template_id") or data.get("id")
         return TemplateDynamoDTO(
-            id=data["id"],
+            template_id=template_id,
             name=data["name"],
             description=data.get("description"),
             system=data["system"],
@@ -81,7 +82,7 @@ class TemplateDynamoDTO:
 
     def to_entity(self) -> Template:
         return Template(
-            id=self.id,
+            id=self.template_id,
             name=self.name,
             description=self.description,
             system=self.system,
