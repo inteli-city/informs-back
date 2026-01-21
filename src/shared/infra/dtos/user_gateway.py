@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union
 import json
 
 from src.shared.environments import Environments
@@ -17,7 +17,7 @@ class UserGatewayDTO:
         self.systems = systems
 
     @staticmethod
-    def from_api_gateway(user_data: dict) -> 'UserGatewayDTO':
+    def from_api_gateway(user_data: Union[dict, str]) -> 'UserGatewayDTO':
         """
         This method is used to convert the user data from the API Gateway to a UserApiGatewayDTO object.
         """

@@ -4,6 +4,41 @@ from src.shared.helpers.errors.domain_errors import EntityError
 
 
 class ImageUpload:
+    @staticmethod
+    def _validate_required_string(value: str, field_name: str):
+        if not isinstance(value, str) or not value:
+            raise EntityError(field_name)
+
+    @staticmethod
+    def _validate_optional_string(value: Optional[str], field_name: str):
+        if value is not None and not isinstance(value, str):
+            raise EntityError(field_name)
+
+    @staticmethod
+    def _validate_optional_int(value: Optional[int], field_name: str):
+        if value is not None and not isinstance(value, int):
+            raise EntityError(field_name)
+
+    @staticmethod
+    def _validate_fields(
+        mimetype: str,
+        pre_signed_url: str,
+        image_path: str,
+        image_url: str,
+        filename: Optional[str],
+        section_id: Optional[int],
+        field_key: Optional[str],
+        file_index: Optional[int],
+    ):
+        ImageUpload._validate_required_string(mimetype, "mimetype")
+        ImageUpload._validate_required_string(pre_signed_url, "pre_signed_url")
+        ImageUpload._validate_required_string(image_path, "image_path")
+        ImageUpload._validate_required_string(image_url, "image_url")
+        ImageUpload._validate_optional_string(filename, "filename")
+        ImageUpload._validate_optional_int(section_id, "section_id")
+        ImageUpload._validate_optional_string(field_key, "field_key")
+        ImageUpload._validate_optional_int(file_index, "file_index")
+
     def __init__(
         self,
         mimetype: str,
@@ -15,22 +50,10 @@ class ImageUpload:
         field_key: Optional[str] = None,
         file_index: Optional[int] = None,
     ):
-        if not isinstance(mimetype, str) or not mimetype:
-            raise EntityError("mimetype")
-        if not isinstance(pre_signed_url, str) or not pre_signed_url:
-            raise EntityError("pre_signed_url")
-        if not isinstance(image_path, str) or not image_path:
-            raise EntityError("image_path")
-        if not isinstance(image_url, str) or not image_url:
-            raise EntityError("image_url")
-        if filename is not None and not isinstance(filename, str):
-            raise EntityError("filename")
-        if section_id is not None and not isinstance(section_id, int):
-            raise EntityError("section_id")
-        if field_key is not None and not isinstance(field_key, str):
-            raise EntityError("field_key")
-        if file_index is not None and not isinstance(file_index, int):
-            raise EntityError("file_index")
+        self._validate_fields(
+            mimetype, pre_signed_url, image_path, image_url,
+            filename, section_id, field_key, file_index
+        )
 
         self.filename = filename
         self.mimetype = mimetype
