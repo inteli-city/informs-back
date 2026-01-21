@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal
 import os
 
 import boto3
@@ -39,7 +40,11 @@ class QueueRepositorySQS(IQueueRepository):
 
         queue_url = self._get_queue_url(queue_name)
         payload = FormDynamoDTO.from_entity(form).to_dynamo()
+        def _json_default(value):
+            if isinstance(value, Decimal):
+                return int(value) if value % 1 == 0 else float(value)
+            raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
         self.client.send_message(
             QueueUrl=queue_url,
-            MessageBody=json.dumps(payload, ensure_ascii=True)
+            MessageBody=json.dumps(payload, ensure_ascii=True, default=_json_default)
         )
