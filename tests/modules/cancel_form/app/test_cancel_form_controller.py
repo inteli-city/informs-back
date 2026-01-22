@@ -4,7 +4,6 @@ from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.helpers.external_interfaces.http_models import HttpRequest
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 from src.shared.infra.repositories.image_repository_mock import ImageRepositoryMock
-from src.shared.infra.repositories.queue_repository_mock import QueueRepositoryMock
 
 
 class Test_CancelFormController:
@@ -12,8 +11,7 @@ class Test_CancelFormController:
     def test_cancel_form_controller(self):
         form_repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        queue_repo = QueueRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo, queue_repo)
+        usecase = CancelFormUsecase(form_repo, image_repo)
 
         controller = CancelFormController(usecase)
 
@@ -39,8 +37,7 @@ class Test_CancelFormController:
     def test_cancel_form_controller_missing_request_user(self):
         form_repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        queue_repo = QueueRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo, queue_repo)
+        usecase = CancelFormUsecase(form_repo, image_repo)
 
         controller = CancelFormController(usecase)
 
@@ -58,8 +55,7 @@ class Test_CancelFormController:
     def test_cancel_form_controller_missing_form_id(self):
         form_repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        queue_repo = QueueRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo, queue_repo)
+        usecase = CancelFormUsecase(form_repo, image_repo)
 
         controller = CancelFormController(usecase)
 
@@ -82,8 +78,7 @@ class Test_CancelFormController:
     def test_cancel_form_controller_missing_selected_option(self):
         form_repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        queue_repo = QueueRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo, queue_repo)
+        usecase = CancelFormUsecase(form_repo, image_repo)
 
         controller = CancelFormController(usecase)
 
@@ -106,8 +101,7 @@ class Test_CancelFormController:
     def test_cancel_form_controller_wrong_type_selected_option(self):
         form_repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        queue_repo = QueueRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo, queue_repo)
+        usecase = CancelFormUsecase(form_repo, image_repo)
 
         controller = CancelFormController(usecase)
 
@@ -131,8 +125,7 @@ class Test_CancelFormController:
     def test_cancel_form_controller_wrong_type_justification_text(self):
         form_repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        queue_repo = QueueRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo, queue_repo)
+        usecase = CancelFormUsecase(form_repo, image_repo)
 
         controller = CancelFormController(usecase)
 
@@ -156,8 +149,7 @@ class Test_CancelFormController:
     def test_cancel_form_controller_wrong_type_justification_image(self):
         form_repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        queue_repo = QueueRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo, queue_repo)
+        usecase = CancelFormUsecase(form_repo, image_repo)
 
         controller = CancelFormController(usecase)
 
