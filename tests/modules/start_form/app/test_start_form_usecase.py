@@ -8,14 +8,12 @@ from src.modules.start_form.app.start_form_usecase import StartFormUsecase
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
-from src.shared.infra.repositories.queue_repository_mock import QueueRepositoryMock
 
 
 class Test_StartFormUsecase:
     def test_start_form_success(self):
         repo = FormRepositoryMock()
-        queue_repo = QueueRepositoryMock()
-        usecase = StartFormUsecase(repo, queue_repo)
+        usecase = StartFormUsecase(repo)
 
         form = repo.forms[0]
         form.status = FORM_STATUS.PENDING
@@ -28,12 +26,10 @@ class Test_StartFormUsecase:
 
         assert form.status == FORM_STATUS.IN_PROGRESS
         assert form.in_progress_at is not None
-        assert len(queue_repo.messages) == 1
 
     def test_start_form_wrong_user(self):
         repo = FormRepositoryMock()
-        queue_repo = QueueRepositoryMock()
-        usecase = StartFormUsecase(repo, queue_repo)
+        usecase = StartFormUsecase(repo)
 
         form = repo.forms[0]
         form.status = FORM_STATUS.PENDING
@@ -50,8 +46,7 @@ class Test_StartFormUsecase:
 
     def test_start_form_not_found(self):
         repo = FormRepositoryMock()
-        queue_repo = QueueRepositoryMock()
-        usecase = StartFormUsecase(repo, queue_repo)
+        usecase = StartFormUsecase(repo)
 
         try:
             usecase(

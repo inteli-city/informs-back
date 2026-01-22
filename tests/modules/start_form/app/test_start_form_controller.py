@@ -8,14 +8,12 @@ from src.modules.start_form.app.start_form_usecase import StartFormUsecase
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.helpers.external_interfaces.http_models import HttpRequest
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
-from src.shared.infra.repositories.queue_repository_mock import QueueRepositoryMock
 
 
 class Test_StartFormController:
     def setup_method(self):
         self.repo = FormRepositoryMock()
-        self.queue_repo = QueueRepositoryMock()
-        self.usecase = StartFormUsecase(self.repo, self.queue_repo)
+        self.usecase = StartFormUsecase(self.repo)
         self.controller = StartFormController(self.usecase)
         # Use the pending form fixture to keep tests isolated
         self.pending_form = self.repo.forms[2]

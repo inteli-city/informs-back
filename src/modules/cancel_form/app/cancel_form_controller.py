@@ -6,6 +6,7 @@ from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAc
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
 from src.shared.helpers.external_interfaces.http_codes import OK, BadRequest, Conflict, Forbidden, InternalServerError, NotFound
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
+from src.shared.domain.entities.image_upload import ImageUploadRequest
 
 
 class CancelFormController:
@@ -50,6 +51,7 @@ class CancelFormController:
                 raise MissingParameters("mimetype")
             if not isinstance(mimetype, str):
                 raise WrongTypeParameter(fieldName="mimetype", fieldTypeExpected="str", fieldTypeReceived=type(mimetype))
+            justification_image = ImageUploadRequest(filename=filename, mimetype=mimetype)
 
         cancelled_at = data.get("cancelled_at")
         if cancelled_at is not None:

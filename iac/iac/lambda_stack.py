@@ -163,9 +163,3 @@ class LambdaStack(Construct):
             self.get_template,
             self.get_all_templates
         ]
-
-        self.function_that_need_sqs_permissions = [
-            self.submit_form,
-            self.start_form,
-            self.cancel_form
-        ]

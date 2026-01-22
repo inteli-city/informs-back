@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 import uuid
 from src.shared.domain.entities.form import Form
-from src.shared.domain.entities.image_upload import ImageUpload
+from src.shared.domain.entities.image_upload import ImageUpload, ImageUploadRequest
 from src.shared.domain.entities.information_field import ImageInformationField, InformationField
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import Section
@@ -37,7 +37,7 @@ class CreateFormUsecase:
         observation: Optional[str] = None,
         expiration_date: Optional[int] = None,
         information_fields: Optional[List[InformationField]] = None,
-        information_fields_uploads: Optional[List[Optional[dict]]] = None,
+        information_fields_uploads: Optional[List[Optional[ImageUploadRequest]]] = None,
     ) -> tuple[Form, list[ImageUpload]]:
         
         form_id = str(uuid.uuid4())
@@ -51,10 +51,10 @@ class CreateFormUsecase:
                     if idx >= len(uploads) or uploads[idx] is None:
                         raise EntityError("mimetype")
                     upload = uploads[idx]
-                    mimetype = upload.get("mimetype")
-                    filename = upload.get("filename")
-                    if not isinstance(mimetype, str) or not mimetype:
+                    if not isinstance(upload, ImageUploadRequest):
                         raise EntityError("mimetype")
+                    mimetype = upload.mimetype
+                    filename = upload.filename
                     image_path = f'{datetime.now(timezone.utc).year}/{system}/{form_id}/information_field/{str(uuid.uuid4())}.{mimetype.split("/")[-1]}'
                     presigned_url = self.image_repo.generate_presigned_url(
                         image_path=image_path,
@@ -69,6 +69,9 @@ class CreateFormUsecase:
                             pre_signed_url=presigned_url,
                             image_path=image_path,
                             image_url=image_url,
+                            section_id=None,
+                            field_key=None,
+                            file_index=None,
                         )
                     )
 

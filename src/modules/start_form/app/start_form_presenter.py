@@ -6,9 +6,7 @@ from src.shared.helpers.external_interfaces.http_lambda_requests import LambdaHt
 
 
 repo = Environments.get_form_repo()
-queue_repo = Environments.get_queue_repo()
-
-usecase = StartFormUsecase(repo, queue_repo)
+usecase = StartFormUsecase(repo)
 controller = StartFormController(usecase)
 
 @lambda_error_handler

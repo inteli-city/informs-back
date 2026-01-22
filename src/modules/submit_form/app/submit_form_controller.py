@@ -6,6 +6,7 @@ from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFou
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
 from src.shared.helpers.external_interfaces.http_codes import OK, BadRequest, Forbidden, InternalServerError, NotFound
 from src.shared.infra.dtos.section_dto import SectionDTO
+from src.shared.domain.entities.image_upload import ImageUploadRequest
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 
 
@@ -70,7 +71,7 @@ class SubmitFormController:
                             raise MissingParameters("mimetype")
                         if not isinstance(mimetype, str):
                             raise WrongTypeParameter(fieldName="mimetype", fieldTypeExpected="str", fieldTypeReceived=type(mimetype))
-                        normalized.append({"filename": filename, "mimetype": mimetype})
+                        normalized.append(ImageUploadRequest(filename=filename, mimetype=mimetype))
                     file_uploads[(section_id, field_key)] = normalized
 
         return form_id, completed_at, sections, file_uploads
