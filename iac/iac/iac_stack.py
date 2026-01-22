@@ -75,22 +75,9 @@ class IacStack(Stack):
                 self.user_pool_arn
             ]
         )
-
-        sqs_policy = aws_iam.PolicyStatement(
-            effect=aws_iam.Effect.ALLOW,
-            actions=[
-                "sqs:*",
-            ],
-            resources=[
-                f"arn:aws:sqs:{self.region}:{self.account}:FormulariosStackdev-*"
-            ]
-        )
         
         for f in self.lambda_stack.functions_that_need_cognito_permissions:
             f.add_to_role_policy(cognito_admin_policy)
         
         for f in self.lambda_stack.functions_that_need_dynamo_forms_permissions:
             self.dynamo_stack.dynamo_table_forms.grant_read_write_data(f)
-
-        for f in self.lambda_stack.function_that_need_sqs_permissions:
-            f.add_to_role_policy(sqs_policy)
