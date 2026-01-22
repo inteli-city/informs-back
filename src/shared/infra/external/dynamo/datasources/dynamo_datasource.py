@@ -100,6 +100,7 @@ class DynamoDatasource:
         @return: dict with the response from DynamoDB
         """
 
+        update_dict = DynamoDatasource._parse_float_to_decimal(update_dict)
         data_key_value_pairs = list(update_dict.items())
 
         update_expression = "SET " + ", ".join([f"#attr{i} = :val{i}" for i in range(len(data_key_value_pairs))]) # SET attribute1=:value1, attribute2=:value2
