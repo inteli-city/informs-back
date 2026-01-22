@@ -11,6 +11,7 @@ from src.shared.infra.dtos.information_field_dto import InformationFieldDTO
 from src.shared.infra.dtos.justification_dto import JustificationDTO
 from src.shared.infra.dtos.section_dto import SectionDTO
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
+from src.shared.domain.entities.image_upload import ImageUploadRequest
 
 
 class CreateFormController:
@@ -98,10 +99,7 @@ class CreateFormController:
                         raise MissingParameters("filename")
                     if not isinstance(filename, str):
                         raise WrongTypeParameter("filename", "str", type(filename))
-                    information_fields_uploads[idx] = {
-                        "mimetype": mimetype,
-                        "filename": filename,
-                    }
+                    information_fields_uploads[idx] = ImageUploadRequest(filename=filename, mimetype=mimetype)
 
         priority_values = {priority.value for priority in PRIORITY}
         if isinstance(priority_payload, bool) or not isinstance(priority_payload, int):
