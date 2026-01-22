@@ -9,6 +9,7 @@ from src.shared.domain.entities.field import TextField
 from src.shared.domain.entities.information_field import ImageInformationField, TextInformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption
 from src.shared.domain.entities.section import Section
+from src.shared.domain.entities.image_upload import ImageUploadRequest
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.enums.priority_enum import PRIORITY
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
@@ -73,7 +74,7 @@ class Test_CreateFormUsecase:
         usecase, payload = _make_usecase_and_payload()
         payload = deepcopy(payload)
         payload["information_fields"] = [ImageInformationField(file_path="")]
-        payload["information_fields_uploads"] = [{"filename": "a.jpg", "mimetype": "image/jpeg"}]
+        payload["information_fields_uploads"] = [ImageUploadRequest(filename="a.jpg", mimetype="image/jpeg")]
 
         form, images = usecase(**payload)
 

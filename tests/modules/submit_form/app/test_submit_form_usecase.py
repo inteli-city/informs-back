@@ -1,13 +1,13 @@
 import pytest
 from src.modules.submit_form.app.submit_form_usecase import SubmitFormUsecase
 from src.shared.domain.entities.field import FileField, TextField
+from src.shared.domain.entities.image_upload import ImageUploadRequest
 from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.file_type_enum import FILE_TYPE
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 from src.shared.infra.repositories.image_repository_mock import ImageRepositoryMock
-from src.shared.infra.repositories.queue_repository_mock import QueueRepositoryMock
 
 
 class Test_SubmitFormUsecase:
@@ -15,8 +15,7 @@ class Test_SubmitFormUsecase:
     def test_submit_form_usecase(self):
         repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        queue_repo = QueueRepositoryMock()
-        usecase = SubmitFormUsecase(repo, image_repo, queue_repo)
+        usecase = SubmitFormUsecase(repo, image_repo)
 
         form = repo.forms[0]
         
@@ -34,13 +33,11 @@ class Test_SubmitFormUsecase:
         assert form.status == FORM_STATUS.COMPLETED
         assert form.sections[0].fields[0].value == 'poggers'
         assert form.completed_at == 123
-        assert len(queue_repo.messages) == 1
     
     def test_submit_form_usecase_user_disabled(self):
         repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        queue_repo = QueueRepositoryMock()
-        usecase = SubmitFormUsecase(repo, image_repo, queue_repo)
+        usecase = SubmitFormUsecase(repo, image_repo)
 
         form = repo.forms[1]
         
@@ -59,8 +56,7 @@ class Test_SubmitFormUsecase:
     def test_submit_form_usecase_form_not_found(self):
         repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        queue_repo = QueueRepositoryMock()
-        usecase = SubmitFormUsecase(repo, image_repo, queue_repo)
+        usecase = SubmitFormUsecase(repo, image_repo)
 
         
         text_field = TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='poggers')
@@ -78,8 +74,7 @@ class Test_SubmitFormUsecase:
     def test_submit_form_usecase_user_not_owner(self):
         repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        queue_repo = QueueRepositoryMock()
-        usecase = SubmitFormUsecase(repo, image_repo, queue_repo)
+        usecase = SubmitFormUsecase(repo, image_repo)
 
         form = repo.forms[0]
         
@@ -98,8 +93,7 @@ class Test_SubmitFormUsecase:
     def test_submit_form_usecase_form_already_concluded(self):
         repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        queue_repo = QueueRepositoryMock()
-        usecase = SubmitFormUsecase(repo, image_repo, queue_repo)
+        usecase = SubmitFormUsecase(repo, image_repo)
 
         form = repo.forms[1]
         
@@ -118,8 +112,7 @@ class Test_SubmitFormUsecase:
     def test_submit_form_usecase_required_field_not_filled(self):
         repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        queue_repo = QueueRepositoryMock()
-        usecase = SubmitFormUsecase(repo, image_repo, queue_repo)
+        usecase = SubmitFormUsecase(repo, image_repo)
 
         form = repo.forms[0]
         
@@ -138,8 +131,7 @@ class Test_SubmitFormUsecase:
     def test_submit_form_usecase_with_file_uploads(self):
         repo = FormRepositoryMock()
         image_repo = ImageRepositoryMock()
-        queue_repo = QueueRepositoryMock()
-        usecase = SubmitFormUsecase(repo, image_repo, queue_repo)
+        usecase = SubmitFormUsecase(repo, image_repo)
 
         form = repo.forms[0]
 
@@ -164,7 +156,7 @@ class Test_SubmitFormUsecase:
             form_id=form.id,
             sections=sections,
             completed_at=123,
-            file_uploads={(1, "file_key"): [{"filename": "a.jpg", "mimetype": "image/jpeg"}]},
+            file_uploads={(1, "file_key"): [ImageUploadRequest(filename="a.jpg", mimetype="image/jpeg")]},
         )
 
         assert len(images) == 1
