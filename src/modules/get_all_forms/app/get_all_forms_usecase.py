@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from src.shared.domain.entities.form import Form
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
@@ -16,7 +16,7 @@ class GetAllFormsUsecase:
         requester_user_id: str,
         limit: int,
         exclusive_start_key: Optional[str] = None,
-        status: Optional[FORM_STATUS] = None,
+        status: Optional[Union[FORM_STATUS, List[FORM_STATUS]]] = None,
         system: Optional[str] = None,
         created_at_start: Optional[int] = None,
         created_at_end: Optional[int] = None,

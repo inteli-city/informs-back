@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import List, Optional, Union
 from src.shared.domain.entities.field import TextField
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.information_field import ImageInformationField
@@ -156,7 +156,7 @@ class FormRepositoryMock(IFormRepository):
         self,
         limit: int,
         exclusive_start_key: Optional[dict] = None,
-        status: Optional[FORM_STATUS] = None,
+        status: Optional[Union[FORM_STATUS, List[FORM_STATUS]]] = None,
         system: Optional[str] = None,
         user_id: Optional[str] = None,
         created_at_start: Optional[int] = None,
@@ -169,7 +169,10 @@ class FormRepositoryMock(IFormRepository):
             forms = [form for form in forms if form.user_id == user_id]
 
         if status is not None:
-            forms = [form for form in forms if form.status == status]
+            if isinstance(status, list):
+                forms = [form for form in forms if form.status in status]
+            else:
+                forms = [form for form in forms if form.status == status]
 
         if system is not None:
             forms = [form for form in forms if form.system == system]
