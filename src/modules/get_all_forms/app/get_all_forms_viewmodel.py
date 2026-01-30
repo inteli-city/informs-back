@@ -101,6 +101,7 @@ class FormItemViewmodel:
             'status': self.form.status.value,
             'form_title': self.form.form_title,
             'user_id': self.form.user_id,
+            'area': self.form.area,
             'system': self.form.system,
             'city': self.form.city,
             'street': self.form.street,
