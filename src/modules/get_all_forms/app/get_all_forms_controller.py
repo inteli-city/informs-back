@@ -47,12 +47,16 @@ class GetAllFormsController:
         status = None
         status_raw = data.get("status")
         if status_raw is not None:
-            if not isinstance(status_raw, str):
-                raise WrongTypeParameter("status", "str", type(status_raw))
-            status_str = status_raw.upper()
-            if status_str not in FORM_STATUS.__members__:
-                raise EntityError("status")
-            status = FORM_STATUS[status_str]
+            status_values = status_raw if isinstance(status_raw, list) else [status_raw]
+            parsed_statuses = []
+            for status_item in status_values:
+                if not isinstance(status_item, str):
+                    raise WrongTypeParameter("status", "str", type(status_item))
+                status_str = status_item.upper()
+                if status_str not in FORM_STATUS.__members__:
+                    raise EntityError("status")
+                parsed_statuses.append(FORM_STATUS[status_str])
+            status = parsed_statuses[0] if len(parsed_statuses) == 1 else parsed_statuses
 
         system = _parse_optional_str("system", data.get("system"))
         search = _parse_optional_str("search", data.get("search"))

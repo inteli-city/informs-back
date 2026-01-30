@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import Section
@@ -62,7 +62,7 @@ class FormRepositoryDynamo(IFormRepository):
         self,
         limit: int,
         exclusive_start_key: Optional[dict] = None,
-        status: Optional[FORM_STATUS] = None,
+        status: Optional[Union[FORM_STATUS, List[FORM_STATUS]]] = None,
         system: Optional[str] = None,
         user_id: Optional[str] = None,
         created_at_start: Optional[int] = None,
@@ -75,7 +75,15 @@ class FormRepositoryDynamo(IFormRepository):
         filter_expression = None
 
         if status is not None:
-            filter_expression = Attr('status').eq(status.value)
+            if isinstance(status, list):
+                if status:
+                    status_filter = None
+                    for status_item in status:
+                        expr = Attr('status').eq(status_item.value)
+                        status_filter = expr if status_filter is None else status_filter | expr
+                    filter_expression = status_filter
+            else:
+                filter_expression = Attr('status').eq(status.value)
         if system is not None:
             expr = Attr('system').eq(system)
             filter_expression = expr if filter_expression is None else filter_expression & expr

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.justification import Justification
@@ -22,7 +22,7 @@ class IFormRepository(ABC):
         self,
         limit: int,
         exclusive_start_key: Optional[dict] = None,
-        status: Optional[FORM_STATUS] = None,
+        status: Optional[Union[FORM_STATUS, List[FORM_STATUS]]] = None,
         system: Optional[str] = None,
         user_id: Optional[str] = None,
         created_at_start: Optional[int] = None,
