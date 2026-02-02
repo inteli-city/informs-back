@@ -47,7 +47,8 @@
         "enum": [
           "GAIA",
           "GEOVISTA",
-          "SGC"
+          "SGC",
+          "INTELIFLEETS"
         ]
       },
       "FieldType": {
@@ -3169,6 +3170,25 @@
               "oneOf": [
                 {
                   "type": "object",
+                  "required": [
+                    "information_field_type",
+                    "file_path"
+                  ],
+                  "properties": {
+                    "information_field_type": {
+                      "const": "IMAGE_INFORMATION_FIELD"
+                    },
+                    "file_path": {
+                      "type": "string"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "information_field_type",
+                    "value"
+                  ],
                   "properties": {
                     "information_field_type": {
                       "const": "TEXT_INFORMATION_FIELD"
@@ -3176,14 +3196,15 @@
                     "value": {
                       "type": "string"
                     }
-                  },
-                  "required": [
-                    "information_field_type",
-                    "value"
-                  ]
+                  }
                 },
                 {
                   "type": "object",
+                  "required": [
+                    "information_field_type",
+                    "latitude",
+                    "longitude"
+                  ],
                   "properties": {
                     "information_field_type": {
                       "const": "MAP_INFORMATION_FIELD"
@@ -3194,42 +3215,15 @@
                     "longitude": {
                       "type": "number"
                     }
-                  },
-                  "required": [
-                    "information_field_type",
-                    "latitude",
-                    "longitude"
-                  ]
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "information_field_type": {
-                      "type": "string",
-                      "enum": [
-                        "IMAGE_INFORMATION_FIELD"
-                      ]
-                    },
-                    "filename": {
-                      "type": "string"
-                    },
-                    "mimetype": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "information_field_type",
-                    "filename",
-                    "mimetype"
-                  ]
+                  }
                 }
               ],
               "discriminator": {
                 "propertyName": "information_field_type",
                 "mapping": {
-                  "TEXT_INFORMATION_FIELD": "#/TextInformationFieldInput",
-                  "MAP_INFORMATION_FIELD": "#/MapInformationFieldInput",
-                  "IMAGE_INFORMATION_FIELD": "#/ImageInformationFieldInput"
+                  "IMAGE_INFORMATION_FIELD": "#/ImageInformationField",
+                  "TEXT_INFORMATION_FIELD": "#/TextInformationField",
+                  "MAP_INFORMATION_FIELD": "#/MapInformationField"
                 }
               }
             },
@@ -12853,7 +12847,8 @@
             "enum": [
               "GAIA",
               "GEOVISTA",
-              "SGC"
+              "SGC",
+              "INTELIFLEETS"
             ]
           },
           "description": {
@@ -15998,6 +15993,25 @@
                   "oneOf": [
                     {
                       "type": "object",
+                      "required": [
+                        "information_field_type",
+                        "file_path"
+                      ],
+                      "properties": {
+                        "information_field_type": {
+                          "const": "IMAGE_INFORMATION_FIELD"
+                        },
+                        "file_path": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "information_field_type",
+                        "value"
+                      ],
                       "properties": {
                         "information_field_type": {
                           "const": "TEXT_INFORMATION_FIELD"
@@ -16005,14 +16019,15 @@
                         "value": {
                           "type": "string"
                         }
-                      },
-                      "required": [
-                        "information_field_type",
-                        "value"
-                      ]
+                      }
                     },
                     {
                       "type": "object",
+                      "required": [
+                        "information_field_type",
+                        "latitude",
+                        "longitude"
+                      ],
                       "properties": {
                         "information_field_type": {
                           "const": "MAP_INFORMATION_FIELD"
@@ -16023,42 +16038,15 @@
                         "longitude": {
                           "type": "number"
                         }
-                      },
-                      "required": [
-                        "information_field_type",
-                        "latitude",
-                        "longitude"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "information_field_type": {
-                          "type": "string",
-                          "enum": [
-                            "IMAGE_INFORMATION_FIELD"
-                          ]
-                        },
-                        "filename": {
-                          "type": "string"
-                        },
-                        "mimetype": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "information_field_type",
-                        "filename",
-                        "mimetype"
-                      ]
+                      }
                     }
                   ],
                   "discriminator": {
                     "propertyName": "information_field_type",
                     "mapping": {
-                      "TEXT_INFORMATION_FIELD": "#/TextInformationFieldInput",
-                      "MAP_INFORMATION_FIELD": "#/MapInformationFieldInput",
-                      "IMAGE_INFORMATION_FIELD": "#/ImageInformationFieldInput"
+                      "IMAGE_INFORMATION_FIELD": "#/ImageInformationField",
+                      "TEXT_INFORMATION_FIELD": "#/TextInformationField",
+                      "MAP_INFORMATION_FIELD": "#/MapInformationField"
                     }
                   }
                 },
@@ -17739,6 +17727,25 @@
                     "oneOf": [
                       {
                         "type": "object",
+                        "required": [
+                          "information_field_type",
+                          "file_path"
+                        ],
+                        "properties": {
+                          "information_field_type": {
+                            "const": "IMAGE_INFORMATION_FIELD"
+                          },
+                          "file_path": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "information_field_type",
+                          "value"
+                        ],
                         "properties": {
                           "information_field_type": {
                             "const": "TEXT_INFORMATION_FIELD"
@@ -17746,14 +17753,15 @@
                           "value": {
                             "type": "string"
                           }
-                        },
-                        "required": [
-                          "information_field_type",
-                          "value"
-                        ]
+                        }
                       },
                       {
                         "type": "object",
+                        "required": [
+                          "information_field_type",
+                          "latitude",
+                          "longitude"
+                        ],
                         "properties": {
                           "information_field_type": {
                             "const": "MAP_INFORMATION_FIELD"
@@ -17764,42 +17772,15 @@
                           "longitude": {
                             "type": "number"
                           }
-                        },
-                        "required": [
-                          "information_field_type",
-                          "latitude",
-                          "longitude"
-                        ]
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "information_field_type": {
-                            "type": "string",
-                            "enum": [
-                              "IMAGE_INFORMATION_FIELD"
-                            ]
-                          },
-                          "filename": {
-                            "type": "string"
-                          },
-                          "mimetype": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "information_field_type",
-                          "filename",
-                          "mimetype"
-                        ]
+                        }
                       }
                     ],
                     "discriminator": {
                       "propertyName": "information_field_type",
                       "mapping": {
-                        "TEXT_INFORMATION_FIELD": "#/TextInformationFieldInput",
-                        "MAP_INFORMATION_FIELD": "#/MapInformationFieldInput",
-                        "IMAGE_INFORMATION_FIELD": "#/ImageInformationFieldInput"
+                        "IMAGE_INFORMATION_FIELD": "#/ImageInformationField",
+                        "TEXT_INFORMATION_FIELD": "#/TextInformationField",
+                        "MAP_INFORMATION_FIELD": "#/MapInformationField"
                       }
                     }
                   },
@@ -21142,6 +21123,25 @@
                             "oneOf": [
                               {
                                 "type": "object",
+                                "required": [
+                                  "information_field_type",
+                                  "file_path"
+                                ],
+                                "properties": {
+                                  "information_field_type": {
+                                    "const": "IMAGE_INFORMATION_FIELD"
+                                  },
+                                  "file_path": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "required": [
+                                  "information_field_type",
+                                  "value"
+                                ],
                                 "properties": {
                                   "information_field_type": {
                                     "const": "TEXT_INFORMATION_FIELD"
@@ -21149,14 +21149,15 @@
                                   "value": {
                                     "type": "string"
                                   }
-                                },
-                                "required": [
-                                  "information_field_type",
-                                  "value"
-                                ]
+                                }
                               },
                               {
                                 "type": "object",
+                                "required": [
+                                  "information_field_type",
+                                  "latitude",
+                                  "longitude"
+                                ],
                                 "properties": {
                                   "information_field_type": {
                                     "const": "MAP_INFORMATION_FIELD"
@@ -21167,42 +21168,15 @@
                                   "longitude": {
                                     "type": "number"
                                   }
-                                },
-                                "required": [
-                                  "information_field_type",
-                                  "latitude",
-                                  "longitude"
-                                ]
-                              },
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "information_field_type": {
-                                    "type": "string",
-                                    "enum": [
-                                      "IMAGE_INFORMATION_FIELD"
-                                    ]
-                                  },
-                                  "filename": {
-                                    "type": "string"
-                                  },
-                                  "mimetype": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "information_field_type",
-                                  "filename",
-                                  "mimetype"
-                                ]
+                                }
                               }
                             ],
                             "discriminator": {
                               "propertyName": "information_field_type",
                               "mapping": {
-                                "TEXT_INFORMATION_FIELD": "#/TextInformationFieldInput",
-                                "MAP_INFORMATION_FIELD": "#/MapInformationFieldInput",
-                                "IMAGE_INFORMATION_FIELD": "#/ImageInformationFieldInput"
+                                "IMAGE_INFORMATION_FIELD": "#/ImageInformationField",
+                                "TEXT_INFORMATION_FIELD": "#/TextInformationField",
+                                "MAP_INFORMATION_FIELD": "#/MapInformationField"
                               }
                             }
                           },
@@ -22984,6 +22958,25 @@
                               "oneOf": [
                                 {
                                   "type": "object",
+                                  "required": [
+                                    "information_field_type",
+                                    "file_path"
+                                  ],
+                                  "properties": {
+                                    "information_field_type": {
+                                      "const": "IMAGE_INFORMATION_FIELD"
+                                    },
+                                    "file_path": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "object",
+                                  "required": [
+                                    "information_field_type",
+                                    "value"
+                                  ],
                                   "properties": {
                                     "information_field_type": {
                                       "const": "TEXT_INFORMATION_FIELD"
@@ -22991,14 +22984,15 @@
                                     "value": {
                                       "type": "string"
                                     }
-                                  },
-                                  "required": [
-                                    "information_field_type",
-                                    "value"
-                                  ]
+                                  }
                                 },
                                 {
                                   "type": "object",
+                                  "required": [
+                                    "information_field_type",
+                                    "latitude",
+                                    "longitude"
+                                  ],
                                   "properties": {
                                     "information_field_type": {
                                       "const": "MAP_INFORMATION_FIELD"
@@ -23009,42 +23003,15 @@
                                     "longitude": {
                                       "type": "number"
                                     }
-                                  },
-                                  "required": [
-                                    "information_field_type",
-                                    "latitude",
-                                    "longitude"
-                                  ]
-                                },
-                                {
-                                  "type": "object",
-                                  "properties": {
-                                    "information_field_type": {
-                                      "type": "string",
-                                      "enum": [
-                                        "IMAGE_INFORMATION_FIELD"
-                                      ]
-                                    },
-                                    "filename": {
-                                      "type": "string"
-                                    },
-                                    "mimetype": {
-                                      "type": "string"
-                                    }
-                                  },
-                                  "required": [
-                                    "information_field_type",
-                                    "filename",
-                                    "mimetype"
-                                  ]
+                                  }
                                 }
                               ],
                               "discriminator": {
                                 "propertyName": "information_field_type",
                                 "mapping": {
-                                  "TEXT_INFORMATION_FIELD": "#/TextInformationFieldInput",
-                                  "MAP_INFORMATION_FIELD": "#/MapInformationFieldInput",
-                                  "IMAGE_INFORMATION_FIELD": "#/ImageInformationFieldInput"
+                                  "IMAGE_INFORMATION_FIELD": "#/ImageInformationField",
+                                  "TEXT_INFORMATION_FIELD": "#/TextInformationField",
+                                  "MAP_INFORMATION_FIELD": "#/MapInformationField"
                                 }
                               }
                             },
@@ -24727,6 +24694,25 @@
                             "oneOf": [
                               {
                                 "type": "object",
+                                "required": [
+                                  "information_field_type",
+                                  "file_path"
+                                ],
+                                "properties": {
+                                  "information_field_type": {
+                                    "const": "IMAGE_INFORMATION_FIELD"
+                                  },
+                                  "file_path": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "required": [
+                                  "information_field_type",
+                                  "value"
+                                ],
                                 "properties": {
                                   "information_field_type": {
                                     "const": "TEXT_INFORMATION_FIELD"
@@ -24734,14 +24720,15 @@
                                   "value": {
                                     "type": "string"
                                   }
-                                },
-                                "required": [
-                                  "information_field_type",
-                                  "value"
-                                ]
+                                }
                               },
                               {
                                 "type": "object",
+                                "required": [
+                                  "information_field_type",
+                                  "latitude",
+                                  "longitude"
+                                ],
                                 "properties": {
                                   "information_field_type": {
                                     "const": "MAP_INFORMATION_FIELD"
@@ -24752,42 +24739,15 @@
                                   "longitude": {
                                     "type": "number"
                                   }
-                                },
-                                "required": [
-                                  "information_field_type",
-                                  "latitude",
-                                  "longitude"
-                                ]
-                              },
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "information_field_type": {
-                                    "type": "string",
-                                    "enum": [
-                                      "IMAGE_INFORMATION_FIELD"
-                                    ]
-                                  },
-                                  "filename": {
-                                    "type": "string"
-                                  },
-                                  "mimetype": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "information_field_type",
-                                  "filename",
-                                  "mimetype"
-                                ]
+                                }
                               }
                             ],
                             "discriminator": {
                               "propertyName": "information_field_type",
                               "mapping": {
-                                "TEXT_INFORMATION_FIELD": "#/TextInformationFieldInput",
-                                "MAP_INFORMATION_FIELD": "#/MapInformationFieldInput",
-                                "IMAGE_INFORMATION_FIELD": "#/ImageInformationFieldInput"
+                                "IMAGE_INFORMATION_FIELD": "#/ImageInformationField",
+                                "TEXT_INFORMATION_FIELD": "#/TextInformationField",
+                                "MAP_INFORMATION_FIELD": "#/MapInformationField"
                               }
                             }
                           },
@@ -26578,7 +26538,8 @@
                     "enum": [
                       "GAIA",
                       "GEOVISTA",
-                      "SGC"
+                      "SGC",
+                      "INTELIFLEETS"
                     ]
                   },
                   "description": {
@@ -32775,7 +32736,8 @@
                     "enum": [
                       "GAIA",
                       "GEOVISTA",
-                      "SGC"
+                      "SGC",
+                      "INTELIFLEETS"
                     ]
                   },
                   "description": {
