@@ -3,6 +3,7 @@ from typing import Optional
 import os
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.image_repository_interface import IImageRepository
+from src.shared.domain.repositories.origin_repository_interface import IOriginRepository
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
 
 class STAGE(Enum):
@@ -95,6 +96,17 @@ class Environments:
         elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
             from src.shared.infra.repositories.template_repository_dynamo import TemplateRepositoryDynamo
             return TemplateRepositoryDynamo()
+        else:
+            raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
+
+    @staticmethod
+    def get_origin_repo() -> IOriginRepository:
+        if Environments.get_envs().stage in [STAGE.TEST, STAGE.DOTENV]:
+            from src.shared.infra.repositories.origin_repository_mock import OriginRepositoryMock
+            return OriginRepositoryMock()
+        elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
+            from src.shared.infra.repositories.origin_repository_apex import OriginRepositoryApex
+            return OriginRepositoryApex()
         else:
             raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
 
