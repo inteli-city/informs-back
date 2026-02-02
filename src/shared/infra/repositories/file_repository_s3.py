@@ -1,13 +1,13 @@
 
-from src.shared.domain.repositories.image_repository_interface import IImageRepository
+from src.shared.domain.repositories.file_repository_interface import IFileRepository
 from src.shared.environments import Environments
 import boto3
 from botocore.config import Config
 
-from src.shared.helpers.errors.usecase_errors import ErrorWithImage
+from src.shared.helpers.errors.usecase_errors import ErrorWithFile
 
 
-class ImageRepositoryS3(IImageRepository):
+class FileRepositoryS3(IFileRepository):
 
     def __init__(self):
         envs = Environments.get_envs()
@@ -21,13 +21,13 @@ class ImageRepositoryS3(IImageRepository):
             config=config,
         )
         
-    def generate_presigned_url(self, image_path: str, mimetype: str, expires_in: int = 3600) -> str:
+    def generate_presigned_url(self, file_path: str, mimetype: str, expires_in: int = 3600) -> str:
         try:
             return self.client.generate_presigned_url(
                 ClientMethod='put_object',
                 Params={
                     "Bucket": Environments.get_envs().bucket_name,
-                    "Key": image_path,
+                    "Key": file_path,
                     "ContentType": mimetype,
                 },
                 ExpiresIn=expires_in,
@@ -35,4 +35,4 @@ class ImageRepositoryS3(IImageRepository):
             )
         except Exception as e:
             message = e.args[0] if e.args else str(e)
-            raise ErrorWithImage(message)
+            raise ErrorWithFile(message)

@@ -6,7 +6,7 @@ from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFou
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
 from src.shared.helpers.external_interfaces.http_codes import OK, BadRequest, Forbidden, InternalServerError, NotFound
 from src.shared.infra.dtos.section_dto import SectionDTO
-from src.shared.domain.entities.image_upload import ImageUploadRequest
+from src.shared.domain.entities.file_upload import FileUploadRequest
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 
 
@@ -71,7 +71,7 @@ class SubmitFormController:
                             raise MissingParameters("mimetype")
                         if not isinstance(mimetype, str):
                             raise WrongTypeParameter(fieldName="mimetype", fieldTypeExpected="str", fieldTypeReceived=type(mimetype))
-                        normalized.append(ImageUploadRequest(filename=filename, mimetype=mimetype))
+                        normalized.append(FileUploadRequest(filename=filename, mimetype=mimetype))
                     file_uploads[(section_id, field_key)] = normalized
 
         return form_id, completed_at, sections, file_uploads
@@ -82,7 +82,7 @@ class SubmitFormController:
             requester_user = self._validate_requester_user(data)
             form_id, completed_at, sections, file_uploads = self._validate_endpoint_parameters(data)
                 
-            images = self.submit_form_usecase(
+            files = self.submit_form_usecase(
                 user_id=requester_user.user_id,
                 form_id=form_id,
                 sections=sections,
@@ -90,7 +90,7 @@ class SubmitFormController:
                 file_uploads=file_uploads,
             )
 
-            viewmodel = SubmitFormViewmodel(images=images)
+            viewmodel = SubmitFormViewmodel(files=files)
             return OK(viewmodel.to_dict())
 
         except NoItemsFound as err:

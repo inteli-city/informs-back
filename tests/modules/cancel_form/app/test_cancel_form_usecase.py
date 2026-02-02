@@ -4,14 +4,14 @@ from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
-from src.shared.infra.repositories.image_repository_mock import ImageRepositoryMock
-from src.shared.domain.entities.image_upload import ImageUploadRequest
+from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
+from src.shared.domain.entities.file_upload import FileUploadRequest
 
 def make_justification_payload():
     return {
         "selected_option": "option",
         "justification_text": "text",
-        "justification_image": ImageUploadRequest(filename="a.jpg", mimetype="image/jpeg"),
+        "justification_image": FileUploadRequest(filename="a.jpg", mimetype="image/jpeg"),
     }
 
 class Test_CancelFormUsecase:
@@ -20,12 +20,12 @@ class Test_CancelFormUsecase:
         import os
         os.environ["STAGE"] = "TEST"
         form_repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo)
+        file_repo = FileRepositoryMock()
+        usecase = CancelFormUsecase(form_repo, file_repo)
 
         form_repo.forms[0].status = FORM_STATUS.IN_PROGRESS
         justification = make_justification_payload()
-        image = usecase(
+        file_upload = usecase(
             requester_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
             form_id=form_repo.forms[0].id,
             justification_image=justification["justification_image"],
@@ -41,21 +41,21 @@ class Test_CancelFormUsecase:
         assert form.justification.justification_text == 'text'
         assert form.justification.justification_image.startswith('https://test')
         assert form.justification.justification_image.endswith('.jpeg')
-        assert image is not None
-        assert image.filename == "a.jpg"
-        assert image.mimetype == "image/jpeg"
+        assert file_upload is not None
+        assert file_upload.filename == "a.jpg"
+        assert file_upload.mimetype == "image/jpeg"
 
     
     def test_cancel_form_usecase_form_not_found(self):
         form_repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo)
+        file_repo = FileRepositoryMock()
+        usecase = CancelFormUsecase(form_repo, file_repo)
         
         with pytest.raises(NoItemsFound):
             usecase(
                 requester_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 form_id='invalid_id',
-                justification_image=ImageUploadRequest(filename="a.jpg", mimetype="image/png"),
+                justification_image=FileUploadRequest(filename="a.jpg", mimetype="image/png"),
                 selected_option='option',
                 justification_text='text',
                 cancelled_at=1
@@ -63,8 +63,8 @@ class Test_CancelFormUsecase:
     
     def test_cancel_form_usecase_user_cannot_cancel_form(self):
         form_repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo)
+        file_repo = FileRepositoryMock()
+        usecase = CancelFormUsecase(form_repo, file_repo)
         justification = make_justification_payload()
         with pytest.raises(ForbiddenAction):
             usecase(
@@ -78,8 +78,8 @@ class Test_CancelFormUsecase:
 
     def test_cancel_form_usecase_form_already_finished(self):
         form_repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo)
+        file_repo = FileRepositoryMock()
+        usecase = CancelFormUsecase(form_repo, file_repo)
         justification = make_justification_payload()
         form_repo.forms[0].status = FORM_STATUS.CANCELLED
         
@@ -95,8 +95,8 @@ class Test_CancelFormUsecase:
     
     def test_cancel_form_usecase_form_invalid_justification_option(self):
         form_repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo)
+        file_repo = FileRepositoryMock()
+        usecase = CancelFormUsecase(form_repo, file_repo)
         justification = make_justification_payload()
 
         with pytest.raises(EntityError):
@@ -111,8 +111,8 @@ class Test_CancelFormUsecase:
     
     def test_cancel_form_usecase_form_missing_text_justification(self):
         form_repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo)
+        file_repo = FileRepositoryMock()
+        usecase = CancelFormUsecase(form_repo, file_repo)
         justification = make_justification_payload()
 
         with pytest.raises(EntityError):
@@ -127,8 +127,8 @@ class Test_CancelFormUsecase:
     
     def test_cancel_form_usecase_form_missing_image_justification(self):
         form_repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo)
+        file_repo = FileRepositoryMock()
+        usecase = CancelFormUsecase(form_repo, file_repo)
         justification = make_justification_payload()
 
         with pytest.raises(EntityError):

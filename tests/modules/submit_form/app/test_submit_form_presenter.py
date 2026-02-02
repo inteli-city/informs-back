@@ -85,4 +85,4 @@ class Test_SubmitFormPresenter:
         response_json = json.loads(response["body"])
 
         assert response["statusCode"] == 200
-        assert response_json["images"] == []
+        assert response_json["files"] == []

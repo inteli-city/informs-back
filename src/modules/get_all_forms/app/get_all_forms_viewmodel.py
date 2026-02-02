@@ -111,7 +111,7 @@ class FormItemViewmodel:
             'observation': self.form.observation,
             'expiration_date': self.form.expiration_date,
             'justification': JustificationViewmodel(self.form.justification).to_dict(),
-            'sessions': [SectionViewmodel(section).to_dict() for section in self.form.sections],
+            'sections': [SectionViewmodel(section).to_dict() for section in self.form.sections],
             'in_progress_at': self.form.in_progress_at,
             'cancelled_at': self.form.cancelled_at,
             'completed_at': self.form.completed_at,
@@ -124,7 +124,7 @@ class FormItemViewmodel:
 
 
 class GetAllFormsViewmodel:
-    def __init__(self, forms: List[Form], limit: int, last_evaluated_key: Optional[str]):
+    def __init__(self, forms: List[Form], limit: Optional[int], last_evaluated_key: Optional[str]):
         self.forms = forms
         self.limit = limit
         self.last_evaluated_key = last_evaluated_key

@@ -27,14 +27,14 @@ class Test_InformationFieldDTO:
         assert information_field_dto.information_field.longitude == 0.0
         assert information_field_dto.information_field.information_field_type == INFORMATION_FIELD_TYPE.MAP_INFORMATION_FIELD
     
-    def test_information_field_from_request_image(self):
+    def test_information_field_from_request_file(self):
         information_field_dict = {
-            'information_field_type': 'IMAGE_INFORMATION_FIELD',
+            'information_field_type': 'FILE_INFORMATION_FIELD',
             'file_path': 'file_path'
         }
         information_field_dto = InformationFieldDTO.from_request(information_field_dict)
         assert information_field_dto.information_field.file_path == 'file_path'
-        assert information_field_dto.information_field.information_field_type == INFORMATION_FIELD_TYPE.IMAGE_INFORMATION_FIELD
+        assert information_field_dto.information_field.information_field_type == INFORMATION_FIELD_TYPE.FILE_INFORMATION_FIELD
     
     def test_information_field_from_request_missing_information_field_type(self):
         information_field_dict = {
@@ -70,9 +70,9 @@ class Test_InformationFieldDTO:
         with pytest.raises(MissingParameters):
             InformationFieldDTO.from_request(information_field_dict)
     
-    def test_information_field_from_request_image_information_field_missing_file_path(self):
+    def test_information_field_from_request_file_information_field_missing_file_path(self):
         information_field_dict = {
-            'information_field_type': 'IMAGE_INFORMATION_FIELD'
+            'information_field_type': 'FILE_INFORMATION_FIELD'
         }
 
         with pytest.raises(MissingParameters):
@@ -110,15 +110,15 @@ class Test_InformationFieldDTO:
         assert dynamo_dict['longitude'] == 0.0
         assert dynamo_dict['information_field_type'] == INFORMATION_FIELD_TYPE.MAP_INFORMATION_FIELD.value
     
-    def test_information_field_to_dynamo_image(self):
+    def test_information_field_to_dynamo_file(self):
         information_field_dict = {
-            'information_field_type': 'IMAGE_INFORMATION_FIELD',
+            'information_field_type': 'FILE_INFORMATION_FIELD',
             'file_path': 'file_path'
         }
         information_field_dto = InformationFieldDTO.from_request(information_field_dict)
         dynamo_dict = information_field_dto.to_dynamo()
         assert dynamo_dict['file_path'] == 'file_path'
-        assert dynamo_dict['information_field_type'] == INFORMATION_FIELD_TYPE.IMAGE_INFORMATION_FIELD.value
+        assert dynamo_dict['information_field_type'] == INFORMATION_FIELD_TYPE.FILE_INFORMATION_FIELD.value
     
     def test_information_field_from_dynamo_text(self):
         information_field_dict = {
@@ -140,14 +140,14 @@ class Test_InformationFieldDTO:
         assert information_field_dto.information_field.longitude == 0.0
         assert information_field_dto.information_field.information_field_type == INFORMATION_FIELD_TYPE.MAP_INFORMATION_FIELD
     
-    def test_information_field_from_dynamo_image(self):
+    def test_information_field_from_dynamo_file(self):
         information_field_dict = {
-            'information_field_type': 'IMAGE_INFORMATION_FIELD',
+            'information_field_type': 'FILE_INFORMATION_FIELD',
             'file_path': 'file_path'
         }
         information_field_dto = InformationFieldDTO.from_dynamo(information_field_dict)
         assert information_field_dto.information_field.file_path == 'file_path'
-        assert information_field_dto.information_field.information_field_type == INFORMATION_FIELD_TYPE.IMAGE_INFORMATION_FIELD
+        assert information_field_dto.information_field.information_field_type == INFORMATION_FIELD_TYPE.FILE_INFORMATION_FIELD
     
     def test_information_field_from_dynamo_information_field_type_error(self):
         information_field_dict = {

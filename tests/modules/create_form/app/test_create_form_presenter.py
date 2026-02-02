@@ -38,7 +38,7 @@ class Test_CreateFormPresenter:
                 "justifications": [
                     {"option": "option", "required_image": True, "required_text": True}
                 ],
-                "sessions": [
+                "sections": [
                     {
                         "section_id": 1,
                         "fields": [

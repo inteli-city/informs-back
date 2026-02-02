@@ -79,7 +79,7 @@ class TemplateRepositoryMock(ITemplateRepository):
     def get_all_templates(
         self,
         system: str,
-        limit: int,
+        limit: Optional[int],
         exclusive_start_key: Optional[dict] = None,
         name_contains: Optional[str] = None,
         is_active: Optional[bool] = True,
@@ -98,6 +98,9 @@ class TemplateRepositoryMock(ITemplateRepository):
         start_key_dict = exclusive_start_key
 
         start = self._parse_start_index(filtered, start_key_dict)
+        if limit is None:
+            return filtered[start:], None
+
         end = start + limit
         page = filtered[start:end]
 

@@ -7,7 +7,7 @@ from src.modules.create_form.app.create_form_controller import CreateFormControl
 from src.modules.create_form.app.create_form_usecase import CreateFormUsecase
 from src.shared.helpers.external_interfaces.http_models import HttpRequest
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
-from src.shared.infra.repositories.image_repository_mock import ImageRepositoryMock
+from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
 
 
 class Test_CreateFormController:
@@ -30,7 +30,7 @@ class Test_CreateFormController:
             "justifications": [
                 {"option": "option", "required_image": True, "required_text": True}
             ],
-            "sessions": [
+            "sections": [
                 {
                     "section_id": 1,
                     "fields": [
@@ -54,8 +54,8 @@ class Test_CreateFormController:
 
     def test_create_form_controller_success(self):
         repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        controller = CreateFormController(CreateFormUsecase(repo, image_repo))
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
         request = HttpRequest(body=self._make_base_body())
         response = controller(request)
@@ -63,18 +63,18 @@ class Test_CreateFormController:
         assert response.status_code == 201
         assert response.body["form_title"] == "FORM TITLE"
         assert response.body["user_id"] == "d61dbf66-a10f-11ed-a8fc-0242ac120001"
-        assert len(response.body["sessions"]) == 1
-        assert response.body["images"] == []
+        assert len(response.body["sections"]) == 1
+        assert response.body["files"] == []
 
-    def test_create_form_controller_with_images(self):
+    def test_create_form_controller_with_files(self):
         repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        controller = CreateFormController(CreateFormUsecase(repo, image_repo))
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
         body = self._make_base_body()
         body["information_fields"] = [
             {
-                "information_field_type": "IMAGE_INFORMATION_FIELD",
+                "information_field_type": "FILE_INFORMATION_FIELD",
                 "filename": "a.jpg",
                 "mimetype": "image/jpeg"
             }
@@ -83,13 +83,13 @@ class Test_CreateFormController:
         response = controller(request)
 
         assert response.status_code == 201
-        assert len(response.body["images"]) == 1
-        assert response.body["images"][0]["filename"] == "a.jpg"
+        assert len(response.body["files"]) == 1
+        assert response.body["files"][0]["filename"] == "a.jpg"
 
     def test_create_form_controller_missing_requester(self):
         repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        controller = CreateFormController(CreateFormUsecase(repo, image_repo))
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
         body = self._make_base_body()
         body.pop("requester_user")
@@ -101,8 +101,8 @@ class Test_CreateFormController:
 
     def test_create_form_controller_missing_user_id(self):
         repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        controller = CreateFormController(CreateFormUsecase(repo, image_repo))
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
         body = self._make_base_body()
         body.pop("user_id")
@@ -114,8 +114,8 @@ class Test_CreateFormController:
 
     def test_create_form_controller_missing_system(self):
         repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        controller = CreateFormController(CreateFormUsecase(repo, image_repo))
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
         body = self._make_base_body()
         body.pop("system")
@@ -127,8 +127,8 @@ class Test_CreateFormController:
 
     def test_create_form_controller_missing_street(self):
         repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        controller = CreateFormController(CreateFormUsecase(repo, image_repo))
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
         body = self._make_base_body()
         body.pop("street")
@@ -140,8 +140,8 @@ class Test_CreateFormController:
 
     def test_create_form_controller_missing_city(self):
         repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        controller = CreateFormController(CreateFormUsecase(repo, image_repo))
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
         body = self._make_base_body()
         body.pop("city")
@@ -153,8 +153,8 @@ class Test_CreateFormController:
 
     def test_create_form_controller_missing_latitude(self):
         repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        controller = CreateFormController(CreateFormUsecase(repo, image_repo))
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
         body = self._make_base_body()
         body.pop("latitude")
@@ -166,8 +166,8 @@ class Test_CreateFormController:
 
     def test_create_form_controller_missing_longitude(self):
         repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        controller = CreateFormController(CreateFormUsecase(repo, image_repo))
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
         body = self._make_base_body()
         body.pop("longitude")
@@ -179,8 +179,8 @@ class Test_CreateFormController:
 
     def test_create_form_controller_missing_priority(self):
         repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        controller = CreateFormController(CreateFormUsecase(repo, image_repo))
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
         body = self._make_base_body()
         body.pop("priority")
@@ -192,8 +192,8 @@ class Test_CreateFormController:
 
     def test_create_form_controller_missing_justifications(self):
         repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        controller = CreateFormController(CreateFormUsecase(repo, image_repo))
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
         body = self._make_base_body()
         body.pop("justifications")
@@ -203,23 +203,23 @@ class Test_CreateFormController:
         assert response.status_code == 400
         assert response.body == "Parâmetro ausente: justifications"
 
-    def test_create_form_controller_missing_sessions(self):
+    def test_create_form_controller_missing_sections(self):
         repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        controller = CreateFormController(CreateFormUsecase(repo, image_repo))
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
         body = self._make_base_body()
-        body.pop("sessions")
+        body.pop("sections")
         request = HttpRequest(body=body)
 
         response = controller(request)
         assert response.status_code == 400
-        assert response.body == "Parâmetro ausente: sessions"
+        assert response.body == "Parâmetro ausente: sections"
 
     def test_create_form_controller_invalid_priority(self):
         repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        controller = CreateFormController(CreateFormUsecase(repo, image_repo))
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
         body = self._make_base_body()
         body["priority"] = "INVALID"
@@ -231,8 +231,8 @@ class Test_CreateFormController:
 
     def test_create_form_controller_invalid_expiration_date(self):
         repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        controller = CreateFormController(CreateFormUsecase(repo, image_repo))
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
         body = self._make_base_body()
         body["expiration_date"] = "invalid"
@@ -244,8 +244,8 @@ class Test_CreateFormController:
 
     def test_create_form_controller_invalid_latitude(self):
         repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        controller = CreateFormController(CreateFormUsecase(repo, image_repo))
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
         body = self._make_base_body()
         body["latitude"] = "invalid"

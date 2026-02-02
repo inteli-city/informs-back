@@ -32,7 +32,7 @@ class UpdateTemplateController:
         system: Optional[str] = data.get("system")
         description: Optional[str] = data.get("description")
         is_active = data.get("is_active")
-        sessions_raw = data.get("sessions")
+        sections_raw = data.get("sections")
 
         if name is not None and not isinstance(name, str):
             raise WrongTypeParameter("name", "str", type(name))
@@ -42,18 +42,18 @@ class UpdateTemplateController:
             raise WrongTypeParameter("description", "str", type(description))
         if is_active is not None and not isinstance(is_active, bool):
             raise WrongTypeParameter("is_active", "bool", type(is_active))
-        if sessions_raw is not None and not isinstance(sessions_raw, list):
-            raise WrongTypeParameter("sessions", "list", type(sessions_raw))
+        if sections_raw is not None and not isinstance(sections_raw, list):
+            raise WrongTypeParameter("sections", "list", type(sections_raw))
 
-        sessions = [SectionDTO.from_request(session).to_entity() for session in sessions_raw] if sessions_raw is not None else None
+        sections = [SectionDTO.from_request(section).to_entity() for section in sections_raw] if sections_raw is not None else None
 
-        return template_id, name, system, description, is_active, sessions
+        return template_id, name, system, description, is_active, sections
 
     def __call__(self, request: IRequest) -> IResponse:
         try:
             data = request.data if isinstance(request.data, dict) else {}
             requester = self._validate_requester_user(data)
-            template_id, name, system, description, is_active, sessions = self._validate_endpoint_parameters(data)
+            template_id, name, system, description, is_active, sections = self._validate_endpoint_parameters(data)
 
             updated_template = self.usecase(
                 template_id=template_id,
@@ -62,7 +62,7 @@ class UpdateTemplateController:
                 system=system,
                 description=description,
                 is_active=is_active,
-                sessions=sessions,
+                sections=sections,
             )
 
             viewmodel = TemplateViewmodel(updated_template)

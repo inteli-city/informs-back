@@ -36,6 +36,6 @@ class TestGetTemplateViewmodel:
         assert result["id"] == template.id
         assert result["name"] == "Template X"
         assert result["is_active"] is True
-        assert len(result["sessions"]) == 1
+        assert len(result["sections"]) == 1
         assert result["created_at"] == 123
         assert result["updated_at"] == 456

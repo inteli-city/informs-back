@@ -40,7 +40,7 @@ class TestGetAllTemplatesUsecase:
         self.repo.templates.append(_make_template("Template B", "ORION", False, now + 2000))
 
     def test_get_all_templates_usecase_filters_and_orders(self):
-        templates, next_key = self.usecase(requester=self.requester, limit=20, is_active=True, system="GAIA")
+        templates, next_key = self.usecase(requester=self.requester, limit=20, is_active=True, systems=["GAIA"])
 
         assert len(templates) >= 1
         assert all(template.is_active for template in templates)
@@ -49,17 +49,17 @@ class TestGetAllTemplatesUsecase:
         assert next_key is None
 
     def test_get_all_templates_usecase_pagination(self):
-        templates_page_1, next_key = self.usecase(requester=self.requester, limit=1, system="GAIA")
+        templates_page_1, next_key = self.usecase(requester=self.requester, limit=1, systems=["GAIA"])
         assert len(templates_page_1) == 1
         assert next_key is not None
         assert isinstance(next_key, str)
         assert isinstance(decode_pagination_token(next_key), dict)
 
-        templates_page_2, _ = self.usecase(requester=self.requester, limit=1, system="GAIA", exclusive_start_key=next_key)
+        templates_page_2, _ = self.usecase(requester=self.requester, limit=1, systems=["GAIA"], exclusive_start_key=next_key)
         assert len(templates_page_2) > 0
 
     def test_get_all_templates_usecase_name_filter(self):
-        templates, _ = self.usecase(requester=self.requester, limit=10, system="GAIA", name_contains="Default")
+        templates, _ = self.usecase(requester=self.requester, limit=10, systems=["GAIA"], name_contains="Default")
 
         assert len(templates) >= 1
         assert all("default" in tpl.name.lower() for tpl in templates)

@@ -49,4 +49,4 @@ class TestCreateTemplateViewmodel:
         assert result["id"] == "d61dbf66-a10f-11ed-a8fc-0242ac120099"
         assert result["name"] == "Template X"
         assert result["is_active"] is True
-        assert len(result["sessions"]) == 1
+        assert len(result["sections"]) == 1

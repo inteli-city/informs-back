@@ -81,7 +81,7 @@ class Test_CreateFormViewmodel:
         assert result["id"] == form.id
         assert result["status"] == form.status.value
         assert result["priority"] == int(form.priority.value)
-        assert len(result["sessions"]) == 1
+        assert len(result["sections"]) == 1
 
     def test_create_form_viewmodel(self):
         form = self._make_form()
@@ -89,4 +89,4 @@ class Test_CreateFormViewmodel:
         result = vm.to_dict()
         assert result["id"] == form.id
         assert result["created_by"] == form.created_by
-        assert result["images"] == []
+        assert result["files"] == []
