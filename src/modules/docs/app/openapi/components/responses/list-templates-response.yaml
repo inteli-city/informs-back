@@ -1,0 +1,12 @@
+type: object
+properties:
+  templates:
+    type: array
+    items: { $ref: "../entities/docs/form-template.yaml#/Template" }
+  limit: { type: integer, nullable: true }
+  last_evaluated_key: { type: string, nullable: true }
+  systems:
+    type: array
+    items: { type: string }
+    nullable: true
+required: [templates, limit, last_evaluated_key]
