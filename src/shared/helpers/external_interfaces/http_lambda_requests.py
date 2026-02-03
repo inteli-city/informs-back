@@ -110,12 +110,24 @@ class LambdaHttpRequest(HttpRequest):
         """
         _headers = data.get("headers")
         _query_string_parameters = data.get("queryStringParameters")
+        _multi_value_query_string_parameters = data.get("multiValueQueryStringParameters")
         raw_query_string = data.get("rawQueryString") or ""
         parsed_query_params = {}
         if isinstance(raw_query_string, str) and raw_query_string:
             parsed = parse_qs(raw_query_string, keep_blank_values=True)
             for key, values in parsed.items():
                 if len(values) == 1:
+                    parsed_query_params[key] = values[0]
+                else:
+                    parsed_query_params[key] = values
+
+        if isinstance(_multi_value_query_string_parameters, dict):
+            for key, values in _multi_value_query_string_parameters.items():
+                if key in parsed_query_params:
+                    continue
+                if not isinstance(values, list):
+                    parsed_query_params[key] = values
+                elif len(values) == 1:
                     parsed_query_params[key] = values[0]
                 else:
                     parsed_query_params[key] = values
