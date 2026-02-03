@@ -37,3 +37,4 @@ class TestGetAllTemplatesPresenter:
         assert "templates" in response_json
         assert response_json["limit"] == 20
         assert response_json["system"] == "GAIA"
+        assert response_json["systems"] == ["GAIA"]

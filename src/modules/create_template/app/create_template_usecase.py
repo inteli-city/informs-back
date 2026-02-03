@@ -17,12 +17,12 @@ class CreateTemplateUsecase:
         system: str,
         description: Optional[str],
         is_active: bool,
-        sessions: List[Section],
+        sections: List[Section],
     ) -> Template:
-        if not sessions:
-            raise EntityError("sessions")
-        if any(len(section.fields) == 0 for section in sessions):
-            raise EntityError("sessions")
+        if not sections:
+            raise EntityError("sections")
+        if any(len(section.fields) == 0 for section in sections):
+            raise EntityError("sections")
 
         now_ts = int(datetime.now(timezone.utc).timestamp() * 1000)
 
@@ -34,7 +34,7 @@ class CreateTemplateUsecase:
             created_by=created_by,
             created_at=now_ts,
             updated_at=now_ts,
-            sections=sessions,
+            sections=sections,
         )
 
         return self.template_repo.create_template(template)

@@ -1,6 +1,6 @@
 import pytest
 
-from src.shared.domain.entities.information_field import ImageInformationField, InformationField, MapInformationField, TextInformationField
+from src.shared.domain.entities.information_field import FileInformationField, InformationField, MapInformationField, TextInformationField
 from src.shared.domain.enums.information_field_type_enum import INFORMATION_FIELD_TYPE
 from src.shared.helpers.errors.domain_errors import EntityError
 
@@ -50,15 +50,16 @@ class Test_InformationField:
         with pytest.raises(EntityError):
             MapInformationField(latitude=1.0, longitude='1')
     
-    # ImageInformationField
+    # FileInformationField
 
-    def test_image_information_field(self):
-        image_information_field = ImageInformationField(file_path='file_path')
+    def test_file_information_field(self):
+        file_information_field = FileInformationField(file_path='file_path')
+        assert file_information_field.information_field_type == INFORMATION_FIELD_TYPE.FILE_INFORMATION_FIELD
     
-    def test_image_information_field_file_path_is_none(self):
+    def test_file_information_field_file_path_is_none(self):
         with pytest.raises(EntityError):
-            ImageInformationField(file_path=None)
+            FileInformationField(file_path=None)
     
-    def test_image_information_field_file_path_is_not_str(self):
+    def test_file_information_field_file_path_is_not_str(self):
         with pytest.raises(EntityError):
-            ImageInformationField(file_path=1)
+            FileInformationField(file_path=1)

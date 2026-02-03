@@ -1,5 +1,8 @@
 import abc
 
+from typing import Optional
+
+from src.shared.domain.enums.file_type_enum import FILE_TYPE
 from src.shared.domain.enums.information_field_type_enum import INFORMATION_FIELD_TYPE
 from src.shared.helpers.errors.domain_errors import EntityError
 
@@ -39,11 +42,15 @@ class MapInformationField(InformationField):
         self.longitude = float(longitude)
 
 
-class ImageInformationField(InformationField):
+class FileInformationField(InformationField):
     file_path: str
+    file_type: Optional[FILE_TYPE]
 
-    def __init__(self, file_path: str):
-        super().__init__(information_field_type=INFORMATION_FIELD_TYPE.IMAGE_INFORMATION_FIELD)
+    def __init__(self, file_path: str, file_type: Optional[FILE_TYPE] = None):
+        super().__init__(information_field_type=INFORMATION_FIELD_TYPE.FILE_INFORMATION_FIELD)
         if not isinstance(file_path, str):
             raise EntityError('file_path')
+        if file_type is not None and not isinstance(file_type, FILE_TYPE):
+            raise EntityError('file_type')
         self.file_path = file_path
+        self.file_type = file_type

@@ -6,7 +6,7 @@ from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAc
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
 from src.shared.helpers.external_interfaces.http_codes import OK, BadRequest, Conflict, Forbidden, InternalServerError, NotFound
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
-from src.shared.domain.entities.image_upload import ImageUploadRequest
+from src.shared.domain.entities.file_upload import FileUploadRequest
 
 
 class CancelFormController:
@@ -27,20 +27,20 @@ class CancelFormController:
         if not isinstance(form_id, str):
             raise WrongTypeParameter(fieldName="form_id", fieldTypeExpected="str", fieldTypeReceived=type(form_id))
         
-        selected_option = data.get("selected_option") or data.get("option")
+        selected_option = data.get("option")
         if selected_option is None:
-            raise MissingParameters("selected_option")
+            raise MissingParameters("option")
         if not isinstance(selected_option, str):
-            raise WrongTypeParameter(fieldName="selected_option", fieldTypeExpected="str", fieldTypeReceived=type(selected_option))
+            raise WrongTypeParameter(fieldName="option", fieldTypeExpected="str", fieldTypeReceived=type(selected_option))
         
-        justification_text = data.get("justification_text") or data.get("text")
+        justification_text = data.get("text")
         if justification_text is not None and not isinstance(justification_text, str):
-            raise WrongTypeParameter(fieldName="justification_text", fieldTypeExpected="str", fieldTypeReceived=type(justification_text))
+            raise WrongTypeParameter(fieldName="text", fieldTypeExpected="str", fieldTypeReceived=type(justification_text))
         
-        justification_image = data.get("justification_image") or data.get("image")
+        justification_image = data.get("file")
         if justification_image is not None:
             if not isinstance(justification_image, dict):
-                raise WrongTypeParameter(fieldName="justification_image", fieldTypeExpected="dict", fieldTypeReceived=type(justification_image))
+                raise WrongTypeParameter(fieldName="file", fieldTypeExpected="dict", fieldTypeReceived=type(justification_image))
             filename = justification_image.get("filename")
             if filename is None:
                 raise MissingParameters("filename")
@@ -51,7 +51,7 @@ class CancelFormController:
                 raise MissingParameters("mimetype")
             if not isinstance(mimetype, str):
                 raise WrongTypeParameter(fieldName="mimetype", fieldTypeExpected="str", fieldTypeReceived=type(mimetype))
-            justification_image = ImageUploadRequest(filename=filename, mimetype=mimetype)
+            justification_image = FileUploadRequest(filename=filename, mimetype=mimetype)
 
         cancelled_at = data.get("cancelled_at")
         if cancelled_at is not None:
@@ -66,7 +66,7 @@ class CancelFormController:
 
             form_id, selected_option, justification_text, justification_image, cancelled_at = self._validate_endpoint_parameters(data)
             
-            image = self.usecase(
+            file_upload = self.usecase(
                 requester_id=requester_user.user_id,
                 form_id=form_id,
                 selected_option=selected_option,
@@ -75,7 +75,7 @@ class CancelFormController:
                 cancelled_at=cancelled_at
             )
 
-            viewmodel = CancelFormViewmodel(image=image)
+            viewmodel = CancelFormViewmodel(file_upload=file_upload)
             return OK(viewmodel.to_dict())
         
         except NoItemsFound as err:

@@ -41,9 +41,10 @@ class TemplateViewmodel:
         return {
             "id": self.template.id,
             "name": self.template.name,
+            "system": self.template.system,
             "description": self.template.description,
             "is_active": self.template.is_active,
-            "sessions": [SectionViewmodel(section).to_dict() for section in self.template.sections],
+            "sections": [SectionViewmodel(section).to_dict() for section in self.template.sections],
             "created_by": self.template.created_by,
             "created_at": self.template.created_at,
             "updated_at": self.template.updated_at,
@@ -51,16 +52,20 @@ class TemplateViewmodel:
 
 
 class GetAllTemplatesViewmodel:
-    def __init__(self, templates: List[Template], limit: int, last_evaluated_key: Optional[str], system: str):
+    def __init__(self, templates: List[Template], limit: Optional[int], last_evaluated_key: Optional[str], systems: List[str]):
         self.templates = templates
         self.limit = limit
         self.last_evaluated_key = last_evaluated_key
-        self.system = system
+        self.systems = systems
 
     def to_dict(self):
-        return {
+        payload = {
             "templates": [TemplateViewmodel(template).to_dict() for template in self.templates],
             "limit": self.limit,
-            "system": self.system,
             "last_evaluated_key": self.last_evaluated_key,
         }
+        if self.systems is not None:
+            payload["systems"] = self.systems
+            if len(self.systems) == 1:
+                payload["system"] = self.systems[0]
+        return payload

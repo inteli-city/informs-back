@@ -1,0 +1,79 @@
+## INFORMATION FIELD DEFINITION
+
+InformationFieldInput:
+  oneOf:
+  - { $ref: "#/TextInformationFieldInput" }
+  - { $ref: "#/MapInformationFieldInput" }
+  - { $ref: "#/FileInformationFieldInput" }
+  discriminator:
+    propertyName: information_field_type
+    mapping:
+      TEXT_INFORMATION_FIELD: "#/TextInformationFieldInput"
+      MAP_INFORMATION_FIELD: "#/MapInformationFieldInput"
+      FILE_INFORMATION_FIELD: "#/FileInformationFieldInput"
+
+InformationField:
+  oneOf:
+    - { $ref: "#/FileInformationField" }
+    - { $ref: "#/TextInformationField" }
+    - { $ref: "#/MapInformationField" }
+  discriminator:
+    propertyName: information_field_type
+    mapping:
+      FILE_INFORMATION_FIELD: "#/FileInformationField"
+      TEXT_INFORMATION_FIELD: "#/TextInformationField"
+      MAP_INFORMATION_FIELD: "#/MapInformationField"
+
+## IMAGE INFORMATION FIELD
+
+FileInformationFieldInput:
+  type: object
+  properties:
+    information_field_type: { type: string, enum: [FILE_INFORMATION_FIELD] }
+    filename: { type: string }
+    mimetype: { type: string }
+    file_type: { $ref: "../../enums/docs/file-type.yaml", nullable: true }
+  required: [information_field_type, filename, mimetype]
+
+FileInformationField:
+  type: object
+  required: [information_field_type, file_path]
+  properties:
+    information_field_type: { const: FILE_INFORMATION_FIELD }
+    file_type: { $ref: "../../enums/docs/file-type.yaml", nullable: true }
+    file_path: { type: string }
+
+## TEXT INFORMATION FIELD
+
+TextInformationFieldInput:
+  type: object
+  properties:
+    information_field_type: { const: TEXT_INFORMATION_FIELD }
+    value: { type: string }
+  required: [information_field_type, value]
+
+TextInformationField:
+  type: object
+  required: [information_field_type, value]
+  properties:
+    information_field_type: { const: TEXT_INFORMATION_FIELD }
+    value: { type: string }
+
+## MAP INFORMATION FIELD
+
+MapInformationFieldInput:
+  type: object
+  properties:
+    information_field_type: {const: MAP_INFORMATION_FIELD }
+    latitude: { type: number }
+    longitude: { type: number }
+  required: [information_field_type, latitude, longitude]
+
+MapInformationField:
+  type: object
+  required: [information_field_type, latitude, longitude]
+  properties:
+    information_field_type: { const: MAP_INFORMATION_FIELD }
+    latitude: { type: number }
+    longitude: { type: number }
+

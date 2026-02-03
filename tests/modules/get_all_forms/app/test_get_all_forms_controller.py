@@ -19,7 +19,7 @@ class Test_GetAllFormsController:
                 "sub": repo.forms[0].user_id,
                 "name": "User",
                 "email": "user@test.com",
-                "cognito:groups": "FORMULARIOS"
+                "cognito:groups": "FORMULARIOS,GAIA"
             },
             "limit": 20,
             "status": "PENDING",
@@ -43,7 +43,7 @@ class Test_GetAllFormsController:
                 "sub": repo.forms[0].user_id,
                 "name": "User",
                 "email": "user@test.com",
-                "cognito:groups": "FORMULARIOS"
+                "cognito:groups": "FORMULARIOS,GAIA"
             },
             "limit": 0
         })
@@ -64,7 +64,7 @@ class Test_GetAllFormsController:
                     "sub": repo.forms[0].user_id,
                     "name": "User",
                     "email": "user@test.com",
-                    "cognito:groups": "FORMULARIOS"
+                    "cognito:groups": "FORMULARIOS,GAIA"
                 },
                 "limit": 20,
             },

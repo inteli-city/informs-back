@@ -6,20 +6,20 @@ sys.path.append(os.getcwd())
 
 from src.modules.create_form.app.create_form_usecase import CreateFormUsecase
 from src.shared.domain.entities.field import TextField
-from src.shared.domain.entities.information_field import ImageInformationField, TextInformationField
+from src.shared.domain.entities.information_field import FileInformationField, TextInformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption
 from src.shared.domain.entities.section import Section
-from src.shared.domain.entities.image_upload import ImageUploadRequest
+from src.shared.domain.entities.file_upload import FileUploadRequest
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.enums.priority_enum import PRIORITY
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
-from src.shared.infra.repositories.image_repository_mock import ImageRepositoryMock
+from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
 
 
 def _make_usecase_and_payload():
     repo = FormRepositoryMock()
-    image_repo = ImageRepositoryMock()
-    usecase = CreateFormUsecase(repo, image_repo)
+    file_repo = FileRepositoryMock()
+    usecase = CreateFormUsecase(repo, file_repo)
 
     text_field = TextField(
         placeholder='placeholder',
@@ -59,7 +59,7 @@ class Test_CreateFormUsecase:
     def test_create_form_usecase(self):
         usecase, payload = _make_usecase_and_payload()
 
-        form, images = usecase(**payload)
+        form, files = usecase(**payload)
 
         assert len(form.id) == 36
         assert form.status == FORM_STATUS.PENDING
@@ -68,17 +68,17 @@ class Test_CreateFormUsecase:
         assert form.expiration_date == 946407600000
         assert form.sections[0].section_id == 1
         assert isinstance(form.information_fields[0], TextInformationField)
-        assert images == []
+        assert files == []
 
-    def test_create_form_usecase_with_images(self):
+    def test_create_form_usecase_with_files(self):
         usecase, payload = _make_usecase_and_payload()
         payload = deepcopy(payload)
-        payload["information_fields"] = [ImageInformationField(file_path="")]
-        payload["information_fields_uploads"] = [ImageUploadRequest(filename="a.jpg", mimetype="image/jpeg")]
+        payload["information_fields"] = [FileInformationField(file_path="")]
+        payload["information_fields_uploads"] = [FileUploadRequest(filename="a.jpg", mimetype="image/jpeg")]
 
-        form, images = usecase(**payload)
+        form, files = usecase(**payload)
 
         assert form.information_fields[0].file_path.startswith("https://")
-        assert len(images) == 1
-        assert images[0].filename == "a.jpg"
-        assert images[0].mimetype == "image/jpeg"
+        assert len(files) == 1
+        assert files[0].filename == "a.jpg"
+        assert files[0].mimetype == "image/jpeg"

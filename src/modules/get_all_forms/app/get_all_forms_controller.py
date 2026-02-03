@@ -40,8 +40,21 @@ class GetAllFormsController:
                 raise WrongTypeParameter(field, "str", type(value))
             return value
 
-        limit = _parse_optional_int("limit", data.get("limit"), default=20)
-        if limit < 1 or limit > 100:
+        def _parse_optional_str_list(field: str, value):
+            if value is None:
+                return None
+            if isinstance(value, list):
+                if not value:
+                    return []
+                if not all(isinstance(item, str) for item in value):
+                    raise WrongTypeParameter(field, "list[str]", type(value))
+                return value
+            if isinstance(value, str):
+                return [value]
+            raise WrongTypeParameter(field, "list[str]", type(value))
+
+        limit = _parse_optional_int("limit", data.get("limit"), default=None)
+        if limit is not None and (limit < 1 or limit > 10000):
             raise EntityError("limit")
 
         status = None
@@ -58,7 +71,7 @@ class GetAllFormsController:
                 parsed_statuses.append(FORM_STATUS[status_str])
             status = parsed_statuses[0] if len(parsed_statuses) == 1 else parsed_statuses
 
-        system = _parse_optional_str("system", data.get("system"))
+        system = _parse_optional_str_list("system", data.get("system"))
         search = _parse_optional_str("search", data.get("search"))
         created_at_start = _parse_optional_int("created_at_start", data.get("created_at_start"))
         created_at_end = _parse_optional_int("created_at_end", data.get("created_at_end"))
@@ -89,7 +102,7 @@ class GetAllFormsController:
             ) = self._validate_endpoint_parameters(data)
 
             forms, next_key = self.usecase(
-                requester_user_id=requester_user.user_id,
+                requester=requester_user,
                 limit=limit,
                 exclusive_start_key=exclusive_start_key,
                 status=status,

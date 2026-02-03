@@ -1,0 +1,24 @@
+type: object
+required: [form_title, user_id, system, city, street, latitude, longitude, priority, justifications, sections]
+properties:
+  form_title: { type: string }
+  user_id: { type: string }
+  template: { type: string, nullable: true }
+  system: { type: string }
+  city: { type: string }
+  street: { type: string }
+  latitude: { type: number }
+  longitude: { type: number }
+  priority: { $ref: "../enums/docs/form-priority.yaml", default: 0 }
+  observation: { type: string, nullable: true }
+  expiration_date: { type: number, nullable: true }
+  justifications:
+    type: array
+    items: { $ref: "../entities/docs/justification.yaml#/JustificationOption" }
+  sections:
+    type: array
+    items: { $ref: "../entities/docs/form.yaml#/FormSection" }
+  information_fields:
+    type: array
+    items: { $ref: "../entities/docs/information-field.yaml#/InformationFieldInput" }
+    nullable: true

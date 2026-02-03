@@ -178,11 +178,46 @@ class FieldDTO:
 
     @staticmethod
     def _build_checkbox_group_field(base_args: dict, field_dict: dict) -> CheckBoxGroupField:
+        value_raw = field_dict.get("value")
+        options = field_dict.get("options")
+        normalized_value = None
+
+        if value_raw is not None:
+            if isinstance(value_raw, dict):
+                if not isinstance(options, list) or not options:
+                    raise EntityError("options")
+                unknown_keys = [key for key in value_raw.keys() if key not in options]
+                if unknown_keys:
+                    raise EntityError("value")
+                normalized_value = []
+                for option in options:
+                    entry = value_raw.get(option)
+                    if entry is None:
+                        entry = False
+                    if isinstance(entry, (int, float)) and entry in (0, 1):
+                        entry = bool(entry)
+                    if not isinstance(entry, bool):
+                        raise EntityError("value")
+                    normalized_value.append(entry)
+            elif isinstance(value_raw, list):
+                normalized_value = []
+                for entry in value_raw:
+                    if entry is None:
+                        normalized_value.append(False)
+                    elif isinstance(entry, (int, float)) and entry in (0, 1):
+                        normalized_value.append(bool(entry))
+                    elif isinstance(entry, bool):
+                        normalized_value.append(entry)
+                    else:
+                        raise EntityError("value")
+            else:
+                raise EntityError("value")
+
         return CheckBoxGroupField(
             **base_args,
-            options=field_dict.get("options"),
+            options=options,
             check_limit=FieldDTO._to_int(field_dict.get("check_limit")),
-            value=[bool(value) for value in field_dict.get("value")] if field_dict.get("value") is not None else None,
+            value=normalized_value,
         )
 
     @staticmethod

@@ -3,15 +3,15 @@ from src.modules.cancel_form.app.cancel_form_usecase import CancelFormUsecase
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.helpers.external_interfaces.http_models import HttpRequest
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
-from src.shared.infra.repositories.image_repository_mock import ImageRepositoryMock
+from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
 
 
 class Test_CancelFormController:
 
     def test_cancel_form_controller(self):
         form_repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo)
+        file_repo = FileRepositoryMock()
+        usecase = CancelFormUsecase(form_repo, file_repo)
 
         controller = CancelFormController(usecase)
 
@@ -24,27 +24,27 @@ class Test_CancelFormController:
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
             "form_id": form_repo.forms[0].id,
-            "selected_option": "option",
-            "justification_text": "justification_test",
-            "justification_image": {"filename": "a.jpg", "mimetype": "image/png"}
+            "option": "option",
+            "text": "justification_test",
+            "file": {"filename": "a.jpg", "mimetype": "image/png"}
         })
 
         response = controller(data)
 
         assert response.status_code == 200
-        assert response.body["image"]["filename"] == "a.jpg"
+        assert response.body["files"][0]["filename"] == "a.jpg"
     
     def test_cancel_form_controller_missing_request_user(self):
         form_repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo)
+        file_repo = FileRepositoryMock()
+        usecase = CancelFormUsecase(form_repo, file_repo)
 
         controller = CancelFormController(usecase)
 
         data = HttpRequest(body={"form_id": form_repo.forms[0].id,
-            "selected_option": "option",
-            "justification_text": "justification_test",
-            "justification_image": {"filename": "a.jpg", "mimetype": "image/png"}
+            "option": "option",
+            "text": "justification_test",
+            "file": {"filename": "a.jpg", "mimetype": "image/png"}
         })
 
         response = controller(data)
@@ -54,8 +54,8 @@ class Test_CancelFormController:
     
     def test_cancel_form_controller_missing_form_id(self):
         form_repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo)
+        file_repo = FileRepositoryMock()
+        usecase = CancelFormUsecase(form_repo, file_repo)
 
         controller = CancelFormController(usecase)
 
@@ -65,9 +65,9 @@ class Test_CancelFormController:
                 "email": 'gabriel@gmail.com',
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
-            "selected_option": "option",
-            "justification_text": "justification_test",
-            "justification_image": {"filename": "a.jpg", "mimetype": "image/png"}
+            "option": "option",
+            "text": "justification_test",
+            "file": {"filename": "a.jpg", "mimetype": "image/png"}
         })
 
         response = controller(data)
@@ -77,8 +77,8 @@ class Test_CancelFormController:
     
     def test_cancel_form_controller_missing_selected_option(self):
         form_repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo)
+        file_repo = FileRepositoryMock()
+        usecase = CancelFormUsecase(form_repo, file_repo)
 
         controller = CancelFormController(usecase)
 
@@ -89,19 +89,19 @@ class Test_CancelFormController:
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
             "form_id": form_repo.forms[0].id,
-            "justification_text": "justification_test",
-            "justification_image": {"filename": "a.jpg", "mimetype": "image/png"}
+            "text": "justification_test",
+            "file": {"filename": "a.jpg", "mimetype": "image/png"}
         })
     
         response = controller(data)
 
         assert response.status_code == 400
-        assert response.body == 'Parâmetro ausente: selected_option'
+        assert response.body == 'Parâmetro ausente: option'
     
     def test_cancel_form_controller_wrong_type_selected_option(self):
         form_repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo)
+        file_repo = FileRepositoryMock()
+        usecase = CancelFormUsecase(form_repo, file_repo)
 
         controller = CancelFormController(usecase)
 
@@ -112,20 +112,20 @@ class Test_CancelFormController:
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
             "form_id": form_repo.forms[0].id,
-            "selected_option": 123,
-            "justification_text": "justification_test",
-            "justification_image": {"filename": "a.jpg", "mimetype": "image/png"}
+            "option": 123,
+            "text": "justification_test",
+            "file": {"filename": "a.jpg", "mimetype": "image/png"}
         })
 
         response = controller(data)
 
         assert response.status_code == 400
-        assert response.body == 'Campo selected_option deveria ser do tipo str, mas foi recebido um campo do tipo <class \'int\'>'
+        assert response.body == 'Campo option deveria ser do tipo str, mas foi recebido um campo do tipo <class \'int\'>'
     
     def test_cancel_form_controller_wrong_type_justification_text(self):
         form_repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo)
+        file_repo = FileRepositoryMock()
+        usecase = CancelFormUsecase(form_repo, file_repo)
 
         controller = CancelFormController(usecase)
 
@@ -136,20 +136,20 @@ class Test_CancelFormController:
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
             "form_id": form_repo.forms[0].id,
-            "selected_option": "selected",
-            "justification_text": 123,
-            "justification_image": {"filename": "a.jpg", "mimetype": "image/png"}
+            "option": "selected",
+            "text": 123,
+            "file": {"filename": "a.jpg", "mimetype": "image/png"}
         })
 
         response = controller(data)
 
         assert response.status_code == 400
-        assert response.body == 'Campo justification_text deveria ser do tipo str, mas foi recebido um campo do tipo <class \'int\'>'
+        assert response.body == 'Campo text deveria ser do tipo str, mas foi recebido um campo do tipo <class \'int\'>'
     
     def test_cancel_form_controller_wrong_type_justification_image(self):
         form_repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        usecase = CancelFormUsecase(form_repo, image_repo)
+        file_repo = FileRepositoryMock()
+        usecase = CancelFormUsecase(form_repo, file_repo)
 
         controller = CancelFormController(usecase)
 
@@ -160,12 +160,12 @@ class Test_CancelFormController:
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
             "form_id": form_repo.forms[0].id,
-            "selected_option": "selected",
-            "justification_text": "justification_test",
-            "justification_image": 123
+            "option": "selected",
+            "text": "justification_test",
+            "file": 123
         })
 
         response = controller(data)
 
         assert response.status_code == 400
-        assert response.body == 'Campo justification_image deveria ser do tipo dict, mas foi recebido um campo do tipo <class \'int\'>'
+        assert response.body == 'Campo file deveria ser do tipo dict, mas foi recebido um campo do tipo <class \'int\'>'

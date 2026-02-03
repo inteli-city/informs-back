@@ -56,9 +56,9 @@ class Test_CancelFormPresenter:
             },
             "body": {
                 "form_id": "d61dbf66-a10f-11ed-a8fc-0242ac120010",
-                "selected_option": "option",
-                "justification_text": "justification_test",
-                "justification_image": {"filename": "a.jpg", "mimetype": "image/jpeg"},
+                "option": "option",
+                "text": "justification_test",
+                "file": {"filename": "a.jpg", "mimetype": "image/jpeg"},
                 "cancelled_at": 1764960000000
             },
             "pathParameters": None,
@@ -71,4 +71,4 @@ class Test_CancelFormPresenter:
         response_json = json.loads(response["body"])
 
         assert response["statusCode"] == 200
-        assert response_json["image"]["filename"] == "a.jpg"
+        assert response_json["files"][0]["filename"] == "a.jpg"

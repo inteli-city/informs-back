@@ -1,11 +1,11 @@
-from src.shared.domain.entities.image_upload import ImageUpload
+from src.shared.domain.entities.file_upload import FileUpload
 
 
 class SubmitFormViewmodel:
-    def __init__(self, images: list[ImageUpload]):
-        self.images = images
+    def __init__(self, files: list[FileUpload]):
+        self.files = files
 
     def to_dict(self) -> dict:
         return {
-            "images": [image.to_dict() for image in self.images]
+            "files": [file.to_dict() for file in self.files]
         }

@@ -20,10 +20,10 @@ class IFormRepository(ABC):
     @abstractmethod
     def get_all_forms(
         self,
-        limit: int,
+        limit: Optional[int],
         exclusive_start_key: Optional[dict] = None,
         status: Optional[Union[FORM_STATUS, List[FORM_STATUS]]] = None,
-        system: Optional[str] = None,
+        system: Optional[Union[str, List[str]]] = None,
         user_id: Optional[str] = None,
         created_at_start: Optional[int] = None,
         created_at_end: Optional[int] = None,

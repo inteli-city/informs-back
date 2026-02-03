@@ -2,22 +2,23 @@ from datetime import datetime, timezone
 from typing import List, Optional
 import uuid
 from src.shared.domain.entities.form import Form
-from src.shared.domain.entities.image_upload import ImageUpload, ImageUploadRequest
-from src.shared.domain.entities.information_field import ImageInformationField, InformationField
+from src.shared.domain.entities.file_upload import FileUpload, FileUploadRequest
+from src.shared.domain.entities.information_field import FileInformationField, InformationField
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import Section
+from src.shared.domain.enums.file_type_enum import FILE_TYPE
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.enums.priority_enum import PRIORITY
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
-from src.shared.domain.repositories.image_repository_interface import IImageRepository
+from src.shared.domain.repositories.file_repository_interface import IFileRepository
 from src.shared.helpers.functions.s3_url import build_s3_url
 from src.shared.helpers.errors.domain_errors import EntityError
 
 
 class CreateFormUsecase:
-    def __init__(self, form_repo: IFormRepository, image_repo: IImageRepository):
+    def __init__(self, form_repo: IFormRepository, file_repo: IFileRepository):
         self.form_repo = form_repo
-        self.image_repo = image_repo
+        self.file_repo = file_repo
 
     def __call__(
         self,
@@ -37,38 +38,43 @@ class CreateFormUsecase:
         observation: Optional[str] = None,
         expiration_date: Optional[int] = None,
         information_fields: Optional[List[InformationField]] = None,
-        information_fields_uploads: Optional[List[Optional[ImageUploadRequest]]] = None,
-    ) -> tuple[Form, list[ImageUpload]]:
+        information_fields_uploads: Optional[List[Optional[FileUploadRequest]]] = None,
+    ) -> tuple[Form, list[FileUpload]]:
         
         form_id = str(uuid.uuid4())
         now_timestamp = int(datetime.now(timezone.utc).timestamp() * 1000)
-        images: list[ImageUpload] = []
+        files: list[FileUpload] = []
 
         if information_fields:
             uploads = information_fields_uploads or []
             for idx, information_field in enumerate(information_fields):
-                if isinstance(information_field, ImageInformationField):
+                if isinstance(information_field, FileInformationField):
                     if idx >= len(uploads) or uploads[idx] is None:
                         raise EntityError("mimetype")
                     upload = uploads[idx]
-                    if not isinstance(upload, ImageUploadRequest):
+                    if not isinstance(upload, FileUploadRequest):
                         raise EntityError("mimetype")
                     mimetype = upload.mimetype
                     filename = upload.filename
-                    image_path = f'{datetime.now(timezone.utc).year}/{system}/{form_id}/information_field/{str(uuid.uuid4())}.{mimetype.split("/")[-1]}'
-                    presigned_url = self.image_repo.generate_presigned_url(
-                        image_path=image_path,
+                    file_path = f'{datetime.now(timezone.utc).year}/{system}/{form_id}/information_field/{str(uuid.uuid4())}.{mimetype.split("/")[-1]}'
+                    presigned_url = self.file_repo.generate_presigned_url(
+                        file_path=file_path,
                         mimetype=mimetype,
                     )
-                    image_url = build_s3_url(image_path)
-                    information_field.file_path = image_url
-                    images.append(
-                        ImageUpload(
+                    file_url = build_s3_url(file_path)
+                    information_field.file_path = file_url
+                    if information_field.file_type is None:
+                        if mimetype.lower().startswith("image/"):
+                            information_field.file_type = FILE_TYPE.IMAGE
+                        else:
+                            information_field.file_type = FILE_TYPE.DOCUMENT
+                    files.append(
+                        FileUpload(
                             filename=filename,
                             mimetype=mimetype,
                             pre_signed_url=presigned_url,
-                            image_path=image_path,
-                            image_url=image_url,
+                            file_path=file_path,
+                            file_url=file_url,
                             section_id=None,
                             field_key=None,
                             file_index=None,
@@ -99,4 +105,4 @@ class CreateFormUsecase:
         )
 
         created_form = self.form_repo.create_form(form)
-        return created_form, images
+        return created_form, files

@@ -4,7 +4,6 @@ from pathlib import Path
 JSON_PATH_SUFFIXES = ("/docs/json", "/docs/swagger.json", "/docs/openapi.json")
 JSON_QUERY_KEYS = ("format", "output")
 
-
 def _get_request_path(event: dict) -> str:
     if not event:
         return ""

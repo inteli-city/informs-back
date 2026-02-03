@@ -1,0 +1,36 @@
+get:
+  summary: Consulta template por ID
+  tags: [Templates]
+  parameters:
+    - name: template_id
+      in: path
+      required: true
+      schema: { type: string }
+  responses:
+    "200":
+      description: Dados do template
+      content:
+        application/json:
+          schema: { $ref: "../../components/responses/get-template-response.yaml" }
+    "404": { description: Template não encontrado }
+put:
+  summary: Altera um template
+  tags: [Templates]
+  parameters:
+    - name: template_id
+      in: path
+      required: true
+      schema: { type: string }
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: "../../components/requests/update-template-request.yaml" }
+  responses:
+    "200":
+      description: Template atualizado
+      content:
+        application/json:
+          schema: { $ref: "../../components/responses/update-template-response.yaml" }
+    "404": { description: Não encontrado }
+    "409": { description: Conflito }

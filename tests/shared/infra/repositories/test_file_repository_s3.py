@@ -5,8 +5,8 @@ sys.path.append(os.getcwd())
 
 import pytest
 
-from src.shared.helpers.errors.usecase_errors import ErrorWithImage
-from src.shared.infra.repositories.image_repository_s3 import ImageRepositoryS3
+from src.shared.helpers.errors.usecase_errors import ErrorWithFile
+from src.shared.infra.repositories.file_repository_s3 import FileRepositoryS3
 
 
 class FakeS3Client:
@@ -27,13 +27,13 @@ class FakeS3Client:
         return "https://presigned.example/test"
 
 
-def test_image_repository_s3_generate_presigned_url(monkeypatch):
+def test_file_repository_s3_generate_presigned_url(monkeypatch):
     os.environ["STAGE"] = "TEST"
     client = FakeS3Client()
     monkeypatch.setattr("boto3.client", lambda *args, **kwargs: client)
 
-    repo = ImageRepositoryS3()
-    url = repo.generate_presigned_url(image_path="path/file.jpg", mimetype="image/jpeg", expires_in=1200)
+    repo = FileRepositoryS3()
+    url = repo.generate_presigned_url(file_path="path/file.jpg", mimetype="image/jpeg", expires_in=1200)
 
     assert url == "https://presigned.example/test"
     assert client.calls
@@ -45,12 +45,12 @@ def test_image_repository_s3_generate_presigned_url(monkeypatch):
     assert call["HttpMethod"] == "PUT"
 
 
-def test_image_repository_s3_generate_presigned_url_error(monkeypatch):
+def test_file_repository_s3_generate_presigned_url_error(monkeypatch):
     os.environ["STAGE"] = "TEST"
     client = FakeS3Client(should_fail=True)
     monkeypatch.setattr("boto3.client", lambda *args, **kwargs: client)
 
-    repo = ImageRepositoryS3()
+    repo = FileRepositoryS3()
 
-    with pytest.raises(ErrorWithImage):
-        repo.generate_presigned_url(image_path="path/file.jpg", mimetype="image/jpeg", expires_in=1200)
+    with pytest.raises(ErrorWithFile):
+        repo.generate_presigned_url(file_path="path/file.jpg", mimetype="image/jpeg", expires_in=1200)

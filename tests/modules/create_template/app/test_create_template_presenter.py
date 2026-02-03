@@ -32,7 +32,7 @@ class TestCreateTemplatePresenter:
                 "system": "GAIA",
                 "description": "Description",
                 "is_active": True,
-                "sessions": [
+                "sections": [
                     {
                         "section_id": 1,
                         "fields": [

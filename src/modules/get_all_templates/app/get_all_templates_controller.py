@@ -32,8 +32,8 @@ class GetAllTemplatesController:
                 raise WrongTypeParameter(field, "int", type(value))
             return value
 
-        limit = _parse_optional_int("limit", data.get("limit"), default=20)
-        if limit < 1 or limit > 100:
+        limit = _parse_optional_int("limit", data.get("limit"), default=None)
+        if limit is not None and (limit < 1 or limit > 10000):
             raise EntityError("limit")
 
         is_active_raw = data.get("is_active")
@@ -45,11 +45,17 @@ class GetAllTemplatesController:
             raise WrongTypeParameter(is_active_field, "bool", type(is_active_raw))
         is_active = is_active_raw
         
-        system = data.get("system")
-        if system is None:
-            raise MissingParameters("system")
-        if not isinstance(system, str):
-            raise WrongTypeParameter("system", "str", type(system))
+        system_raw = data.get("system")
+        if system_raw is None:
+            system = None
+        elif isinstance(system_raw, list):
+            if not all(isinstance(item, str) for item in system_raw):
+                raise WrongTypeParameter("system", "list[str]", type(system_raw))
+            system = system_raw
+        elif isinstance(system_raw, str):
+            system = [system_raw]
+        else:
+            raise WrongTypeParameter("system", "list[str]", type(system_raw))
 
         name_filter = data.get("name")
         if name_filter is not None and not isinstance(name_filter, str):
@@ -75,14 +81,20 @@ class GetAllTemplatesController:
 
             templates, next_key = self.usecase(
                 requester=requester,
-                system=system,
+                systems=system,
                 limit=limit,
                 exclusive_start_key=exclusive_start_key,
                 name_contains=name_filter,
                 is_active=is_active,
             )
 
-            viewmodel = GetAllTemplatesViewmodel(templates=templates, limit=limit, last_evaluated_key=next_key, system=system)
+            systems_used = system if system is not None else requester.systems
+            viewmodel = GetAllTemplatesViewmodel(
+                templates=templates,
+                limit=limit,
+                last_evaluated_key=next_key,
+                systems=systems_used,
+            )
             return OK(viewmodel.to_dict())
 
         except NoItemsFound as err:

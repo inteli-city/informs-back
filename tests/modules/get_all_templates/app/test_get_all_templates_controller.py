@@ -40,6 +40,7 @@ class TestGetAllTemplatesController:
         assert len(response.body["templates"]) == 1
         assert response.body["templates"][0]["id"] == self.repo.templates[0].id
         assert response.body["system"] == self.repo.templates[0].system
+        assert response.body["systems"] == [self.repo.templates[0].system]
 
     def test_get_all_templates_controller_invalid_limit(self):
         request = HttpRequest(body={
@@ -76,7 +77,7 @@ class TestGetAllTemplatesController:
         response = self.controller(request)
 
         assert response.status_code == 400
-        assert response.body == "Campo system deveria ser do tipo str, mas foi recebido um campo do tipo <class 'int'>"
+        assert response.body == "Campo system deveria ser do tipo list[str], mas foi recebido um campo do tipo <class 'int'>"
 
     def test_get_all_templates_controller_missing_requester(self):
         request = HttpRequest(body={"limit": 20, "system": "GAIA"})
@@ -91,8 +92,8 @@ class TestGetAllTemplatesController:
 
         response = self.controller(request)
 
-        assert response.status_code == 400
-        assert response.body == "Parâmetro ausente: system"
+        assert response.status_code == 200
+        assert "templates" in response.body
 
     def test_get_all_templates_controller_forbidden_system(self):
         requester = {
