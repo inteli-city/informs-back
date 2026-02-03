@@ -5,8 +5,6 @@ from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
 from src.shared.helpers.external_interfaces.http_codes import OK, BadRequest, Forbidden, InternalServerError, NotFound
-from src.shared.infra.dtos.section_dto import SectionDTO
-from src.shared.domain.entities.file_upload import FileUploadRequest
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 
 
@@ -36,58 +34,58 @@ class SubmitFormController:
 
         completed_at = completed_at_raw
 
-        sections_raw = data.get("sections")
-        if sections_raw is None:
-            raise MissingParameters("sections")
-        if not isinstance(sections_raw, list):
-            raise WrongTypeParameter(fieldName="sections", fieldTypeExpected="list", fieldTypeReceived=type(sections_raw))
+        fields_raw = data.get("fields")
+        if fields_raw is None:
+            raise MissingParameters("fields")
+        if not isinstance(fields_raw, list):
+            raise WrongTypeParameter(fieldName="fields", fieldTypeExpected="list", fieldTypeReceived=type(fields_raw))
+        if len(fields_raw) == 0:
+            raise MissingParameters("fields")
 
-        if len(sections_raw) == 0:
-            raise MissingParameters("sections")
+        fields = []
+        for item in fields_raw:
+            if not isinstance(item, dict):
+                raise WrongTypeParameter(fieldName="fields", fieldTypeExpected="dict", fieldTypeReceived=type(item))
+            section_id = item.get("section_id")
+            if section_id is None:
+                raise MissingParameters("section_id")
+            if isinstance(section_id, bool):
+                raise WrongTypeParameter(fieldName="section_id", fieldTypeExpected="int", fieldTypeReceived=type(section_id))
+            if isinstance(section_id, str) and section_id.isdigit():
+                section_id = int(section_id)
+            if not isinstance(section_id, int):
+                raise WrongTypeParameter(fieldName="section_id", fieldTypeExpected="int", fieldTypeReceived=type(section_id))
 
-        sections = [SectionDTO.from_request(section).to_entity() for section in sections_raw]
-        file_uploads = {}
-        for section in sections_raw:
-            section_id = section.get("section_id")
-            for field in section.get("fields", []):
-                if field.get("field_type") == "FILE_FIELD" and field.get("value") is not None:
-                    field_key = field.get("key")
-                    uploads = field.get("value")
-                    if isinstance(uploads, dict):
-                        uploads = [uploads]
-                    if not isinstance(uploads, list) or not uploads:
-                        raise MissingParameters("value")
-                    normalized = []
-                    for upload in uploads:
-                        if not isinstance(upload, dict):
-                            raise WrongTypeParameter(fieldName="value", fieldTypeExpected="dict", fieldTypeReceived=type(upload))
-                        filename = upload.get("filename")
-                        if filename is None:
-                            raise MissingParameters("filename")
-                        if not isinstance(filename, str):
-                            raise WrongTypeParameter(fieldName="filename", fieldTypeExpected="str", fieldTypeReceived=type(filename))
-                        mimetype = upload.get("mimetype")
-                        if mimetype is None:
-                            raise MissingParameters("mimetype")
-                        if not isinstance(mimetype, str):
-                            raise WrongTypeParameter(fieldName="mimetype", fieldTypeExpected="str", fieldTypeReceived=type(mimetype))
-                        normalized.append(FileUploadRequest(filename=filename, mimetype=mimetype))
-                    file_uploads[(section_id, field_key)] = normalized
+            field_key = item.get("field_key")
+            if field_key is None:
+                raise MissingParameters("field_key")
+            if not isinstance(field_key, str):
+                raise WrongTypeParameter(fieldName="field_key", fieldTypeExpected="str", fieldTypeReceived=type(field_key))
 
-        return form_id, completed_at, sections, file_uploads
+            if "value" not in item:
+                raise MissingParameters("value")
+
+            fields.append(
+                {
+                    "section_id": section_id,
+                    "field_key": field_key,
+                    "value": item.get("value"),
+                }
+            )
+
+        return form_id, completed_at, fields
     
     def __call__(self, request: IRequest) -> IResponse:
         try:
             data = request.data if isinstance(request.data, dict) else {}
             requester_user = self._validate_requester_user(data)
-            form_id, completed_at, sections, file_uploads = self._validate_endpoint_parameters(data)
+            form_id, completed_at, fields = self._validate_endpoint_parameters(data)
                 
             files = self.submit_form_usecase(
                 user_id=requester_user.user_id,
                 form_id=form_id,
-                sections=sections,
+                fields=fields,
                 completed_at=completed_at,
-                file_uploads=file_uploads,
             )
 
             viewmodel = SubmitFormViewmodel(files=files)

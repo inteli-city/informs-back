@@ -1,7 +1,6 @@
 import pytest
 from src.modules.submit_form.app.submit_form_usecase import SubmitFormUsecase
-from src.shared.domain.entities.field import FileField, TextField
-from src.shared.domain.entities.file_upload import FileUploadRequest
+from src.shared.domain.entities.field import FileField
 from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.file_type_enum import FILE_TYPE
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
@@ -18,17 +17,12 @@ class Test_SubmitFormUsecase:
         usecase = SubmitFormUsecase(repo, file_repo)
 
         form = repo.forms[0]
-        
-        text_field = TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='poggers')
 
-        sections = [
-            Section(
-                section_id=1,
-                fields=[text_field]
-            )
+        fields = [
+            {"section_id": 1, "field_key": "key", "value": "poggers"}
         ]
 
-        usecase(user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001', form_id=form.id, sections=sections, completed_at=123)
+        usecase(user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001', form_id=form.id, fields=fields, completed_at=123)
 
         assert form.status == FORM_STATUS.COMPLETED
         assert form.sections[0].fields[0].value == 'poggers'
@@ -41,17 +35,12 @@ class Test_SubmitFormUsecase:
 
         form = repo.forms[1]
         
-        text_field = TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='poggers')
-
-        sections = [
-            Section(
-                section_id=1,
-                fields=[text_field]
-            )
+        fields = [
+            {"section_id": 1, "field_key": "key", "value": "poggers"}
         ]
 
         with pytest.raises(ForbiddenAction):
-            usecase('d61dbf66-a10f-11ed-a8fc-0242ac120001', form.id, sections, completed_at=123)
+            usecase('d61dbf66-a10f-11ed-a8fc-0242ac120001', form.id, fields, completed_at=123)
 
     def test_submit_form_usecase_form_not_found(self):
         repo = FormRepositoryMock()
@@ -59,17 +48,12 @@ class Test_SubmitFormUsecase:
         usecase = SubmitFormUsecase(repo, file_repo)
 
         
-        text_field = TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='poggers')
-
-        sections = [
-            Section(
-                section_id=1,
-                fields=[text_field]
-            )
+        fields = [
+            {"section_id": 1, "field_key": "key", "value": "poggers"}
         ]
 
         with pytest.raises(NoItemsFound):
-            usecase('d61dbf66-a10f-11ed-a8fc-0242ac120001', '123', sections, completed_at=123)
+            usecase('d61dbf66-a10f-11ed-a8fc-0242ac120001', '123', fields, completed_at=123)
     
     def test_submit_form_usecase_user_not_owner(self):
         repo = FormRepositoryMock()
@@ -78,17 +62,12 @@ class Test_SubmitFormUsecase:
 
         form = repo.forms[0]
         
-        text_field = TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='poggers')
-
-        sections = [
-            Section(
-                section_id=1,
-                fields=[text_field]
-            )
+        fields = [
+            {"section_id": 1, "field_key": "key", "value": "poggers"}
         ]
 
         with pytest.raises(ForbiddenAction):
-            usecase('d61dbf66-a10f-11ed-a8fc-0242ac120002', form.id, sections, completed_at=123)
+            usecase('d61dbf66-a10f-11ed-a8fc-0242ac120002', form.id, fields, completed_at=123)
     
     def test_submit_form_usecase_form_already_concluded(self):
         repo = FormRepositoryMock()
@@ -97,17 +76,12 @@ class Test_SubmitFormUsecase:
 
         form = repo.forms[1]
         
-        text_field = TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='poggers')
-
-        sections = [
-            Section(
-                section_id=1,
-                fields=[text_field]
-            )
+        fields = [
+            {"section_id": 1, "field_key": "key", "value": "poggers"}
         ]
 
         with pytest.raises(ForbiddenAction):
-            usecase('d61dbf66-a10f-11ed-a8fc-0242ac120001', form.id, sections, completed_at=123)
+            usecase('d61dbf66-a10f-11ed-a8fc-0242ac120001', form.id, fields, completed_at=123)
     
     def test_submit_form_usecase_required_field_not_filled(self):
         repo = FormRepositoryMock()
@@ -116,17 +90,12 @@ class Test_SubmitFormUsecase:
 
         form = repo.forms[0]
         
-        text_field = TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value=None)
-
-        sections = [
-            Section(
-                section_id=1,
-                fields=[text_field]
-            )
+        fields = [
+            {"section_id": 1, "field_key": "key", "value": None}
         ]
 
         with pytest.raises(ForbiddenAction):
-            usecase('d61dbf66-a10f-11ed-a8fc-0242ac120001', form.id, sections, completed_at=123)
+            usecase('d61dbf66-a10f-11ed-a8fc-0242ac120001', form.id, fields, completed_at=123)
 
     def test_submit_form_usecase_with_file_uploads(self):
         repo = FormRepositoryMock()
@@ -144,19 +113,13 @@ class Test_SubmitFormUsecase:
             max_quantity=1,
             value={"filename": "a.jpg", "mimetype": "image/jpeg"},
         )
-        sections = [
-            Section(
-                section_id=1,
-                fields=[file_field]
-            )
-        ]
+        form.sections = [Section(section_id=1, fields=[file_field])]
 
         files = usecase(
             user_id=form.user_id,
             form_id=form.id,
-            sections=sections,
+            fields=[{"section_id": 1, "field_key": "file_key", "value": {"filename": "a.jpg", "mimetype": "image/jpeg"}}],
             completed_at=123,
-            file_uploads={(1, "file_key"): [FileUploadRequest(filename="a.jpg", mimetype="image/jpeg")]},
         )
 
         assert len(files) == 1

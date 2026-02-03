@@ -7,22 +7,12 @@ from src.shared.infra.repositories.file_repository_mock import FileRepositoryMoc
 
 class Test_SubmitFormController:
 
-    def _build_sections(self):
+    def _build_fields(self):
         return [
             {
                 "section_id": 1,
-                "fields": [
-                    {
-                        "field_type": "TEXT_FIELD",
-                        "placeholder": "placeholder",
-                        "required": True,
-                        "key": "key",
-                        "regex": "regex",
-                        "formatting": "formatting",
-                        "max_length": 10,
-                        "value": "poggers"
-                    }
-                ]
+                "field_key": "key",
+                "value": "poggers"
             }
         ]
 
@@ -41,7 +31,7 @@ class Test_SubmitFormController:
             },
             "form_id": repo.forms[0].id,
             "completed_at": 123,
-            "sections": self._build_sections(),
+            "fields": self._build_fields(),
         })
 
         response = controller(data)
@@ -58,7 +48,7 @@ class Test_SubmitFormController:
 
         data = HttpRequest(body={
             "form_id": repo.forms[0].id,
-            "sections": self._build_sections(),
+            "fields": self._build_fields(),
             "completed_at": 123
         })
 
@@ -81,7 +71,7 @@ class Test_SubmitFormController:
                 "email": 'gabriel@gmail.com',
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
-            "sections": self._build_sections(),
+            "fields": self._build_fields(),
             "completed_at": 123
         })
 
@@ -90,7 +80,7 @@ class Test_SubmitFormController:
         assert response.status_code == 400
         assert response.body == 'Parâmetro ausente: form_id'
 
-    def test_submit_form_controller_missing_sections(self):
+    def test_submit_form_controller_missing_fields(self):
         repo = FormRepositoryMock()
         file_repo = FileRepositoryMock()
         usecase = SubmitFormUsecase(repo, file_repo)
@@ -110,9 +100,9 @@ class Test_SubmitFormController:
         response = controller(data)
 
         assert response.status_code == 400
-        assert response.body == 'Parâmetro ausente: sections'
+        assert response.body == 'Parâmetro ausente: fields'
     
-    def test_submit_form_controller_wrong_type_sections(self):
+    def test_submit_form_controller_wrong_type_fields(self):
         repo = FormRepositoryMock()
         file_repo = FileRepositoryMock()
         usecase = SubmitFormUsecase(repo, file_repo)
@@ -126,16 +116,16 @@ class Test_SubmitFormController:
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
             "form_id": repo.forms[0].id,
-            "sections": 'sections',
+            "fields": 'fields',
             "completed_at": 123
         })
 
         response = controller(data)
 
         assert response.status_code == 400
-        assert response.body == 'Campo sections deveria ser do tipo list, mas foi recebido um campo do tipo <class \'str\'>'
+        assert response.body == 'Campo fields deveria ser do tipo list, mas foi recebido um campo do tipo <class \'str\'>'
     
-    def test_submit_form_controller_sections_empty(self):
+    def test_submit_form_controller_fields_empty(self):
         repo = FormRepositoryMock()
         file_repo = FileRepositoryMock()
         usecase = SubmitFormUsecase(repo, file_repo)
@@ -149,14 +139,14 @@ class Test_SubmitFormController:
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
             "form_id": repo.forms[0].id,
-            "sections": [],
+            "fields": [],
             "completed_at": 123
         })
 
         response = controller(data)
 
         assert response.status_code == 400
-        assert response.body == 'Parâmetro ausente: sections'
+        assert response.body == 'Parâmetro ausente: fields'
 
     def test_submit_form_controller_missing_completed_at(self):
         repo = FormRepositoryMock()
@@ -172,7 +162,7 @@ class Test_SubmitFormController:
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
             "form_id": repo.forms[0].id,
-            "sections": self._build_sections(),
+            "fields": self._build_fields(),
         })
 
         response = controller(data)
@@ -194,7 +184,7 @@ class Test_SubmitFormController:
                 "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
             },
             "form_id": repo.forms[0].id,
-            "sections": self._build_sections(),
+            "fields": self._build_fields(),
             "completed_at": "invalid",
         })
 

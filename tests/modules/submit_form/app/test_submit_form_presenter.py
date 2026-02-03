@@ -57,21 +57,11 @@ class Test_SubmitFormPresenter:
             "body": {
                 "form_id": "d61dbf66-a10f-11ed-a8fc-0242ac120010",
                 "completed_at": 123,
-                "sections": [
+                "fields": [
                     {
                         "section_id": 1,
-                        "fields": [
-                            {
-                                "field_type": "TEXT_FIELD",
-                                "placeholder": "placeholder",
-                                "required": True,
-                                "key": "key",
-                                "regex": "regex",
-                                "formatting": "formatting",
-                                "max_length": 10,
-                                "value": "poggers"
-                            }
-                        ]
+                        "field_key": "key",
+                        "value": "poggers"
                     }
                 ]
             },
