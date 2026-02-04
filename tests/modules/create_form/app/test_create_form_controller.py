@@ -254,3 +254,36 @@ class Test_CreateFormController:
         response = controller(request)
         assert response.status_code == 400
         assert "latitude" in response.body
+
+    def test_create_form_controller_duplicated_field_key(self):
+        repo = FormRepositoryMock()
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
+
+        body = self._make_base_body()
+        body["sections"] = [
+            {
+                "section_id": 1,
+                "fields": [
+                    {
+                        "field_type": "TEXT_FIELD",
+                        "label": "field 1",
+                        "required": True,
+                        "key": "duplicate_key",
+                        "order": 0,
+                    },
+                    {
+                        "key": "duplicate_key",
+                        "order": 1,
+                        "label": "field 2",
+                        "required": True,
+                        "field_type": "TEXT_FIELD",
+                    }
+                ],
+            }
+        ]
+        request = HttpRequest(body=body)
+
+        response = controller(request)
+        assert response.status_code == 400
+        assert "duplicated field key(s)" in response.body
