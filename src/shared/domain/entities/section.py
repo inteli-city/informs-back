@@ -20,4 +20,18 @@ class Section(abc.ABC):
             raise EntityError('fields')
         if not all(isinstance(field, Field) for field in fields):
             raise EntityError('fields')
+        self._ensure_unique_field_keys(fields)
         self.fields = fields
+
+    def _ensure_unique_field_keys(self, fields: List[Field]) -> None:
+        seen = set()
+        duplicated = []
+        for field in fields:
+                key = field.key
+                if key in seen:
+                    if key not in duplicated:
+                        duplicated.append(key)
+                else:
+                    seen.add(key)
+        if duplicated:
+            raise EntityError(f'duplicated field key(s): {duplicated}')

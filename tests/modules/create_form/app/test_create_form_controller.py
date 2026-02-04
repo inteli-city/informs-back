@@ -271,24 +271,19 @@ class Test_CreateFormController:
                         "required": True,
                         "key": "duplicate_key",
                         "order": 0,
-                    }
-                ],
-            },
-            {
-                "section_id": 2,
-                "fields": [
+                    },
                     {
-                        "field_type": "TEXT_FIELD",
-                        "label": "field 2",
-                        "required": True,
                         "key": "duplicate_key",
                         "order": 1,
+                        "label": "field 2",
+                        "required": True,
+                        "field_type": "TEXT_FIELD",
                     }
                 ],
-            },
+            }
         ]
         request = HttpRequest(body=body)
 
         response = controller(request)
-        assert response.status_code == 409
-        assert "Chave de campo duplicada" in response.body
+        assert response.status_code == 400
+        assert "duplicated field key(s)" in response.body

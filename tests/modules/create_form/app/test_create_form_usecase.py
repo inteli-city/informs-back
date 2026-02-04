@@ -12,7 +12,7 @@ from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.file_upload import FileUploadRequest
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.enums.priority_enum import PRIORITY
-from src.shared.helpers.errors.usecase_errors import DuplicatedItem
+from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
 
@@ -106,13 +106,8 @@ class Test_CreateFormUsecase:
             max_length=10,
             value='value',
         )
-        payload["sections"] = [
-            Section(section_id=1, fields=[field_a]),
-            Section(section_id=2, fields=[field_b]),
-        ]
-
         try:
-            usecase(**payload)
-            assert False, "Expected DuplicatedItem"
-        except DuplicatedItem:
-            assert True
+            Section(section_id=1, fields=[field_a, field_b])
+            assert False, "Expected EntityError"
+        except EntityError as err:
+            assert "duplicated field key(s)" in err.message
