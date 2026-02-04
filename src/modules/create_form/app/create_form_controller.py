@@ -7,7 +7,6 @@ from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAc
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
 from src.shared.helpers.external_interfaces.http_codes import BadRequest, Conflict, Created, Forbidden, InternalServerError, NotFound
 from src.shared.domain.entities.information_field import FileInformationField
-from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.file_type_enum import FILE_TYPE
 from src.shared.infra.dtos.information_field_dto import InformationFieldDTO
 from src.shared.infra.dtos.justification_dto import JustificationDTO
@@ -140,7 +139,6 @@ class CreateFormController:
 
         justification_entity = JustificationDTO.from_request({"options": normalized_justifications}).to_entity()
         sections = [SectionDTO.from_request(section).to_entity() for section in sections_raw]
-        self._ensure_unique_field_keys(sections)
         information_fields = None
         if information_fields_raw is not None:
             information_fields = []
@@ -176,20 +174,6 @@ class CreateFormController:
             information_fields_uploads,
         )
 
-    def _ensure_unique_field_keys(self, sections: list[Section]) -> None:
-        seen = set()
-        duplicated = []
-        for section in sections:
-            for field in section.fields:
-                key = field.key
-                if key in seen:
-                    if key not in duplicated:
-                        duplicated.append(key)
-                else:
-                    seen.add(key)
-        if duplicated:
-            duplicates_text = ", ".join(duplicated)
-            raise DuplicatedItem(f"Chave de campo duplicada: {duplicates_text}")
     
     def __call__(self, request: IRequest) -> IResponse:
         try:

@@ -12,6 +12,7 @@ from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.file_upload import FileUploadRequest
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.enums.priority_enum import PRIORITY
+from src.shared.helpers.errors.usecase_errors import DuplicatedItem
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
 
@@ -82,3 +83,36 @@ class Test_CreateFormUsecase:
         assert len(files) == 1
         assert files[0].filename == "a.jpg"
         assert files[0].mimetype == "image/jpeg"
+
+    def test_create_form_usecase_duplicate_field_key(self):
+        usecase, payload = _make_usecase_and_payload()
+        payload = deepcopy(payload)
+
+        field_a = TextField(
+            placeholder='placeholder',
+            required=True,
+            key='duplicate_key',
+            regex='regex',
+            formatting='formatting',
+            max_length=10,
+            value='value',
+        )
+        field_b = TextField(
+            placeholder='placeholder',
+            required=True,
+            key='duplicate_key',
+            regex='regex',
+            formatting='formatting',
+            max_length=10,
+            value='value',
+        )
+        payload["sections"] = [
+            Section(section_id=1, fields=[field_a]),
+            Section(section_id=2, fields=[field_b]),
+        ]
+
+        try:
+            usecase(**payload)
+            assert False, "Expected DuplicatedItem"
+        except DuplicatedItem:
+            assert True

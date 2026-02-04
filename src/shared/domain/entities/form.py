@@ -156,6 +156,7 @@ class Form(abc.ABC):
 
         if not isinstance(sections, list) or not sections or not all(isinstance(section, Section) for section in sections):
             raise EntityError('sections')
+        Form._ensure_unique_field_keys(sections)
         self.sections = sections
 
         if information_fields is not None:
@@ -170,6 +171,22 @@ class Form(abc.ABC):
         if len(id_to_validate) != Form.ID_LENGTH:
             return False
         return True
+
+    @staticmethod
+    def _ensure_unique_field_keys(sections: List[Section]) -> None:
+        seen = set()
+        duplicated = []
+        for section in sections:
+            for field in section.fields:
+                key = field.key
+                if key in seen:
+                    if key not in duplicated:
+                        duplicated.append(key)
+                else:
+                    seen.add(key)
+        if duplicated:
+            duplicates_text = ", ".join(duplicated)
+            raise DuplicatedItem(f"Chave de campo duplicada: {duplicates_text}")
 
     def start(self, in_progress_at: int, updated_at: int):
         if not isinstance(in_progress_at, int):
