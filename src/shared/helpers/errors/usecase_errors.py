@@ -12,6 +12,11 @@ class ForbiddenAction(BaseError):
     def __init__(self, message: str):
         super().__init__(f'Ação não permitida: {message}')
 
-class ErrorWithImage(BaseError):
+class ErrorWithFile(BaseError):
     def __init__(self, message: str):
-        super().__init__(f'Erro salvando imagem: {message}')
+        super().__init__(f'Erro salvando arquivo: {message}')
+
+
+class InvalidPaginationToken(BaseError):
+    def __init__(self):
+        super().__init__('Parâmetro de paginação inválido')

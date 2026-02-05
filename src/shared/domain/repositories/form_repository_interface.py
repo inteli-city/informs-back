@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Tuple, Union
 
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.justification import Justification
@@ -18,17 +18,34 @@ class IFormRepository(ABC):
         pass
 
     @abstractmethod
+    def get_all_forms(
+        self,
+        limit: Optional[int],
+        exclusive_start_key: Optional[dict] = None,
+        status: Optional[Union[FORM_STATUS, List[FORM_STATUS]]] = None,
+        system: Optional[Union[str, List[str]]] = None,
+        user_id: Optional[str] = None,
+        created_at_start: Optional[int] = None,
+        created_at_end: Optional[int] = None,
+        search: Optional[str] = None,
+    ) -> Tuple[List[Form], Optional[str]]:
+        pass
+
+    @abstractmethod
     def create_form(self, form: Form) -> Form:
         pass
 
     @abstractmethod
-    def update_form_status(self, user_id: str, form_id: str, status: FORM_STATUS, start_date: Optional[int] = None) -> Form:
-        pass
-
-    @abstractmethod
-    def cancel_form(self, user_id: str, form_id: str, justification: Justification) -> Form:
-        pass
-
-    @abstractmethod
-    def complete_form(self, user_id: str, form_id: str, sections: List[Section], vinculation_form_id: Optional[str] = None) -> Form:
+    def update_form(
+        self,
+        user_id: str,
+        form_id: str,
+        status: Optional[FORM_STATUS] = None,
+        in_progress_at: Optional[int] = None,
+        completed_at: Optional[int] = None,
+        cancelled_at: Optional[int] = None,
+        updated_at: Optional[int] = None,
+        sections: Optional[List[Section]] = None,
+        justification: Optional[Justification] = None,
+    ) -> Form:
         pass

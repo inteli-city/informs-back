@@ -13,11 +13,9 @@ class Test_FormDynamoDTO:
     def test_from_entity(self):
         form = Form(
             form_title='form_title',
-            form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-            creator_user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
+            id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
+            created_by='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-            vinculation_form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-            can_vinculate=True,
             template='template',
             area='area',
             system='system',
@@ -26,14 +24,14 @@ class Test_FormDynamoDTO:
             number=123,
             latitude=0.0,
             longitude=0.0,
-            region='region',
-            description='description',
+            observation='observation',
             priority=PRIORITY.EMERGENCY,
             status=FORM_STATUS.IN_PROGRESS,
             expiration_date=12345678,
-            creation_date=12345678,
-            start_date=12345678,
-            conclusion_date=12345678,
+            created_at=12345678,
+            updated_at=12345678,
+            in_progress_at=12345678,
+            completed_at=12345678,
             justification=Justification(
                 options=[
                     JustificationOption(
@@ -46,10 +44,9 @@ class Test_FormDynamoDTO:
                 justification_text='justification_text',
                 justification_image='justification_image'
             ),
-            comments='comments',
             sections=[
                 Section(
-                    section_id='0',
+                    section_id=0,
                     fields=[
                         TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='poggers')
                     ]
@@ -65,11 +62,9 @@ class Test_FormDynamoDTO:
         form_dto = FormDynamoDTO.from_entity(form)
 
         assert form_dto.form_title == 'form_title'
-        assert form_dto.form_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form_dto.creator_user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
+        assert form_dto.id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
+        assert form_dto.created_by == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form_dto.user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form_dto.vinculation_form_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form_dto.can_vinculate == True
         assert form_dto.template == 'template'
         assert form_dto.area == 'area'
         assert form_dto.system == 'system'
@@ -78,22 +73,20 @@ class Test_FormDynamoDTO:
         assert form_dto.number == 123
         assert form_dto.latitude == 0.0
         assert form_dto.longitude == 0.0
-        assert form_dto.region == 'region'
-        assert form_dto.description == 'description'
+        assert form_dto.observation == 'observation'
         assert form_dto.priority == PRIORITY.EMERGENCY
         assert form_dto.status == FORM_STATUS.IN_PROGRESS
         assert form_dto.expiration_date == 12345678
-        assert form_dto.creation_date == 12345678
-        assert form_dto.start_date == 12345678
-        assert form_dto.conclusion_date == 12345678
+        assert form_dto.created_at == 12345678
+        assert form_dto.in_progress_at == 12345678
+        assert form_dto.completed_at == 12345678
         assert form_dto.justification.options[0].option == 'option'
         assert form_dto.justification.options[0].required_image == True
         assert form_dto.justification.options[0].required_text == True
         assert form_dto.justification.selected_option == 'option'
         assert form_dto.justification.justification_text == 'justification_text'
         assert form_dto.justification.justification_image == 'justification_image'
-        assert form_dto.comments == 'comments'
-        assert form_dto.sections[0].section_id == '0'
+        assert form_dto.sections[0].section_id == 0
         assert form_dto.sections[0].fields[0].placeholder == 'placeholder'
         assert form_dto.sections[0].fields[0].required == True
         assert form_dto.sections[0].fields[0].key == 'key'
@@ -106,11 +99,9 @@ class Test_FormDynamoDTO:
     def test_to_dynamo(self):
         form_dto = FormDynamoDTO(
             form_title='form_title',
-            form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-            creator_user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
+            id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
+            created_by='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-            vinculation_form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-            can_vinculate=True,
             template='template',
             area='area',
             system='system',
@@ -119,14 +110,14 @@ class Test_FormDynamoDTO:
             number=123,
             latitude=0.0,
             longitude=0.0,
-            region='region',
-            description='description',
+            observation='observation',
             priority=PRIORITY.EMERGENCY,
             status=FORM_STATUS.IN_PROGRESS,
             expiration_date=12345678,
-            creation_date=12345678,
-            start_date=12345678,
-            conclusion_date=12345678,
+            created_at=12345678,
+            updated_at=12345678,
+            in_progress_at=12345678,
+            completed_at=12345678,
             justification=Justification(
                 options=[
                     JustificationOption(
@@ -139,10 +130,9 @@ class Test_FormDynamoDTO:
                 justification_text='justification_text',
                 justification_image='justification_image'
             ),
-            comments='comments',
             sections=[
                 Section(
-                    section_id='0',
+                    section_id=0,
                     fields=[
                         TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='poggers')
                     ]
@@ -158,11 +148,8 @@ class Test_FormDynamoDTO:
         form = form_dto.to_dynamo()
 
         assert form['form_title'] == 'form_title'
-        assert form['form_id'] == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form['creator_user_id'] == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
+        assert form['created_by'] == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form['user_id'] == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form['vinculation_form_id'] == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form['can_vinculate'] == True
         assert form['template'] == 'template'
         assert form['area'] == 'area'
         assert form['system'] == 'system'
@@ -171,21 +158,19 @@ class Test_FormDynamoDTO:
         assert form['number'] == 123
         assert form['latitude'] == 0.0
         assert form['longitude'] == 0.0
-        assert form['region'] == 'region'
-        assert form['description'] == 'description'
         assert form['priority'] == PRIORITY.EMERGENCY.value
         assert form['status'] == FORM_STATUS.IN_PROGRESS.value
         assert form['expiration_date'] == 12345678
-        assert form['creation_date'] == 12345678
-        assert form['start_date'] == 12345678
-        assert form['conclusion_date'] == 12345678
+        assert form['created_at'] == 12345678
+        assert form['updated_at'] == 12345678
+        assert form['in_progress_at'] == 12345678
+        assert form['completed_at'] == 12345678
         assert form['justification']['options'][0]['option'] == 'option'
         assert form['justification']['options'][0]['required_image'] == True
         assert form['justification']['options'][0]['required_text'] == True
         assert form['justification']['selected_option'] == 'option'
         assert form['justification']['justification_text'] == 'justification_text'
         assert form['justification']['justification_image'] == 'justification_image'
-        assert form['comments'] == 'comments'
         assert form['sections'][0]['section_id'] == '0'
         assert form['sections'][0]['fields'][0]['placeholder'] == 'placeholder'
         assert form['sections'][0]['fields'][0]['required'] == True
@@ -199,11 +184,10 @@ class Test_FormDynamoDTO:
     def test_from_dynamo(self):
         form = FormDynamoDTO.from_dynamo({
             'form_title': 'form_title',
-            'form_id': 'd61dbf66-a10f-11ed-a8fc-0242ac120010',
-            'creator_user_id': 'd61dbf66-a10f-11ed-a8fc-0242ac120010',
+            'created_by': 'd61dbf66-a10f-11ed-a8fc-0242ac120010',
             'user_id': 'd61dbf66-a10f-11ed-a8fc-0242ac120010',
-            'vinculation_form_id': 'd61dbf66-a10f-11ed-a8fc-0242ac120010',
-            'can_vinculate': True,
+            'PK': 'form#d61dbf66-a10f-11ed-a8fc-0242ac120010',
+            'SK': 'METADATA',
             'template': 'template',
             'area': 'area',
             'system': 'system',
@@ -212,14 +196,14 @@ class Test_FormDynamoDTO:
             'number': 123,
             'latitude': 0.0,
             'longitude': 0.0,
-            'region': 'region',
-            'description': 'description',
+            'observation': 'observation',
             'priority': PRIORITY.EMERGENCY.value,
             'status': FORM_STATUS.IN_PROGRESS.value,
             'expiration_date': 12345678,
-            'creation_date': 12345678,
-            'start_date': 12345678,
-            'conclusion_date': 12345678,
+            'created_at': 12345678,
+            'updated_at': 12345678,
+            'in_progress_at': 12345678,
+            'completed_at': 12345678,
             'justification': {
                 'options': [
                     {
@@ -232,7 +216,6 @@ class Test_FormDynamoDTO:
                 'justification_text': 'justification_text',
                 'justification_image': 'justification_image'
             },
-            'comments': 'comments',
             'sections': [
                 {
                     'section_id': '0',
@@ -259,11 +242,9 @@ class Test_FormDynamoDTO:
         })
 
         assert form.form_title == 'form_title'
-        assert form.form_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form.creator_user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
+        assert form.id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
+        assert form.created_by == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form.user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form.vinculation_form_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form.can_vinculate == True
         assert form.template == 'template'
         assert form.area == 'area'
         assert form.system == 'system'
@@ -272,22 +253,20 @@ class Test_FormDynamoDTO:
         assert form.number == 123
         assert form.latitude == 0.0
         assert form.longitude == 0.0
-        assert form.region == 'region'
-        assert form.description == 'description'
+        assert form.observation == 'observation'
         assert form.priority == PRIORITY.EMERGENCY
         assert form.status == FORM_STATUS.IN_PROGRESS
         assert form.expiration_date == 12345678
-        assert form.creation_date == 12345678
-        assert form.start_date == 12345678
-        assert form.conclusion_date == 12345678
+        assert form.created_at == 12345678
+        assert form.in_progress_at == 12345678
+        assert form.completed_at == 12345678
         assert form.justification.options[0].option == 'option'
         assert form.justification.options[0].required_image == True
         assert form.justification.options[0].required_text == True
         assert form.justification.selected_option == 'option'
         assert form.justification.justification_text == 'justification_text'
         assert form.justification.justification_image == 'justification_image'
-        assert form.comments == 'comments'
-        assert form.sections[0].section_id == '0'
+        assert form.sections[0].section_id == 0
         assert form.sections[0].fields[0].placeholder == 'placeholder'
         assert form.sections[0].fields[0].required == True
         assert form.sections[0].fields[0].key == 'key'
@@ -300,11 +279,9 @@ class Test_FormDynamoDTO:
     def test_to_entity(self):
         form_dto = FormDynamoDTO(
             form_title='form_title',
-            form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-            creator_user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
+            id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
+            created_by='d61dbf66-a10f-11ed-a8fc-0242ac120010',
             user_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-            vinculation_form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-            can_vinculate=True,
             template='template',
             area='area',
             system='system',
@@ -313,14 +290,14 @@ class Test_FormDynamoDTO:
             number=123,
             latitude=0.0,
             longitude=0.0,
-            region='region',
-            description='description',
+            observation='observation',
             priority=PRIORITY.EMERGENCY,
             status=FORM_STATUS.IN_PROGRESS,
             expiration_date=12345678,
-            creation_date=12345678,
-            start_date=12345678,
-            conclusion_date=12345678,
+            created_at=12345678,
+            updated_at=12345678,
+            in_progress_at=12345678,
+            completed_at=12345678,
             justification=Justification(
                 options=[
                     JustificationOption(
@@ -333,10 +310,9 @@ class Test_FormDynamoDTO:
                 justification_text='justification_text',
                 justification_image='justification_image'
             ),
-            comments='comments',
             sections=[
                 Section(
-                    section_id='0',
+                    section_id=0,
                     fields=[
                         TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='poggers')
                     ]
@@ -352,11 +328,9 @@ class Test_FormDynamoDTO:
         form = form_dto.to_entity()
 
         assert form.form_title == 'form_title'
-        assert form.form_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form.creator_user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
+        assert form.id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
+        assert form.created_by == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
         assert form.user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form.vinculation_form_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form.can_vinculate == True
         assert form.template == 'template'
         assert form.area == 'area'
         assert form.system == 'system'
@@ -365,22 +339,21 @@ class Test_FormDynamoDTO:
         assert form.number == 123
         assert form.latitude == 0.0
         assert form.longitude == 0.0
-        assert form.region == 'region'
-        assert form.description == 'description'
+        assert form.observation == 'observation'
         assert form.priority == PRIORITY.EMERGENCY
         assert form.status == FORM_STATUS.IN_PROGRESS
         assert form.expiration_date == 12345678
-        assert form.creation_date == 12345678
-        assert form.start_date == 12345678
-        assert form.conclusion_date == 12345678
+        assert form.created_at == 12345678
+        assert form.updated_at == 12345678
+        assert form.in_progress_at == 12345678
+        assert form.completed_at == 12345678
         assert form.justification.options[0].option == 'option'
         assert form.justification.options[0].required_image == True
         assert form.justification.options[0].required_text == True
         assert form.justification.selected_option == 'option'
         assert form.justification.justification_text == 'justification_text'
         assert form.justification.justification_image == 'justification_image'
-        assert form.comments == 'comments'
-        assert form.sections[0].section_id == '0'
+        assert form.sections[0].section_id == 0
         assert form.sections[0].fields[0].placeholder == 'placeholder'
         assert form.sections[0].fields[0].required == True
         assert form.sections[0].fields[0].key == 'key'

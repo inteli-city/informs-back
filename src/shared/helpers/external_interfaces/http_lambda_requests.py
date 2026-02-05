@@ -1,4 +1,6 @@
 import json
+from urllib.parse import parse_qs
+from decimal import Decimal
 
 from src.shared.helpers.external_interfaces.http_models import HttpRequest, HttpResponse
 
@@ -21,7 +23,7 @@ class LambdaHttpResponse(HttpResponse):
             headers: The headers of the response. Defaults to {"Content-Type": "application/json"}.
             **kwargs: Configuration of the HTTP response. Possible values: add_default_cors_headers (default is True)
         """
-        _body = body or LambdaHttpResponse.body
+        _body = body if body is not None else LambdaHttpResponse.body
         _headers = headers or LambdaHttpResponse.headers
         _headers['Access-Control-Allow-Origin'] = '*'
 
@@ -43,9 +45,14 @@ class LambdaHttpResponse(HttpResponse):
                 'isBase64Encoded': bool
             }
         """
+        def _json_default(value):
+            if isinstance(value, Decimal):
+                return int(value) if value % 1 == 0 else float(value)
+            raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
+
         return {
             "statusCode": self.status_code,
-            "body": json.dumps(self.body),
+            "body": json.dumps(self.body, default=_json_default),
             "headers": self.headers,
             "isBase64Encoded": False
         }
@@ -103,6 +110,36 @@ class LambdaHttpRequest(HttpRequest):
         """
         _headers = data.get("headers")
         _query_string_parameters = data.get("queryStringParameters")
+        _multi_value_query_string_parameters = data.get("multiValueQueryStringParameters")
+        raw_query_string = data.get("rawQueryString") or ""
+        parsed_query_params = {}
+        if isinstance(raw_query_string, str) and raw_query_string:
+            parsed = parse_qs(raw_query_string, keep_blank_values=True)
+            for key, values in parsed.items():
+                if len(values) == 1:
+                    parsed_query_params[key] = values[0]
+                else:
+                    parsed_query_params[key] = values
+
+        if isinstance(_multi_value_query_string_parameters, dict):
+            for key, values in _multi_value_query_string_parameters.items():
+                if key in parsed_query_params:
+                    continue
+                if not isinstance(values, list):
+                    parsed_query_params[key] = values
+                elif len(values) == 1:
+                    parsed_query_params[key] = values[0]
+                else:
+                    parsed_query_params[key] = values
+
+        if isinstance(_query_string_parameters, dict):
+            for key, value in _query_string_parameters.items():
+                if key not in parsed_query_params:
+                    parsed_query_params[key] = value
+
+        if parsed_query_params:
+            _query_string_parameters = parsed_query_params
+        _path_parameters = data.get("pathParameters")
         _body = None
 
         if "body" in data:
@@ -111,7 +148,7 @@ class LambdaHttpRequest(HttpRequest):
             except:
                 _body = data.get("body")
 
-        super().__init__(body=_body, headers=_headers, query_params=_query_string_parameters)
+        super().__init__(body=_body, headers=_headers, query_params=_query_string_parameters, path_params=_path_parameters)
 
         self.version = data.get("version")
         self.raw_path = data.get("rawPath")

@@ -1,0 +1,39 @@
+post:
+  summary: Criação de novo template de formulário
+  tags: [Templates]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: "../../components/requests/create-template-request.yaml" }
+  responses:
+    "201":
+      description: Template criado
+      content:
+        application/json:
+          schema: { $ref: "../../components/responses/create-template-response.yaml" }
+    "400": { description: Erro de validação }
+    "401": { description: Unauthorized }
+get:
+  summary: Listagem de templates
+  tags: [Templates]
+  parameters:
+    - name: page
+      in: query
+      schema: { type: integer, default: 1 }
+    - name: limit
+      in: query
+      schema: { type: integer, default: 1000 }
+    - name: is_active
+      in: query
+      schema: { type: boolean }
+    - name: system
+      in: query
+      schema: { type: array, items: { type: string } }
+  responses:
+    "200":
+      description: Lista de templates
+      content:
+        application/json:
+          schema: { $ref: "../../components/responses/list-templates-response.yaml" }
+

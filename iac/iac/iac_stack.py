@@ -24,6 +24,7 @@ class IacStack(Stack):
         self.github_ref_name = os.environ.get("GITHUB_REF_NAME")
         self.bucket_name = os.environ.get("BUCKET_NAME")
 
+
         self.dynamo_stack = DynamoStack(self)
 
         self.cognito_auth = CognitoUserPoolsAuthorizer(self, f"formularios_cognito_cognito_auth_{self.github_ref_name}",
@@ -52,7 +53,7 @@ class IacStack(Stack):
             "DYNAMO_PARTITION_KEY": "PK",
             "DYNAMO_SORT_KEY": "SK",
             "REGION": self.region,
-            "BUCKET_NAME": self.bucket_name,
+            "BUCKET_NAME": self.bucket_name
         }
 
         api_gateway_resource = self.rest_api.root.add_resource("mss-formularios", default_cors_preflight_options={

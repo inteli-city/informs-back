@@ -9,13 +9,15 @@ class HttpRequest(IRequest):
     body: dict
     headers: dict
     query_params: dict
+    path_params: dict
 
     data: dict
 
-    def __init__(self, body: dict = {}, headers: dict = {}, query_params: dict = {}):
+    def __init__(self, body: dict = None, headers: dict = None, query_params: dict = None, path_params: dict = None):
         self.body = body or {}
         self.headers = headers or {}
         self.query_params = query_params or {}
+        self.path_params = path_params or {}
         data_dict = {}
 
         # check overlapping keys
@@ -35,6 +37,7 @@ class HttpRequest(IRequest):
 
         data_dict.update(self.headers)
         data_dict.update(self.query_params)
+        data_dict.update(self.path_params)
         self.data = data_dict
 
     @property

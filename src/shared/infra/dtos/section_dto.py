@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import List
 
 from src.shared.domain.entities.field import Field
 from src.shared.domain.entities.section import Section
@@ -12,7 +12,8 @@ class SectionDTO:
     def __init__(self, section_id: str, fields: List[Field]):
         self.section_id = section_id
         self.fields = fields
-    
+        
+    @staticmethod
     def from_request(section_dict: dict) -> "SectionDTO":
         if 'section_id' not in section_dict:
             raise MissingParameters('section_id')
@@ -32,7 +33,7 @@ class SectionDTO:
     @staticmethod
     def from_entity(section: Section) -> "SectionDTO":
         return SectionDTO(
-            section_id=section.section_id,
+            section_id=str(section.section_id),
             fields=section.fields
         )
     
@@ -51,4 +52,5 @@ class SectionDTO:
         return dynamo_dict
 
     def to_entity(self) -> Section:
-        return Section(self.section_id, self.fields)
+        section_id_cast = int(self.section_id) if str(self.section_id).isdigit() else self.section_id
+        return Section(section_id_cast, self.fields)

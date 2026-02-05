@@ -1,5 +1,6 @@
 import pytest
 from src.shared.domain.entities.field import TextField
+from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.fields_enum import FIELD_TYPE
 from src.shared.domain.enums.file_type_enum import FILE_TYPE
 from src.shared.helpers.errors.controller_errors import MissingParameters
@@ -546,8 +547,8 @@ class Test_SectionDTO:
             SectionDTO.from_request(section_dict)
     
     def test_section_dto_from_entity(self):
-        section = SectionDTO(
-            section_id='99999',
+        section = Section(
+            section_id=99999,
             fields=[
                 TextField(
                     placeholder='placeholder',
@@ -623,9 +624,12 @@ class Test_SectionDTO:
         assert section_dynamo['section_id'] == '99999'
         assert len(section_dynamo['fields']) == 1
         assert section_dynamo['fields'][0]['field_type'] == FIELD_TYPE.TEXT_FIELD.name
+        assert section_dynamo['fields'][0]['label'] == 'placeholder'
         assert section_dynamo['fields'][0]['placeholder'] == 'placeholder'
         assert section_dynamo['fields'][0]['required'] == True
         assert section_dynamo['fields'][0]['key'] == 'key'
+        assert section_dynamo['fields'][0]['order'] == 0
+        assert section_dynamo['fields'][0]['help_text'] is None
         assert section_dynamo['fields'][0]['regex'] == 'regex'
         assert section_dynamo['fields'][0]['formatting'] == 'formatting'
         assert section_dynamo['fields'][0]['max_length'] == 10
@@ -649,7 +653,7 @@ class Test_SectionDTO:
 
         section = section_dto.to_entity()
 
-        assert section.section_id == '99999'
+        assert section.section_id == 99999
         assert len(section.fields) == 1
         assert section.fields[0].field_type == FIELD_TYPE.TEXT_FIELD
         assert section.fields[0].placeholder == 'placeholder'

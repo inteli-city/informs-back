@@ -1,5 +1,8 @@
 import abc
 
+from typing import Optional
+
+from src.shared.domain.enums.file_type_enum import FILE_TYPE
 from src.shared.domain.enums.information_field_type_enum import INFORMATION_FIELD_TYPE
 from src.shared.helpers.errors.domain_errors import EntityError
 
@@ -9,18 +12,20 @@ class InformationField(abc.ABC):
 
     @abc.abstractmethod
     def __init__(self, information_field_type: INFORMATION_FIELD_TYPE):
-        if type(information_field_type) is not INFORMATION_FIELD_TYPE:
+        if not isinstance(information_field_type, INFORMATION_FIELD_TYPE):
             raise EntityError('information_field_type')
         self.information_field_type = information_field_type
+
 
 class TextInformationField(InformationField):
     value: str
 
     def __init__(self, value: str):
         super().__init__(information_field_type=INFORMATION_FIELD_TYPE.TEXT_INFORMATION_FIELD)
-        if type(value) is not str:
+        if not isinstance(value, str):
             raise EntityError('value')
         self.value = value
+
 
 class MapInformationField(InformationField):
     latitude: float
@@ -28,19 +33,24 @@ class MapInformationField(InformationField):
 
     def __init__(self, latitude: float, longitude: float):
         super().__init__(information_field_type=INFORMATION_FIELD_TYPE.MAP_INFORMATION_FIELD)
-        if type(latitude) is not float:
+        if not isinstance(latitude, (float, int)):
             raise EntityError('latitude')
-        self.latitude = latitude
+        self.latitude = float(latitude)
 
-        if type(longitude) is not float:
+        if not isinstance(longitude, (float, int)):
             raise EntityError('longitude')
-        self.longitude = longitude
+        self.longitude = float(longitude)
 
-class ImageInformationField(InformationField):
+
+class FileInformationField(InformationField):
     file_path: str
+    file_type: Optional[FILE_TYPE]
 
-    def __init__(self, file_path: str):
-        super().__init__(information_field_type=INFORMATION_FIELD_TYPE.IMAGE_INFORMATION_FIELD)
-        if type(file_path) is not str:
+    def __init__(self, file_path: str, file_type: Optional[FILE_TYPE] = None):
+        super().__init__(information_field_type=INFORMATION_FIELD_TYPE.FILE_INFORMATION_FIELD)
+        if not isinstance(file_path, str):
             raise EntityError('file_path')
+        if file_type is not None and not isinstance(file_type, FILE_TYPE):
+            raise EntityError('file_type')
         self.file_path = file_path
+        self.file_type = file_type

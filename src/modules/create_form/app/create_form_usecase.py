@@ -1,82 +1,108 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 import uuid
 from src.shared.domain.entities.form import Form
-from src.shared.domain.entities.information_field import ImageInformationField, InformationField
+from src.shared.domain.entities.file_upload import FileUpload, FileUploadRequest
+from src.shared.domain.entities.information_field import FileInformationField, InformationField
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import Section
+from src.shared.domain.enums.file_type_enum import FILE_TYPE
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.enums.priority_enum import PRIORITY
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
-from src.shared.domain.repositories.image_repository_interface import IImageRepository
-from src.shared.environments import Environments
-from src.shared.helpers.errors.usecase_errors import ForbiddenAction
+from src.shared.domain.repositories.file_repository_interface import IFileRepository
+from src.shared.helpers.functions.s3_url import build_s3_url
+from src.shared.helpers.errors.domain_errors import EntityError
 
 
 class CreateFormUsecase:
-    def __init__(self, form_repo: IFormRepository, image_repo: IImageRepository):
+    def __init__(self, form_repo: IFormRepository, file_repo: IFileRepository):
         self.form_repo = form_repo
-        self.image_repo = image_repo
+        self.file_repo = file_repo
 
-    def __call__(self,
-                    form_title: str,
-                    creator_user_id: str,
-                    user_id: str,
-                    vinculation_form_id: Optional[str],
-                    can_vinculate: bool,
-                    template: str,
-                    area: str,
-                    system: str,
-                    street: str,
-                    city: str,
-                    number: int,
-                    latitude: float,
-                    longitude: float,
-                    region: str,
-                    description: Optional[str],
-                    priority: PRIORITY,
-                    expiration_date: int,
-                    justification: Justification,
-                    comments: Optional[str],
-                    sections: List[Section],
-                    information_fields: Optional[List[InformationField]]
-                 ) -> Form:
+    def __call__(
+        self,
+        form_title: str,
+        created_by: str,
+        user_id: str,
+        system: str,
+        street: str,
+        city: str,
+        latitude: float,
+        longitude: float,
+        priority: PRIORITY,
+        sections: List[Section],
+        justification: Justification,
+        template: Optional[str] = None,
+        number: Optional[int] = None,
+        observation: Optional[str] = None,
+        expiration_date: Optional[int] = None,
+        information_fields: Optional[List[InformationField]] = None,
+        information_fields_uploads: Optional[List[Optional[FileUploadRequest]]] = None,
+    ) -> tuple[Form, list[FileUpload]]:
         
         form_id = str(uuid.uuid4())
+        now_timestamp = int(datetime.now(timezone.utc).timestamp() * 1000)
+        files: list[FileUpload] = []
 
-        for information_field in information_fields:
-            if isinstance(information_field, ImageInformationField):
-                image_path = f'{datetime.now().year}/{form_id}/information_field/{str(uuid.uuid4())}.png'
-                self.image_repo.put_image(base_64_image=information_field.file_path, image_path=image_path)
-                information_field.file_path = f'https://{Environments.get_envs().bucket_name}.s3.sa-east-1.amazonaws.com/{image_path}'
+        if information_fields:
+            uploads = information_fields_uploads or []
+            for idx, information_field in enumerate(information_fields):
+                if isinstance(information_field, FileInformationField):
+                    if idx >= len(uploads) or uploads[idx] is None:
+                        raise EntityError("mimetype")
+                    upload = uploads[idx]
+                    if not isinstance(upload, FileUploadRequest):
+                        raise EntityError("mimetype")
+                    mimetype = upload.mimetype
+                    filename = upload.filename
+                    file_path = f'{datetime.now(timezone.utc).year}/{system}/{form_id}/information_field/{str(uuid.uuid4())}.{mimetype.split("/")[-1]}'
+                    presigned_url = self.file_repo.generate_presigned_url(
+                        file_path=file_path,
+                        mimetype=mimetype,
+                    )
+                    file_url = build_s3_url(file_path)
+                    information_field.file_path = file_url
+                    if information_field.file_type is None:
+                        if mimetype.lower().startswith("image/"):
+                            information_field.file_type = FILE_TYPE.IMAGE
+                        else:
+                            information_field.file_type = FILE_TYPE.DOCUMENT
+                    files.append(
+                        FileUpload(
+                            filename=filename,
+                            mimetype=mimetype,
+                            pre_signed_url=presigned_url,
+                            file_path=file_path,
+                            file_url=file_url,
+                            section_id=None,
+                            field_key=None,
+                            file_index=None,
+                        )
+                    )
 
         form = Form(
             form_title=form_title,
-            form_id=form_id,
-            creator_user_id=creator_user_id,
+            id=form_id,
+            created_by=created_by,
             user_id=user_id,
-            vinculation_form_id=vinculation_form_id,
-            can_vinculate=can_vinculate,
             template=template,
-            area=area,
             system=system,
             street=street,
             city=city,
             number=number,
             latitude=latitude,
             longitude=longitude,
-            region=region,
-            description=description,
             priority=priority,
-            status=FORM_STATUS.NOT_STARTED,
-            expiration_date=expiration_date,
-            creation_date=int(datetime.now().timestamp()),
-            start_date=None,
-            conclusion_date=None,
-            justification=justification,
-            comments=comments,
+            status=FORM_STATUS.PENDING,
+            created_at=now_timestamp,
+            updated_at=now_timestamp,
             sections=sections,
+            observation=observation,
+            expiration_date=expiration_date,
+            justification=justification,
             information_fields=information_fields
         )
 
-        return self.form_repo.create_form(form)
+        created_form = self.form_repo.create_form(form)
+        return created_form, files

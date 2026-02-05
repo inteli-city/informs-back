@@ -1,88 +1,113 @@
-from datetime import datetime
+import os
+import sys
+from copy import deepcopy
 
-import pytest
+sys.path.append(os.getcwd())
+
 from src.modules.create_form.app.create_form_usecase import CreateFormUsecase
 from src.shared.domain.entities.field import TextField
-from src.shared.domain.entities.information_field import ImageInformationField, TextInformationField
+from src.shared.domain.entities.information_field import FileInformationField, TextInformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption
 from src.shared.domain.entities.section import Section
+from src.shared.domain.entities.file_upload import FileUploadRequest
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.enums.priority_enum import PRIORITY
-from src.shared.helpers.errors.usecase_errors import ForbiddenAction
+from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
-from src.shared.infra.repositories.image_repository_mock import ImageRepositoryMock
+from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
 
-justification_option = JustificationOption(
-    option='option',
-    required_image=True,
-    required_text=True
-)
 
-justification = Justification(
-    options=[justification_option],
-    selected_option='option',
-    justification_text='text',
-    justification_image='image'
-)
+def _make_usecase_and_payload():
+    repo = FormRepositoryMock()
+    file_repo = FileRepositoryMock()
+    usecase = CreateFormUsecase(repo, file_repo)
+
+    text_field = TextField(
+        placeholder='placeholder',
+        required=True,
+        key='key',
+        regex='regex',
+        formatting='formatting',
+        max_length=10,
+        value='value',
+    )
+    section = Section(section_id=1, fields=[text_field])
+    justification = Justification(
+        options=[JustificationOption(option='option', required_image=True, required_text=True)]
+    )
+
+    payload = {
+        "form_title": 'FORM TITLE',
+        "created_by": 'd61dbf66-a10f-11ed-a8fc-0242ac120001',
+        "user_id": 'd61dbf66-a10f-11ed-a8fc-0242ac120001',
+        "system": 'GAIA',
+        "street": '1',
+        "city": '1',
+        "latitude": 1.0,
+        "longitude": 1.0,
+        "priority": PRIORITY.EMERGENCY,
+        "sections": [section],
+        "justification": justification,
+        "information_fields": [TextInformationField(value='info')],
+        "observation": 'obs',
+        "expiration_date": 946407600000,
+    }
+
+    return usecase, payload
+
 
 class Test_CreateFormUsecase:
-
     def test_create_form_usecase(self):
-        repo = FormRepositoryMock()
-        image_repo = ImageRepositoryMock()
-        usecase = CreateFormUsecase(repo, image_repo)
+        usecase, payload = _make_usecase_and_payload()
 
-        text_field = TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='value')
-        section = Section(section_id='99999', fields=[text_field, text_field])
+        form, files = usecase(**payload)
 
-        form = usecase(
-            form_title='FORM TITLE',
-            creator_user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
-            user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
-            vinculation_form_id='d61dbf66-a10f-11ed-a8fc-0242ac120010',
-            can_vinculate=True,
-            template='TEMPLATE',
-            area='1',
-            system='GAIA',
-            street='1',
-            city='1',
-            number=1,
-            latitude=1.0,
-            longitude=1.0,
-            region='REGION',
-            description='123',
-            priority=PRIORITY.EMERGENCY,
-            expiration_date=946407600000,
-            justification=justification,
-            comments='123',
-            sections=[
-                section
-            ],
-            information_fields=repo.forms[0].information_fields
-        )
-
-        assert len(form.form_id) == 36
-        assert form.creator_user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120001'
-        assert form.user_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120001'
-        assert form.vinculation_form_id == 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
-        assert form.template == 'TEMPLATE'
-        assert form.area == '1'
-        assert form.system == 'GAIA'
-        assert form.street == '1'
-        assert form.city == '1'
-        assert form.number == 1
-        assert form.latitude == 1.0
-        assert form.longitude == 1.0
-        assert form.region == 'REGION'
-        assert form.description == '123'
+        assert len(form.id) == 36
+        assert form.status == FORM_STATUS.PENDING
         assert form.priority == PRIORITY.EMERGENCY
-        assert form.status == FORM_STATUS.NOT_STARTED
+        assert form.observation == 'obs'
         assert form.expiration_date == 946407600000
-        assert form.creation_date == int(datetime.now().timestamp())
-        assert form.start_date == None
-        assert form.conclusion_date == None
-        assert form.justification == justification
-        assert form.comments == '123'
+        assert form.sections[0].section_id == 1
         assert isinstance(form.information_fields[0], TextInformationField)
-        assert len(form.sections) == 1
-        assert len(form.information_fields) == 2
+        assert files == []
+
+    def test_create_form_usecase_with_files(self):
+        usecase, payload = _make_usecase_and_payload()
+        payload = deepcopy(payload)
+        payload["information_fields"] = [FileInformationField(file_path="")]
+        payload["information_fields_uploads"] = [FileUploadRequest(filename="a.jpg", mimetype="image/jpeg")]
+
+        form, files = usecase(**payload)
+
+        assert form.information_fields[0].file_path.startswith("https://")
+        assert len(files) == 1
+        assert files[0].filename == "a.jpg"
+        assert files[0].mimetype == "image/jpeg"
+
+    def test_create_form_usecase_duplicate_field_key(self):
+        usecase, payload = _make_usecase_and_payload()
+        payload = deepcopy(payload)
+
+        field_a = TextField(
+            placeholder='placeholder',
+            required=True,
+            key='duplicate_key',
+            regex='regex',
+            formatting='formatting',
+            max_length=10,
+            value='value',
+        )
+        field_b = TextField(
+            placeholder='placeholder',
+            required=True,
+            key='duplicate_key',
+            regex='regex',
+            formatting='formatting',
+            max_length=10,
+            value='value',
+        )
+        try:
+            Section(section_id=1, fields=[field_a, field_b])
+            assert False, "Expected EntityError"
+        except EntityError as err:
+            assert "duplicated field key(s)" in err.message

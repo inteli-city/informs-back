@@ -1,0 +1,8 @@
+type: object
+required:
+  - option
+properties:
+  option: { type: string }
+  text: { type: string, nullable: true }
+  file: { $ref: "../entities/docs/file-upload.yaml#/FileUploadParams", nullable: true }
+  cancelled_at: { type: integer, format: int64, description: "Timestamp em ms" }

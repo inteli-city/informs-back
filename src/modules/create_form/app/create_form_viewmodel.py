@@ -1,179 +1,141 @@
 from enum import Enum
 from typing import List, Optional
-
 from src.shared.domain.entities.field import Field
 from src.shared.domain.entities.form import Form
+from src.shared.domain.entities.file_upload import FileUpload
 from src.shared.domain.entities.information_field import InformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption
 from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.fields_enum import FIELD_TYPE
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
-from src.shared.domain.enums.priority_enum import PRIORITY
 
 
 class FieldViewmodel:
-    field: Field
-
     def __init__(self, field: Field):
         self.field = field
     
     def to_dict(self):
-        return {attr: getattr(self.field, attr).value if isinstance(getattr(self.field, attr), Enum) else getattr(self.field, attr) for attr in vars(self.field)}
+        base = {
+            'field_type': self.field.field_type.value,
+            'label': self.field.label,
+            'required': self.field.required,
+            'key': self.field.key,
+            'order': self.field.order,
+            'help_text': getattr(self.field, 'help_text', None)
+        }
 
-class InformationFieldViewmodel:
-    information_field: InformationField
+        if self.field.field_type == FIELD_TYPE.TEXT_FIELD:
+            base.update({
+                'regex': getattr(self.field, 'regex', None),
+                'max_length': getattr(self.field, 'max_length', None)
+            })
+        if hasattr(self.field, 'options'):
+            base['options'] = getattr(self.field, 'options')
+        if hasattr(self.field, 'max_value'):
+            base['max_value'] = getattr(self.field, 'max_value')
+        if hasattr(self.field, 'min_value'):
+            base['min_value'] = getattr(self.field, 'min_value')
+        if hasattr(self.field, 'decimal'):
+            base['decimal'] = getattr(self.field, 'decimal')
+        if hasattr(self.field, 'check_limit'):
+            base['check_limit'] = getattr(self.field, 'check_limit')
+        if hasattr(self.field, 'file_type'):
+            base['file_type'] = getattr(self.field.file_type, 'value', None)
+            base['min_quantity'] = getattr(self.field, 'min_quantity', None)
+            base['max_quantity'] = getattr(self.field, 'max_quantity', None)
 
-    def __init__(self, information_field: Field):
-        self.information_field = information_field
-    
-    def to_dict(self):
-        return {attr: getattr(self.information_field, attr).value if isinstance(getattr(self.information_field, attr), Enum) else getattr(self.information_field, attr) for attr in vars(self.information_field)}
+        return base
+
 
 class SectionViewmodel:
-    section_id: str
-    fields: List[Field]
-
     def __init__(self, section: Section):
-        self.section_id = section.section_id
-        self.fields = section.fields
+        self.section = section
     
     def to_dict(self):
         return {
-            'section_id': self.section_id,
-            'fields': [FieldViewmodel(field).to_dict() for field in self.fields]
+            'section_id': self.section.section_id,
+            'fields': [FieldViewmodel(field).to_dict() for field in self.section.fields]
         }
+
 
 class JustificationOptionViewmodel:
-    option: str
-    required_image: bool
-    required_text: bool
-
     def __init__(self, justification_option: JustificationOption):
-        self.option = justification_option.option
-        self.required_image = justification_option.required_image
-        self.required_text = justification_option.required_text
+        self.justification_option = justification_option
 
     def to_dict(self):
         return {
-            'option': self.option,
-            'required_image': self.required_image,
-            'required_text': self.required_text
+            'option': self.justification_option.option,
+            'required_image': self.justification_option.required_image,
+            'required_text': self.justification_option.required_text
         }
+
 
 class JustificationViewmodel:
-    options: List[JustificationOptionViewmodel]
-    selected_option: Optional[str]
-    justification_text: Optional[str]
-    justification_image: Optional[str]
-
     def __init__(self, justification: Justification):
-        self.options = [JustificationOptionViewmodel(option).to_dict() for option in justification.options]
-        self.selected_option = justification.selected_option
-        self.justification_text = justification.justification_text
-        self.justification_image = justification.justification_image
+        self.justification = justification
 
     def to_dict(self):
         return {
-            'options': self.options,
-            'selected_option': self.selected_option,
-            'justification_text': self.justification_text,
-            'justification_image': self.justification_image
+            'options': [JustificationOptionViewmodel(option).to_dict() for option in self.justification.options],
+            'selected': None
         }
+
+
+class InformationFieldViewmodel:
+    def __init__(self, information_field: InformationField):
+        self.information_field = information_field
+
+    def to_dict(self):
+        return {
+            attr: (
+                getattr(self.information_field, attr).value
+                if isinstance(getattr(self.information_field, attr), Enum)
+                else getattr(self.information_field, attr)
+            )
+            for attr in vars(self.information_field)
+        }
+
 
 class FormViewmodel:
-    form_title: str
-    form_id: str
-    creator_user_id: str
-    user_id: str
-    vinculation_form_id: Optional[str]
-    can_vinculate: bool
-    template: str
-    area: str
-    system: str
-    street: str
-    city: str
-    number: int
-    latitude: float
-    longitude: float
-    region: str
-    description: Optional[str]
-    priority: PRIORITY
-    status: FORM_STATUS
-    expiration_date: int
-    creation_date: int
-    start_date: Optional[int]
-    conclusion_date: Optional[int]
-    justification: Justification
-    comments: Optional[str]
-    sections: List[Section]
-    information_fields: Optional[List[InformationField]]
-
-    def __init__(self, form: Form):
-        self.form_title = form.form_title
-        self.form_id = form.form_id
-        self.creator_user_id = form.creator_user_id
-        self.user_id = form.user_id
-        self.vinculation_form_id = form.vinculation_form_id
-        self.can_vinculate = form.can_vinculate
-        self.template = form.template
-        self.area = form.area
-        self.system = form.system
-        self.street = form.street
-        self.city = form.city
-        self.number = form.number
-        self.latitude = form.latitude
-        self.longitude = form.longitude
-        self.region = form.region
-        self.description = form.description
-        self.priority = form.priority
-        self.status = form.status
-        self.expiration_date = form.expiration_date
-        self.creation_date = form.creation_date
-        self.start_date = form.start_date
-        self.conclusion_date = form.conclusion_date
-        self.justification = form.justification
-        self.comments = form.comments
-        self.sections = form.sections
-        self.information_fields = form.information_fields
-
-    def to_dict(self):
-        return {
-            'form_title': self.form_title,
-            'form_id': self.form_id,
-            'creator_user_id': self.creator_user_id,
-            'user_id': self.user_id,
-            'vinculation_form_id': self.vinculation_form_id,
-            'can_vinculate': self.can_vinculate,
-            'template': self.template,
-            'area': self.area,
-            'system': self.system,
-            'street': self.street,
-            'city': self.city,
-            'number': self.number,
-            'latitude': self.latitude,
-            'longitude': self.longitude,
-            'region': self.region,
-            'description': self.description,
-            'priority': self.priority.value,
-            'status': self.status.value,
-            'expiration_date': self.expiration_date,
-            'creation_date': self.creation_date,
-            'start_date': self.start_date,
-            'conclusion_date': self.conclusion_date,
-            'justification': JustificationViewmodel(self.justification).to_dict(),
-            'comments': self.comments,
-            'sections': [SectionViewmodel(section).to_dict() for section in self.sections],
-            'information_fields': [InformationFieldViewmodel(information_field).to_dict() for information_field in self.information_fields] if self.information_fields is not None else None
-        }
-    
-class CreateFormViewmodel:
-    form: Form
-
     def __init__(self, form: Form):
         self.form = form
-    
+
     def to_dict(self):
         return {
-            'form': FormViewmodel(self.form).to_dict(),
-            'message': 'Formulário criado com sucesso!'
+            'id': self.form.id,
+            'status': self.form.status.value,
+            'form_title': self.form.form_title,
+            'user_id': self.form.user_id,
+            'area': self.form.area,
+            'system': self.form.system,
+            'city': self.form.city,
+            'street': self.form.street,
+            'latitude': self.form.latitude,
+            'longitude': self.form.longitude,
+            'priority': int(self.form.priority.value),
+            'observation': self.form.observation,
+            'expiration_date': self.form.expiration_date,
+            'justification': JustificationViewmodel(self.form.justification).to_dict(),
+            'sections': [SectionViewmodel(section).to_dict() for section in self.form.sections],
+            'in_progress_at': self.form.in_progress_at,
+            'cancelled_at': self.form.cancelled_at,
+            'completed_at': self.form.completed_at,
+            'created_by': self.form.created_by,
+            'created_at': self.form.created_at,
+            'updated_at': self.form.updated_at,
+            'information_fields': [InformationFieldViewmodel(information_field).to_dict() for information_field in self.form.information_fields] if self.form.information_fields else None,
+            'number': self.form.number
         }
+    
+
+class CreateFormViewmodel:
+    def __init__(self, form: Form, files: Optional[List[FileUpload]] = None):
+        self.form = form
+        self.files = files or []
+    
+    def to_dict(self):
+        payload = FormViewmodel(self.form).to_dict()
+        payload["files"] = [
+            file.to_dict() if isinstance(file, FileUpload) else file
+            for file in self.files
+        ]
+        return payload

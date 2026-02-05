@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Optional, Tuple, Union
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import Section
@@ -11,17 +11,26 @@ from src.shared.infra.dtos.form_dynamo_dto import FormDynamoDTO
 from src.shared.infra.dtos.justification_dto import JustificationDTO
 from src.shared.infra.dtos.section_dto import SectionDTO
 from src.shared.infra.external.dynamo.datasources.dynamo_datasource import DynamoDatasource
-from boto3.dynamodb.conditions import Key
+from src.shared.helpers.functions.pagination_token import encode_pagination_token
+from boto3.dynamodb.conditions import Key, Attr
 
 class FormRepositoryDynamo(IFormRepository):
 
     @staticmethod
-    def form_partition_key_format(user_id: str) -> str:
-        return f'{user_id}'
+    def form_partition_key_format(form_id: str) -> str:
+        return f'form#{form_id}'
     
     @staticmethod
-    def form_sort_key_format(form_id: str) -> str:
-        return f'form#{form_id}'
+    def form_sort_key_format(form_id: str = None) -> str:
+        return 'METADATA'
+
+    @staticmethod 
+    def form_gsi1_partition_key_format(user_id: str) -> str:
+        return f'user#{user_id}'
+    
+    @staticmethod
+    def form_gsi1_sort_key_format(priority: str, status: FORM_STATUS, created_at: int) -> str:
+        return f'priority#{priority}#status#{status.value}#created_at#{created_at}'
 
     def __init__(self):
         self.dynamo = DynamoDatasource(
@@ -33,7 +42,7 @@ class FormRepositoryDynamo(IFormRepository):
         )
     
     def get_form_by_id(self, user_id: str, form_id: str) -> Form:
-        form = self.dynamo.get_item(partition_key=self.form_partition_key_format(user_id), sort_key=self.form_sort_key_format(form_id))
+        form = self.dynamo.get_item(partition_key=self.form_partition_key_format(form_id), sort_key=self.form_sort_key_format(form_id))
         if "Item" not in form:
             return None
 
@@ -46,57 +55,173 @@ class FormRepositoryDynamo(IFormRepository):
 
         for item in resp['Items']:
             forms.append(FormDynamoDTO.from_dynamo(item).to_entity())
-        
+
         return forms
+
+    def get_all_forms(
+        self,
+        limit: Optional[int],
+        exclusive_start_key: Optional[dict] = None,
+        status: Optional[Union[FORM_STATUS, List[FORM_STATUS]]] = None,
+        system: Optional[Union[str, List[str]]] = None,
+        user_id: Optional[str] = None,
+        created_at_start: Optional[int] = None,
+        created_at_end: Optional[int] = None,
+        search: Optional[str] = None,
+    ) -> Tuple[List[Form], Optional[str]]:
+        forms: List[Form] = []
+
+        items = []
+        filter_expression = None
+
+        if status is not None:
+            if isinstance(status, list):
+                if status:
+                    status_filter = None
+                    for status_item in status:
+                        expr = Attr('status').eq(status_item.value)
+                        status_filter = expr if status_filter is None else status_filter | expr
+                    filter_expression = status_filter
+            else:
+                filter_expression = Attr('status').eq(status.value)
+        if system is not None:
+            if isinstance(system, list):
+                if system:
+                    system_filter = None
+                    for system_item in system:
+                        expr = Attr('system').eq(system_item)
+                        system_filter = expr if system_filter is None else system_filter | expr
+                    if system_filter is not None:
+                        filter_expression = system_filter if filter_expression is None else filter_expression & system_filter
+            else:
+                expr = Attr('system').eq(system)
+                filter_expression = expr if filter_expression is None else filter_expression & expr
+        if created_at_start is not None and created_at_end is not None:
+            expr = Attr('created_at').between(Decimal(created_at_start), Decimal(created_at_end))
+            filter_expression = expr if filter_expression is None else filter_expression & expr
+        elif created_at_start is not None:
+            expr = Attr('created_at').gte(Decimal(created_at_start))
+            filter_expression = expr if filter_expression is None else filter_expression & expr
+        elif created_at_end is not None:
+            expr = Attr('created_at').lte(Decimal(created_at_end))
+            filter_expression = expr if filter_expression is None else filter_expression & expr
+
+        if user_id is not None:
+            query = Key("GSI1PK").eq(self.form_gsi1_partition_key_format(user_id))
+            query_kwargs = {
+                "key_condition_expression": query,
+                "IndexName": "GSI1",
+                "Select": "ALL_ATTRIBUTES",
+            }
+            if limit is not None:
+                query_kwargs["Limit"] = limit
+            if filter_expression is not None:
+                query_kwargs["FilterExpression"] = filter_expression
+            start_key = exclusive_start_key
+            while True:
+                if start_key is not None:
+                    query_kwargs["ExclusiveStartKey"] = start_key
+                resp = self.dynamo.query(**query_kwargs)
+                items.extend(resp.get("Items", []))
+                start_key = resp.get("LastEvaluatedKey")
+                if limit is not None or start_key is None:
+                    break
+        else:
+            scan_kwargs = {
+                "Select": "ALL_ATTRIBUTES",
+            }
+            if limit is not None:
+                scan_kwargs["Limit"] = limit
+            start_key = exclusive_start_key
+            while True:
+                if start_key is not None:
+                    scan_kwargs["ExclusiveStartKey"] = start_key
+                if filter_expression is not None:
+                    resp = self.dynamo.scan_items(filter_expression=filter_expression, **scan_kwargs)
+                else:
+                    resp = self.dynamo.dynamo_table.scan(**scan_kwargs)
+                items.extend(resp.get("Items", []))
+                start_key = resp.get("LastEvaluatedKey")
+                if limit is not None or start_key is None:
+                    break
+
+        for item in items:
+            forms.append(FormDynamoDTO.from_dynamo(item).to_entity())
+
+        if search is not None:
+            search_lower = search.lower()
+            forms = [
+                form for form in forms
+                if search_lower in form.form_title.lower() or (form.observation or "").lower().find(search_lower) != -1
+            ]
+
+        def sort_key(f: Form):
+            is_open = f.status not in [FORM_STATUS.COMPLETED, FORM_STATUS.CANCELLED]
+            return (is_open, int(f.priority.value), f.created_at)
+
+        forms.sort(key=sort_key, reverse=True)
+
+        next_key = start_key if limit is not None else None
+        return forms, encode_pagination_token(next_key)
 
     def create_form(self, form: Form) -> Form:
         item = FormDynamoDTO.from_entity(form).to_dynamo()
 
-        self.dynamo.put_item(item=item, partition_key=self.form_partition_key_format(form.user_id), sort_key=self.form_sort_key_format(form.form_id), is_decimal=True)
+        item["GSI1PK"] = self.form_gsi1_partition_key_format(form.user_id)
+        item["GSI1SK"] = self.form_gsi1_sort_key_format(priority=form.priority.value, status=form.status, created_at=form.created_at)
+
+        self.dynamo.put_item(
+            item=item,
+            partition_key=self.form_partition_key_format(form.id),
+            sort_key=self.form_sort_key_format()
+        )
         
         return form
-    
-    def update_form_status(self, user_id: str, form_id: str, status: FORM_STATUS, start_date: Optional[int] = None) -> Form:
-        update_dict = {
-            "status": status.value,
-            "start_date": Decimal(start_date) if start_date is not None else None
-        }
 
-        resp = self.dynamo.update_item(partition_key=self.form_partition_key_format(user_id), sort_key=self.form_sort_key_format(form_id), update_dict=update_dict)
-        
+    def update_form(
+        self,
+        user_id: str,
+        form_id: str,
+        status: Optional[FORM_STATUS] = None,
+        in_progress_at: Optional[int] = None,
+        completed_at: Optional[int] = None,
+        cancelled_at: Optional[int] = None,
+        updated_at: Optional[int] = None,
+        sections: Optional[List[Section]] = None,
+        justification: Optional[Justification] = None,
+    ) -> Form:
+        update_dict = {}
+
+        def _put(key, value):
+            if value is None:
+                return
+            if isinstance(value, FORM_STATUS):
+                update_dict[key] = value.value
+            elif isinstance(value, Justification):
+                update_dict[key] = JustificationDTO.from_entity(value).to_dynamo()
+            elif isinstance(value, list) and value and isinstance(value[0], Section):
+                update_dict[key] = [SectionDTO.from_entity(section).to_dynamo() for section in value]
+            elif isinstance(value, (int, float)):
+                update_dict[key] = Decimal(str(value))
+            else:
+                update_dict[key] = value
+
+        _put("status", status)
+        _put("in_progress_at", in_progress_at)
+        _put("completed_at", completed_at)
+        _put("cancelled_at", cancelled_at)
+        _put("updated_at", updated_at)
+        _put("sections", sections)
+        _put("justification", justification)
+
+        resp = self.dynamo.update_item(
+            partition_key=self.form_partition_key_format(form_id),
+            sort_key=self.form_sort_key_format(form_id),
+            update_dict=update_dict
+        )
+
         if "Attributes" not in resp:
             return None
         
         return FormDynamoDTO.from_dynamo(resp['Attributes']).to_entity()
     
-    def cancel_form(self, user_id: str, form_id: str, justification: Justification) -> Form:
-        
-        update_dict = {
-            "status": FORM_STATUS.CANCELED.value,
-            "justification": JustificationDTO.from_entity(justification).to_dynamo(),
-            "conclusion_date": Decimal(int(datetime.now().timestamp()))
-        }
-
-        resp = self.dynamo.update_item(partition_key=self.form_partition_key_format(user_id), sort_key=self.form_sort_key_format(form_id), update_dict=update_dict)
-        
-        if "Attributes" not in resp:
-            return None
-        
-        return FormDynamoDTO.from_dynamo(resp['Attributes']).to_entity()
-    
-    def complete_form(self, user_id: str, form_id: str, sections: List[Section], vinculation_form_id: Optional[str] = None) -> Form:
-        update_dict = {
-            "status": FORM_STATUS.CONCLUDED.value,
-            "sections": [
-                SectionDTO.from_entity(section).to_dynamo() for section in sections
-            ],
-            "vinculation_form_id": vinculation_form_id,
-            "conclusion_date": Decimal(int(datetime.now().timestamp()))
-        }
-
-        resp = self.dynamo.update_item(partition_key=self.form_partition_key_format(user_id), sort_key=self.form_sort_key_format(form_id), update_dict=update_dict)
-        
-        if "Attributes" not in resp:
-            return None
-        
-        return FormDynamoDTO.from_dynamo(resp['Attributes']).to_entity()

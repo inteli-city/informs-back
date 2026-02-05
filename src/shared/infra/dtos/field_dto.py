@@ -1,4 +1,4 @@
-from decimal import Decimal
+from enum import Enum
 from typing import Dict, Any, Union
 
 from src.shared.domain.entities.field import CheckBoxGroupField, CheckboxField, DateField, DropDownField, Field, FileField, NumberField, RadioGroupField, SwitchButtonField, TextField, TypeAheadField
@@ -9,6 +9,7 @@ from src.shared.helpers.errors.domain_errors import EntityError
 
 class FieldDTO:
     field: Field
+    _FIELD_BUILDERS = {}
 
     def __init__(self, field: Field):
         self.field = field
@@ -21,181 +22,235 @@ class FieldDTO:
         if field_dict.get('field_type') not in [field.value for field in FIELD_TYPE]:
             raise EntityError('field_type')
         
-        if field_dict.get('placeholder') is None:
-            raise MissingParameters('placeholder')
+        if field_dict.get('label') is None and field_dict.get('placeholder') is not None:
+            field_dict['label'] = field_dict.get('placeholder')
         
-        if field_dict.get('required') is None:
-            raise MissingParameters('required')
+        for base_param in ['label', 'required', 'key']:
+            if field_dict.get(base_param) is None:
+                raise MissingParameters(base_param)
         
-        if field_dict.get('key') is None:
-            raise MissingParameters('key')
-        
+        if field_dict.get('order') is None:
+            field_dict['order'] = 0
+
         field_type = FIELD_TYPE[field_dict.get('field_type')]
+        base_args = {
+            "label": field_dict.get("label"),
+            "required": bool(field_dict.get("required")),
+            "key": field_dict.get("key"),
+            "order": int(field_dict.get("order")),
+            "help_text": field_dict.get("help_text"),
+        }
 
-        field_dict.pop('field_type')
+        spec = FieldDTO._FIELD_BUILDERS.get(field_type)
+        if spec is None:
+            raise EntityError("field_type")
 
-        if field_type == FIELD_TYPE.TEXT_FIELD:
-            field = TextField(
-                placeholder=field_dict.get('placeholder'),
-                required=field_dict.get('required'),
-                key=field_dict.get('key'),
-                regex=field_dict.get('regex'),
-                formatting=field_dict.get('formatting'),
-                max_length=int(field_dict.get('max_length')) if field_dict.get('max_length') is not None else None,
-                value=field_dict.get('value'),
-            )
-
-        elif field_type == FIELD_TYPE.NUMBER_FIELD:
-            if field_dict.get('decimal') is None:
-                raise MissingParameters('decimal')
-            field = NumberField(
-                placeholder=field_dict.get('placeholder'),
-                required=field_dict.get('required'),
-                key=field_dict.get('key'),
-                decimal=field_dict.get('decimal'),
-                max_value=int(field_dict.get('max_value')) if field_dict.get('max_value') is not None else None,
-                min_value=int(field_dict.get('min_value')) if field_dict.get('min_value') is not None else None,
-                value=float(field_dict.get('value')) if field_dict.get('value') is not None else None,
-            )
-
-        elif field_type == FIELD_TYPE.DROPDOWN_FIELD:
-            if field_dict.get('options') is None:
-                raise MissingParameters('options')
-            field = DropDownField(**field_dict)
-
-        elif field_type == FIELD_TYPE.TYPEAHEAD_FIELD:
-            if field_dict.get('options') is None:
-                raise MissingParameters('options')
-            field = TypeAheadField(
-                placeholder=field_dict.get('placeholder'),
-                required=field_dict.get('required'),
-                key=field_dict.get('key'),
-                options=field_dict.get('options'),
-                max_length=int(field_dict.get('max_length')) if field_dict.get('max_length') is not None else None,
-                value=field_dict.get('value')
-            )
-
-        elif field_type == FIELD_TYPE.RADIO_GROUP_FIELD:
-            if field_dict.get('options') is None:
-                raise MissingParameters('options')
-            field = RadioGroupField(**field_dict)
-
-        elif field_type == FIELD_TYPE.DATE_FIELD:
-            field = DateField(
-                placeholder=field_dict.get('placeholder'),
-                required=field_dict.get('required'),
-                key=field_dict.get('key'),
-                min_date=int(field_dict.get('min_date')) if field_dict.get('min_date') is not None else None,
-                max_date=int(field_dict.get('max_date')) if field_dict.get('max_date') is not None else None,
-                value=int(field_dict.get('value')) if field_dict.get('value') is not None else None
-            )
-
-        elif field_type == FIELD_TYPE.CHECKBOX_FIELD:
-            field = CheckboxField(**field_dict)
-
-        elif field_type == FIELD_TYPE.CHECKBOX_GROUP_FIELD:
-            if field_dict.get('options') is None:
-                raise MissingParameters('options')
-            field = CheckBoxGroupField(
-                placeholder=field_dict.get('placeholder'),
-                required=field_dict.get('required'),
-                key=field_dict.get('key'),
-                options=field_dict.get('options'),
-                check_limit=int(field_dict.get('check_limit')) if field_dict.get('check_limit') is not None else None,
-                value=field_dict.get('value')
-            )
-
-        elif field_type == FIELD_TYPE.SWITCH_BUTTON_FIELD:
-            field = SwitchButtonField(**field_dict)
-
-        elif field_type == FIELD_TYPE.FILE_FIELD:
-            if field_dict.get('file_type') is None:
-                raise MissingParameters('file_type')
-            if field_dict.get('file_type') not in [file_type.value for file_type in FILE_TYPE]:
-                raise EntityError('file_type')
-            if field_dict.get('min_quantity') is None:
-                raise MissingParameters('min_quantity')
-            if field_dict.get('max_quantity') is None:
-                raise MissingParameters('max_quantity')
-            field = FileField(
-                key=field_dict.get('key'),
-                placeholder=field_dict.get('placeholder'),
-                required=field_dict.get('required'),
-                file_type=FILE_TYPE[field_dict.get('file_type')],
-                min_quantity=int(field_dict.get('min_quantity')) if field_dict.get('min_quantity') is not None else None,
-                max_quantity=int(field_dict.get('max_quantity')) if field_dict.get('max_quantity') is not None else None,
-                value=field_dict.get('value')
-            )
+        required_fields, builder = spec
+        FieldDTO._ensure_required(field_dict, required_fields)
+        field = builder(base_args, field_dict)
         
         return FieldDTO(field)    
 
     def to_dynamo(self) -> dict:
-        dynamo_dict = {
+        def _serialize_value(value):
+            if isinstance(value, Enum):
+                return value.name
+            if isinstance(value, list):
+                return [_serialize_value(item) for item in value]
+            if isinstance(value, dict):
+                return {key: _serialize_value(val) for key, val in value.items()}
+            return value
+
+        base = {
             "field_type": self.field.field_type.name,
+            "label": self.field.label,
             "placeholder": self.field.placeholder,
             "required": self.field.required,
             "key": self.field.key,
+            "order": self.field.order,
+            "help_text": self.field.help_text,
         }
 
-        if isinstance(self.field, TextField):
-            dynamo_dict.update({
-                "regex": self.field.regex,
-                "formatting": self.field.formatting,
-                "max_length": self.field.max_length,
-                "value": self.field.value
-            })
-        elif isinstance(self.field, NumberField):
-            dynamo_dict.update({
-                "max_value": Decimal(str(self.field.max_value)) if self.field.max_value is not None else None,
-                "min_value": Decimal(str(self.field.min_value)) if self.field.min_value is not None else None,
-                "decimal": self.field.decimal,
-                "value": Decimal(str(self.field.value)) if self.field.value is not None else None
-            })
-        elif isinstance(self.field, DropDownField):
-            dynamo_dict.update({
-                "options": self.field.options,
-                "value": self.field.value
-            })
-        elif isinstance(self.field, TypeAheadField):
-            dynamo_dict.update({
-                "options": self.field.options,
-                "max_length": Decimal(str(self.field.max_length)) if self.field.max_length is not None else None,
-                "value": self.field.value
-            })
-        elif isinstance(self.field, RadioGroupField):
-            dynamo_dict.update({
-                "options": self.field.options,
-                "value": self.field.value
-            })
-        elif isinstance(self.field, DateField):
-            dynamo_dict.update({
-                "min_date": Decimal(str(self.field.min_date)) if self.field.min_date is not None else None,
-                "max_date": Decimal(str(self.field.max_date)) if self.field.max_date is not None else None,
-                "value": self.field.value
-            })
-        elif isinstance(self.field, CheckboxField):
-            dynamo_dict.update({
-                "value": self.field.value
-            })
-        elif isinstance(self.field, CheckBoxGroupField):
-            dynamo_dict.update({
-                "options": self.field.options,
-                "check_limit": Decimal(str(self.field.check_limit)) if self.field.check_limit is not None else None,
-                "value": self.field.value
-            })
-        elif isinstance(self.field, SwitchButtonField):
-            dynamo_dict.update({
-                "value": self.field.value
-            })
-        elif isinstance(self.field, FileField):
-            dynamo_dict.update({
-                "file_type": self.field.file_type.name,
-                "min_quantity": Decimal(str(self.field.min_quantity)),
-                "max_quantity": Decimal(str(self.field.max_quantity)),
-                "value": self.field.value
-            })
+        type_specific_fields = {
+            FIELD_TYPE.TEXT_FIELD: {"regex", "formatting", "max_length", "value"},
+            FIELD_TYPE.NUMBER_FIELD: {"max_value", "min_value", "decimal", "value"},
+            FIELD_TYPE.DROPDOWN_FIELD: {"options", "value"},
+            FIELD_TYPE.TYPEAHEAD_FIELD: {"options", "max_length", "value"},
+            FIELD_TYPE.RADIO_GROUP_FIELD: {"options", "value"},
+            FIELD_TYPE.DATE_FIELD: {"min_date", "max_date", "value"},
+            FIELD_TYPE.CHECKBOX_FIELD: {"value"},
+            FIELD_TYPE.CHECKBOX_GROUP_FIELD: {"options", "check_limit", "value"},
+            FIELD_TYPE.SWITCH_BUTTON_FIELD: {"value"},
+            FIELD_TYPE.FILE_FIELD: {"file_type", "min_quantity", "max_quantity", "value"},
+        }
 
-        return dynamo_dict
+        field_type = self.field.field_type
+        allowed_fields = type_specific_fields.get(field_type)
+        if allowed_fields is None:
+            allowed_fields = {
+                key for key in vars(self.field).keys()
+                if key not in base and key not in {"label", "placeholder"}
+            }
+
+        for key in allowed_fields:
+            base[key] = _serialize_value(getattr(self.field, key, None))
+
+        return base
 
     def to_entity(self) -> Field:
         return self.field
+
+    @staticmethod
+    def _ensure_required(field_dict: dict, required_fields: set) -> None:
+        for field in required_fields:
+            if field_dict.get(field) is None:
+                raise MissingParameters(field)
+
+    @staticmethod
+    def _to_int(value):
+        return int(value) if value is not None else None
+
+    @staticmethod
+    def _to_float(value):
+        return float(value) if value is not None else None
+
+    @staticmethod
+    def _build_text_field(base_args: dict, field_dict: dict) -> TextField:
+        return TextField(
+            **base_args,
+            regex=field_dict.get("regex"),
+            formatting=field_dict.get("formatting"),
+            max_length=FieldDTO._to_int(field_dict.get("max_length")),
+            value=field_dict.get("value"),
+        )
+
+    @staticmethod
+    def _build_number_field(base_args: dict, field_dict: dict) -> NumberField:
+        return NumberField(
+            **base_args,
+            decimal=bool(field_dict.get("decimal")),
+            max_value=FieldDTO._to_float(field_dict.get("max_value")),
+            min_value=FieldDTO._to_float(field_dict.get("min_value")),
+            value=FieldDTO._to_float(field_dict.get("value")),
+        )
+
+    @staticmethod
+    def _build_dropdown_field(base_args: dict, field_dict: dict) -> DropDownField:
+        return DropDownField(
+            **base_args,
+            options=field_dict.get("options"),
+            value=field_dict.get("value"),
+        )
+
+    @staticmethod
+    def _build_typeahead_field(base_args: dict, field_dict: dict) -> TypeAheadField:
+        return TypeAheadField(
+            **base_args,
+            options=field_dict.get("options"),
+            max_length=FieldDTO._to_int(field_dict.get("max_length")),
+            value=field_dict.get("value"),
+        )
+
+    @staticmethod
+    def _build_radio_group_field(base_args: dict, field_dict: dict) -> RadioGroupField:
+        return RadioGroupField(
+            **base_args,
+            options=field_dict.get("options"),
+            value=field_dict.get("value"),
+        )
+
+    @staticmethod
+    def _build_date_field(base_args: dict, field_dict: dict) -> DateField:
+        return DateField(
+            **base_args,
+            min_date=FieldDTO._to_int(field_dict.get("min_date")),
+            max_date=FieldDTO._to_int(field_dict.get("max_date")),
+            value=FieldDTO._to_int(field_dict.get("value")),
+        )
+
+    @staticmethod
+    def _build_checkbox_field(base_args: dict, field_dict: dict) -> CheckboxField:
+        checkbox_value = field_dict.get("value")
+        return CheckboxField(
+            **base_args,
+            value=bool(checkbox_value) if checkbox_value is not None else None,
+        )
+
+    @staticmethod
+    def _build_checkbox_group_field(base_args: dict, field_dict: dict) -> CheckBoxGroupField:
+        value_raw = field_dict.get("value")
+        options = field_dict.get("options")
+        normalized_value = None
+
+        if value_raw is not None:
+            if isinstance(value_raw, dict):
+                if not isinstance(options, list) or not options:
+                    raise EntityError("options")
+                unknown_keys = [key for key in value_raw.keys() if key not in options]
+                if unknown_keys:
+                    raise EntityError("value")
+                normalized_value = []
+                for option in options:
+                    entry = value_raw.get(option)
+                    if entry is None:
+                        entry = False
+                    if isinstance(entry, (int, float)) and entry in (0, 1):
+                        entry = bool(entry)
+                    if not isinstance(entry, bool):
+                        raise EntityError("value")
+                    normalized_value.append(entry)
+            elif isinstance(value_raw, list):
+                normalized_value = []
+                for entry in value_raw:
+                    if entry is None:
+                        normalized_value.append(False)
+                    elif isinstance(entry, (int, float)) and entry in (0, 1):
+                        normalized_value.append(bool(entry))
+                    elif isinstance(entry, bool):
+                        normalized_value.append(entry)
+                    else:
+                        raise EntityError("value")
+            else:
+                raise EntityError("value")
+
+        return CheckBoxGroupField(
+            **base_args,
+            options=options,
+            check_limit=FieldDTO._to_int(field_dict.get("check_limit")),
+            value=normalized_value,
+        )
+
+    @staticmethod
+    def _build_switch_button_field(base_args: dict, field_dict: dict) -> SwitchButtonField:
+        switch_value = field_dict.get("value")
+        return SwitchButtonField(
+            **base_args,
+            value=bool(switch_value) if switch_value is not None else None,
+        )
+
+    @staticmethod
+    def _build_file_field(base_args: dict, field_dict: dict) -> FileField:
+        file_type = field_dict.get("file_type")
+        if file_type not in [file_type.value for file_type in FILE_TYPE]:
+            raise EntityError("file_type")
+        return FileField(
+            **base_args,
+            file_type=FILE_TYPE[file_type],
+            min_quantity=FieldDTO._to_int(field_dict.get("min_quantity")),
+            max_quantity=FieldDTO._to_int(field_dict.get("max_quantity")),
+            value=field_dict.get("value"),
+        )
+
+
+FieldDTO._FIELD_BUILDERS = {
+    FIELD_TYPE.TEXT_FIELD: (set(), FieldDTO._build_text_field),
+    FIELD_TYPE.NUMBER_FIELD: ({"decimal"}, FieldDTO._build_number_field),
+    FIELD_TYPE.DROPDOWN_FIELD: ({"options"}, FieldDTO._build_dropdown_field),
+    FIELD_TYPE.TYPEAHEAD_FIELD: ({"options"}, FieldDTO._build_typeahead_field),
+    FIELD_TYPE.RADIO_GROUP_FIELD: ({"options"}, FieldDTO._build_radio_group_field),
+    FIELD_TYPE.DATE_FIELD: (set(), FieldDTO._build_date_field),
+    FIELD_TYPE.CHECKBOX_FIELD: (set(), FieldDTO._build_checkbox_field),
+    FIELD_TYPE.CHECKBOX_GROUP_FIELD: ({"options"}, FieldDTO._build_checkbox_group_field),
+    FIELD_TYPE.SWITCH_BUTTON_FIELD: (set(), FieldDTO._build_switch_button_field),
+    FIELD_TYPE.FILE_FIELD: ({"file_type", "min_quantity", "max_quantity"}, FieldDTO._build_file_field),
+}

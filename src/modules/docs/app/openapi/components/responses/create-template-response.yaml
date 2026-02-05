@@ -1,0 +1,13 @@
+type: object
+properties:
+  id: { type: string, readOnly: true }
+  name: { type: string }
+  description: { type: string, nullable: true }
+  system: { type: string }
+  is_active: { type: boolean, default: true }
+  created_by: { type: string }
+  created_at: { type: integer, format: int64, readOnly: true, description: "Timestamp em ms" }
+  updated_at: { type: integer, format: int64, readOnly: true, description: "Timestamp em ms" }
+  sections:
+    type: array
+    items: { $ref: "../entities/docs/form-template.yaml#/TemplateSection" }
