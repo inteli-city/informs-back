@@ -110,7 +110,7 @@ class FormRepositoryDynamo(IFormRepository):
             query = Key("GSI1PK").eq(self.form_gsi1_partition_key_format(user_id))
             query_kwargs = {
                 "key_condition_expression": query,
-                "IndexName": "GSI1",
+                "IndexName": "UserPriorityIndex",
                 "Select": "ALL_ATTRIBUTES",
             }
             if limit is not None:
