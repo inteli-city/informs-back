@@ -79,7 +79,7 @@ class TemplateRepositoryDynamo(ITemplateRepository):
 
         query_kwargs = {
             "key_condition_expression": key_condition,
-            "IndexName": "GSI1",
+            "IndexName": "UserPriorityIndex",
             "Select": "ALL_ATTRIBUTES",
         }
         if limit is not None:
