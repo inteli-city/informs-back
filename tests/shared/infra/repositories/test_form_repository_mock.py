@@ -1,7 +1,7 @@
 import pytest
 from src.shared.domain.entities.field import TextField
 from src.shared.domain.entities.form import Form
-from src.shared.domain.entities.information_field import ImageInformationField
+from src.shared.domain.entities.information_field import FileInformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption, SelectedJustification
 from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
@@ -38,8 +38,9 @@ class Test_FormRepositoryMock:
     def test_form_repository_mock_create_form(self):
         repo = FormRepositoryMock()
         text_field = TextField(label='label', required=True, key='key', order=1, regex='regex', max_length=10, value='value')
-        section = Section(section_id=1, fields=[text_field, text_field])
-        information_field = ImageInformationField(file_path='value')
+        text_field_2 = TextField(label='label 2', required=True, key='key_2', order=2, regex='regex', max_length=10, value='value')
+        section = Section(section_id=1, fields=[text_field, text_field_2])
+        information_field = FileInformationField(file_path='value')
         form_to_create = Form(
             id='d61dbf66-a10f-11ed-a8fc-0242ac120013',
             form_title='FORM TITLE',
@@ -105,7 +106,8 @@ class Test_FormRepositoryMock:
     def test_form_repository_mock_submit_form(self):
         repo = FormRepositoryMock()
         text_field = TextField(label='label', required=True, key='key', order=1, regex='regex', max_length=10, value='value')
-        section = Section(section_id=2, fields=[text_field, text_field])
+        text_field_2 = TextField(label='label 2', required=True, key='key_2', order=2, regex='regex', max_length=10, value='value')
+        section = Section(section_id=2, fields=[text_field, text_field_2])
         form = repo.update_form(
             user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
             form_id=repo.forms[0].id,

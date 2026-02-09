@@ -34,12 +34,12 @@ class TestUpdateTemplateUsecase:
         assert updated.sections == self.existing.sections
         assert isinstance(updated.updated_at, int)
 
-    def test_update_template_with_sessions(self):
+    def test_update_template_with_sections(self):
         new_section = Section(section_id=2, fields=[TextField(label="Other", required=True, key="other", order=1)])
         updated = self.usecase(
             template_id=self.existing.id,
             requester_user_id="user-1",
-            sessions=[new_section],
+            sections=[new_section],
             is_active=False,
         )
         assert updated.sections[0].section_id == 2
@@ -53,10 +53,10 @@ class TestUpdateTemplateUsecase:
                 name="Any",
             )
 
-    def test_update_template_invalid_sessions(self):
+    def test_update_template_invalid_sections(self):
         with pytest.raises(EntityError):
             self.usecase(
                 template_id=self.existing.id,
                 requester_user_id="user-1",
-                sessions=[],
+                sections=[],
             )

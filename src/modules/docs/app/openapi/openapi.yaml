@@ -1,0 +1,24 @@
+openapi: 3.0.0
+info:
+  title: Informs
+  description: API de gerenciamento de formulários dinâmicos e templates.
+  version: 1.0.0
+servers:
+  - url: /prod
+  - url: /
+components:
+  securitySchemes:
+    $ref: ./components/securitySchemes.yaml
+  schemas:
+    $ref: ./components/schemas.yaml   
+security:
+  - BearerAuth: []
+paths:
+  /forms: { $ref: ./paths/docs/forms.yaml }
+  /forms/{formId}: { $ref: ./paths/docs/form-by-id.yaml }
+  /forms/{formId}/start: { $ref: ./paths/docs/start-form-by-id.yaml }
+  /forms/{formId}/submit: { $ref: ./paths/docs/submit-form-by-id.yaml }
+  /forms/{formId}/cancel: { $ref: ./paths/docs/cancel-form-by-id.yaml }
+  /templates: { $ref: ./paths/docs/form-templates.yaml }
+  /templates/{template_id}: { $ref: ./paths/docs/form-template-by-id.yaml }
+

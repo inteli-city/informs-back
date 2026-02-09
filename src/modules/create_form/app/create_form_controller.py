@@ -6,12 +6,13 @@ from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction, NoItemsFound
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
 from src.shared.helpers.external_interfaces.http_codes import BadRequest, Conflict, Created, Forbidden, InternalServerError, NotFound
-from src.shared.domain.entities.information_field import ImageInformationField
+from src.shared.domain.entities.information_field import FileInformationField
+from src.shared.domain.enums.file_type_enum import FILE_TYPE
 from src.shared.infra.dtos.information_field_dto import InformationFieldDTO
 from src.shared.infra.dtos.justification_dto import JustificationDTO
 from src.shared.infra.dtos.section_dto import SectionDTO
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
-from src.shared.domain.entities.image_upload import ImageUploadRequest
+from src.shared.domain.entities.file_upload import FileUploadRequest
 
 
 class CreateFormController:
@@ -59,7 +60,7 @@ class CreateFormController:
         longitude_raw = _get_required("longitude")
         priority_payload = _get_required("priority")
         raw_justifications = _get_required("justifications")
-        sessions_raw = _get_required("sessions")
+        sections_raw = _get_required("sections")
         observation = data.get("observation")
         expiration_date_raw = data.get("expiration_date")
         number_raw = data.get("number")
@@ -82,13 +83,14 @@ class CreateFormController:
             _require_type("template", template, str)
 
         _require_type("justifications", raw_justifications, list)
-        _require_type("sessions", sessions_raw, list)
+        _require_type("sections", sections_raw, list)
 
         if information_fields_raw is not None:
             _require_type("information_fields", information_fields_raw, list)
             information_fields_uploads = [None] * len(information_fields_raw)
             for idx, information_field in enumerate(information_fields_raw):
-                if information_field.get("information_field_type") == "IMAGE_INFORMATION_FIELD":
+                info_type = information_field.get("information_field_type")
+                if info_type == "FILE_INFORMATION_FIELD":
                     mimetype = information_field.get("mimetype")
                     if mimetype is None:
                         raise MissingParameters("mimetype")
@@ -99,7 +101,7 @@ class CreateFormController:
                         raise MissingParameters("filename")
                     if not isinstance(filename, str):
                         raise WrongTypeParameter("filename", "str", type(filename))
-                    information_fields_uploads[idx] = ImageUploadRequest(filename=filename, mimetype=mimetype)
+                    information_fields_uploads[idx] = FileUploadRequest(filename=filename, mimetype=mimetype)
 
         priority_values = {priority.value for priority in PRIORITY}
         if isinstance(priority_payload, bool) or not isinstance(priority_payload, int):
@@ -136,13 +138,20 @@ class CreateFormController:
             )
 
         justification_entity = JustificationDTO.from_request({"options": normalized_justifications}).to_entity()
-        sections = [SectionDTO.from_request(section).to_entity() for section in sessions_raw]
+        sections = [SectionDTO.from_request(section).to_entity() for section in sections_raw]
         information_fields = None
         if information_fields_raw is not None:
             information_fields = []
             for information_field in information_fields_raw:
-                if information_field.get("information_field_type") == "IMAGE_INFORMATION_FIELD":
-                    information_fields.append(ImageInformationField(file_path=""))
+                info_type = information_field.get("information_field_type")
+                if info_type == "FILE_INFORMATION_FIELD":
+                    file_type_raw = information_field.get("file_type")
+                    file_type = None
+                    if file_type_raw is not None:
+                        if not isinstance(file_type_raw, str) or file_type_raw not in [ft.value for ft in FILE_TYPE]:
+                            raise WrongTypeParameter("file_type", "str", type(file_type_raw))
+                        file_type = FILE_TYPE(file_type_raw)
+                    information_fields.append(FileInformationField(file_path="", file_type=file_type))
                 else:
                     information_fields.append(InformationFieldDTO.from_request(information_field).to_entity())
 
@@ -164,6 +173,7 @@ class CreateFormController:
             information_fields,
             information_fields_uploads,
         )
+
     
     def __call__(self, request: IRequest) -> IResponse:
         try:
@@ -188,7 +198,7 @@ class CreateFormController:
                 information_fields_uploads,
             ) = self._validate_endpoint_parameters(data)
 
-            form, images = self.usecase(
+            form, files = self.usecase(
                 form_title=form_title,
                 created_by=requester_user.user_id,
                 user_id=user_id,
@@ -208,7 +218,7 @@ class CreateFormController:
                 information_fields_uploads=information_fields_uploads,
             )
 
-            viewmodel = CreateFormViewmodel(form=form, images=images)
+            viewmodel = CreateFormViewmodel(form=form, files=files)
             
             return Created(viewmodel.to_dict())
         

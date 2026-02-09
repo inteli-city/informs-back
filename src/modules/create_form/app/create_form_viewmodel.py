@@ -2,7 +2,7 @@ from enum import Enum
 from typing import List, Optional
 from src.shared.domain.entities.field import Field
 from src.shared.domain.entities.form import Form
-from src.shared.domain.entities.image_upload import ImageUpload
+from src.shared.domain.entities.file_upload import FileUpload
 from src.shared.domain.entities.information_field import InformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption
 from src.shared.domain.entities.section import Section
@@ -115,7 +115,7 @@ class FormViewmodel:
             'observation': self.form.observation,
             'expiration_date': self.form.expiration_date,
             'justification': JustificationViewmodel(self.form.justification).to_dict(),
-            'sessions': [SectionViewmodel(section).to_dict() for section in self.form.sections],
+            'sections': [SectionViewmodel(section).to_dict() for section in self.form.sections],
             'in_progress_at': self.form.in_progress_at,
             'cancelled_at': self.form.cancelled_at,
             'completed_at': self.form.completed_at,
@@ -128,14 +128,14 @@ class FormViewmodel:
     
 
 class CreateFormViewmodel:
-    def __init__(self, form: Form, images: Optional[List[ImageUpload]] = None):
+    def __init__(self, form: Form, files: Optional[List[FileUpload]] = None):
         self.form = form
-        self.images = images or []
+        self.files = files or []
     
     def to_dict(self):
         payload = FormViewmodel(self.form).to_dict()
-        payload["images"] = [
-            image.to_dict() if isinstance(image, ImageUpload) else image
-            for image in self.images
+        payload["files"] = [
+            file.to_dict() if isinstance(file, FileUpload) else file
+            for file in self.files
         ]
         return payload

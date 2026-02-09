@@ -115,7 +115,7 @@ class GetFormViewmodel:
             "observation": self.observation,
             "expiration_date": self.expiration_date,
             "justification": JustificationViewmodel(self.justification).to_dict(),
-            "sessions": [SectionViewmodel(section).to_dict() for section in self.sections],
+            "sections": [SectionViewmodel(section).to_dict() for section in self.sections],
             "in_progress_at": self.in_progress_at,
             "cancelled_at": self.cancelled_at,
             "completed_at": self.completed_at,

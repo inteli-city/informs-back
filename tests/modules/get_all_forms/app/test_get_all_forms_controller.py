@@ -19,7 +19,7 @@ class Test_GetAllFormsController:
                 "sub": repo.forms[0].user_id,
                 "name": "User",
                 "email": "user@test.com",
-                "cognito:groups": "FORMULARIOS"
+                "cognito:groups": "FORMULARIOS,GAIA"
             },
             "limit": 20,
             "status": "PENDING",
@@ -43,7 +43,7 @@ class Test_GetAllFormsController:
                 "sub": repo.forms[0].user_id,
                 "name": "User",
                 "email": "user@test.com",
-                "cognito:groups": "FORMULARIOS"
+                "cognito:groups": "FORMULARIOS,GAIA"
             },
             "limit": 0
         })
@@ -52,3 +52,30 @@ class Test_GetAllFormsController:
 
         assert response.status_code == 400
         assert "limit" in response.body
+
+    def test_get_all_forms_controller_status_list(self):
+        repo = FormRepositoryMock()
+        usecase = GetAllFormsUsecase(repo)
+        controller = GetAllFormsController(usecase)
+
+        request = HttpRequest(
+            body={
+                "requester_user": {
+                    "sub": repo.forms[0].user_id,
+                    "name": "User",
+                    "email": "user@test.com",
+                    "cognito:groups": "FORMULARIOS,GAIA"
+                },
+                "limit": 20,
+            },
+            query_params={
+                "status": ["PENDING", "IN_PROGRESS"]
+            }
+        )
+
+        response = controller(request)
+
+        assert response.status_code == 200
+        assert len(response.body["forms"]) == 2
+        statuses = {item["status"] for item in response.body["forms"]}
+        assert statuses == {"PENDING", "IN_PROGRESS"}

@@ -31,11 +31,12 @@ class TestGetAllTemplatesViewmodel:
         templates = [self._make_template("Template 1"), self._make_template("Template 2")]
 
         token = encode_pagination_token({"PK": "template#1"})
-        viewmodel = GetAllTemplatesViewmodel(templates=templates, limit=20, last_evaluated_key=token, system="GAIA")
+        viewmodel = GetAllTemplatesViewmodel(templates=templates, limit=20, last_evaluated_key=token, systems=["GAIA"])
         result = viewmodel.to_dict()
 
         assert result["limit"] == 20
         assert result["system"] == "GAIA"
+        assert result["systems"] == ["GAIA"]
         decoded = decode_pagination_token(result["last_evaluated_key"])
         assert decoded["PK"] == "template#1"
         assert len(result["templates"]) == 2

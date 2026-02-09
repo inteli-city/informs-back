@@ -1,0 +1,9 @@
+type: object
+required:
+  - fields
+  - completed_at
+properties:
+  fields:
+    type: array
+    items: { $ref: "../entities/docs/form.yaml#/SubmitFormFieldFlat" }
+  completed_at: { type: integer, format: int64, description: "Timestamp em ms" }

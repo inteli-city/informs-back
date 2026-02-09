@@ -22,7 +22,7 @@ class TestCreateTemplateController:
             "system": "GAIA",
             "description": "Description",
             "is_active": True,
-            "sessions": [
+            "sections": [
                 {
                     "section_id": 1,
                     "fields": [
@@ -48,7 +48,7 @@ class TestCreateTemplateController:
         assert response.status_code == 201
         assert response.body["name"] == "Template X"
         assert response.body["system"] == "GAIA"
-        assert len(response.body["sessions"]) == 1
+        assert len(response.body["sections"]) == 1
 
     def test_create_template_controller_missing_name(self):
         repo = TemplateRepositoryMock()
@@ -74,14 +74,14 @@ class TestCreateTemplateController:
         assert response.status_code == 400
         assert response.body == "Campo is_active deveria ser do tipo bool, mas foi recebido um campo do tipo <class 'str'>"
 
-    def test_create_template_controller_invalid_sessions(self):
+    def test_create_template_controller_invalid_sections(self):
         repo = TemplateRepositoryMock()
         controller = CreateTemplateController(CreateTemplateUsecase(repo))
 
         body = self._make_base_body()
-        body["sessions"] = []
+        body["sections"] = []
         request = HttpRequest(body=body)
 
         response = controller(request)
         assert response.status_code == 400
-        assert response.body == "Parâmetro inválido: sessions"
+        assert response.body == "Parâmetro inválido: sections"

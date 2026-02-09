@@ -41,7 +41,7 @@ class TestUpdateTemplateController:
         assert response.body["name"] == "Controller Update"
         assert response.body["is_active"] is False
 
-    def test_update_template_controller_with_sessions(self):
+    def test_update_template_controller_with_sections(self):
         section = {
             "section_id": 2,
             "fields": [
@@ -61,12 +61,12 @@ class TestUpdateTemplateController:
         request = HttpRequest(body={
             "requester_user": {"sub": "user-1", "name": "Tester", "email": "t@example.com", "cognito:groups": "FORMULARIOS"},
             "template_id": self.template.id,
-            "sessions": [section],
+            "sections": [section],
         })
 
         response = self.controller(request)
         assert response.status_code == 200
-        assert response.body["sessions"][0]["section_id"] == 2
+        assert response.body["sections"][0]["section_id"] == 2
 
     def test_update_template_controller_missing_template_id(self):
         request = HttpRequest(body={

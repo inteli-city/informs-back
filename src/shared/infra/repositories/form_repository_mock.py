@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import List, Optional, Union
 from src.shared.domain.entities.field import TextField
 from src.shared.domain.entities.form import Form
-from src.shared.domain.entities.information_field import ImageInformationField
+from src.shared.domain.entities.information_field import FileInformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption, SelectedJustification
 from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
@@ -25,8 +25,9 @@ class FormRepositoryMock(IFormRepository):
             return timestamp_yesterday_milliseconds
 
         text_field = TextField(label='label', required=True, key='key', order=1, regex='regex', max_length=10, value='value')
-        section = Section(section_id=1, fields=[text_field, text_field])
-        information_field = ImageInformationField(
+        text_field_2 = TextField(label='label 2', required=True, key='key_2', order=2, regex='regex', max_length=10, value='value')
+        section = Section(section_id=1, fields=[text_field, text_field_2])
+        information_field = FileInformationField(
             file_path='image'
         )
         justification_option = JustificationOption(
@@ -154,10 +155,10 @@ class FormRepositoryMock(IFormRepository):
 
     def get_all_forms(
         self,
-        limit: int,
+        limit: Optional[int],
         exclusive_start_key: Optional[dict] = None,
-        status: Optional[FORM_STATUS] = None,
-        system: Optional[str] = None,
+        status: Optional[Union[FORM_STATUS, List[FORM_STATUS]]] = None,
+        system: Optional[Union[str, List[str]]] = None,
         user_id: Optional[str] = None,
         created_at_start: Optional[int] = None,
         created_at_end: Optional[int] = None,
@@ -169,10 +170,16 @@ class FormRepositoryMock(IFormRepository):
             forms = [form for form in forms if form.user_id == user_id]
 
         if status is not None:
-            forms = [form for form in forms if form.status == status]
+            if isinstance(status, list):
+                forms = [form for form in forms if form.status in status]
+            else:
+                forms = [form for form in forms if form.status == status]
 
         if system is not None:
-            forms = [form for form in forms if form.system == system]
+            if isinstance(system, list):
+                forms = [form for form in forms if form.system in system]
+            else:
+                forms = [form for form in forms if form.system == system]
 
         if created_at_start is not None:
             forms = [form for form in forms if form.created_at >= created_at_start]
@@ -194,6 +201,9 @@ class FormRepositoryMock(IFormRepository):
 
         start_key_dict = exclusive_start_key
         start = self._parse_start_index(forms, start_key_dict)
+        if limit is None:
+            return forms[start:], None
+
         end = start + limit
         page = forms[start:end]
 

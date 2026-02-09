@@ -27,7 +27,7 @@ class TestCreateTemplateUsecase:
             system="GAIA",
             description="Description",
             is_active=True,
-            sessions=[self._make_section()],
+            sections=[self._make_section()],
         )
 
         assert template.name == "Template X"
@@ -35,7 +35,7 @@ class TestCreateTemplateUsecase:
         assert len(repo.templates) == 2
         assert repo.templates[-1].id == template.id
 
-    def test_create_template_usecase_empty_sessions(self):
+    def test_create_template_usecase_empty_sections(self):
         repo = TemplateRepositoryMock()
         usecase = CreateTemplateUsecase(repo)
 
@@ -46,7 +46,7 @@ class TestCreateTemplateUsecase:
                 system="GAIA",
                 description=None,
                 is_active=True,
-                sessions=[],
+                sections=[],
             )
 
     def test_create_template_usecase_section_without_fields(self):
@@ -64,5 +64,5 @@ class TestCreateTemplateUsecase:
                 system="GAIA",
                 description=None,
                 is_active=True,
-                sessions=[SectionWithoutFields()],
+                sections=[SectionWithoutFields()],
             )

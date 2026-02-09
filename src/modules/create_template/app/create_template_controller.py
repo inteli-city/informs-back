@@ -26,7 +26,7 @@ class CreateTemplateController:
         system = data.get("system")
         description: Optional[str] = data.get("description")
         is_active = data.get("is_active")
-        sessions_raw = data.get("sessions")
+        sections_raw = data.get("sections")
 
         if name is None:
             raise MissingParameters("name")
@@ -34,8 +34,8 @@ class CreateTemplateController:
             raise MissingParameters("system")
         if is_active is None:
             raise MissingParameters("is_active")
-        if sessions_raw is None:
-            raise MissingParameters("sessions")
+        if sections_raw is None:
+            raise MissingParameters("sections")
 
         if not isinstance(name, str):
             raise WrongTypeParameter("name", "str", type(name))
@@ -45,18 +45,18 @@ class CreateTemplateController:
             raise WrongTypeParameter("description", "str", type(description))
         if not isinstance(is_active, bool):
             raise WrongTypeParameter("is_active", "bool", type(is_active))
-        if not isinstance(sessions_raw, list):
-            raise WrongTypeParameter("sessions", "list", type(sessions_raw))
+        if not isinstance(sections_raw, list):
+            raise WrongTypeParameter("sections", "list", type(sections_raw))
 
-        return name, system, description, is_active, sessions_raw
+        return name, system, description, is_active, sections_raw
 
     def __call__(self, request: IRequest) -> IResponse:
         try:
             data = request.data if isinstance(request.data, dict) else {}
             requester = self._validate_requester_user(data)
-            name, system, description, is_active, sessions_raw = self._validate_endpoint_parameters(data)
+            name, system, description, is_active, sections_raw = self._validate_endpoint_parameters(data)
 
-            sessions = [SectionDTO.from_request(session).to_entity() for session in sessions_raw]
+            sections = [SectionDTO.from_request(section).to_entity() for section in sections_raw]
 
             template = self.usecase(
                 created_by=requester.user_id,
@@ -64,7 +64,7 @@ class CreateTemplateController:
                 system=system,
                 description=description,
                 is_active=is_active,
-                sessions=sessions,
+                sections=sections,
             )
 
             viewmodel = TemplateViewmodel(template)

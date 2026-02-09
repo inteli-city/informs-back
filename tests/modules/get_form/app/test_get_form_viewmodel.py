@@ -17,7 +17,7 @@ class Test_GetFormViewmodel:
 
         assert viewmodel['id'] == form.id
         assert viewmodel['status'] == form.status.value
-        assert viewmodel['sessions'][0]['section_id'] == form.sections[0].section_id
+        assert viewmodel['sections'][0]['section_id'] == form.sections[0].section_id
         assert viewmodel['justification']['options'][0]['option'] == form.justification.options[0].option
         assert viewmodel['priority'] == form.priority.value
         assert viewmodel['observation'] == form.observation

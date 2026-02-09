@@ -1,0 +1,6 @@
+type: string
+enum:
+  - PENDING
+  - IN_PROGRESS
+  - COMPLETED
+  - CANCELLED

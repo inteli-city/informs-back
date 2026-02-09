@@ -2,8 +2,8 @@ from enum import Enum
 from typing import Optional
 import os
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
-from src.shared.domain.repositories.image_repository_interface import IImageRepository
 from src.shared.domain.repositories.origin_repository_interface import IOriginRepository
+from src.shared.domain.repositories.file_repository_interface import IFileRepository
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
 
 class STAGE(Enum):
@@ -78,13 +78,13 @@ class Environments:
             raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
     
     @staticmethod
-    def get_image_repo() -> IImageRepository:
+    def get_file_repo() -> IFileRepository:
         if Environments.get_envs().stage in [STAGE.TEST, STAGE.DOTENV]:
-            from src.shared.infra.repositories.image_repository_mock import ImageRepositoryMock
-            return ImageRepositoryMock()
+            from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
+            return FileRepositoryMock()
         elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
-            from src.shared.infra.repositories.image_repository_s3 import ImageRepositoryS3
-            return ImageRepositoryS3()
+            from src.shared.infra.repositories.file_repository_s3 import FileRepositoryS3
+            return FileRepositoryS3()
         else:
             raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
 

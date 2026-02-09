@@ -2,7 +2,7 @@ import pytest
 
 from src.shared.domain.entities.field import TextField
 from src.shared.domain.entities.form import Form
-from src.shared.domain.entities.information_field import ImageInformationField
+from src.shared.domain.entities.information_field import FileInformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption, SelectedJustification
 from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
@@ -13,7 +13,7 @@ from src.shared.helpers.errors.domain_errors import EntityError
 valid_id = 'd61dbf66-a10f-11ed-a8fc-0242ac120001'
 text_field = TextField(label='label', required=True, key='key', order=1, max_length=10, value='value')
 section = Section(section_id=1, fields=[text_field])
-information_field = ImageInformationField(file_path='file')
+information_field = FileInformationField(file_path='file')
 justification_option = JustificationOption(option='option', required_image=True, required_text=True)
 justification = Justification(
     options=[justification_option],

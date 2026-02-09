@@ -60,7 +60,7 @@ class TemplateRepositoryDynamo(ITemplateRepository):
     def get_all_templates(
         self,
         system: str,
-        limit: int,
+        limit: Optional[int],
         exclusive_start_key: Optional[dict] = None,
         name_contains: Optional[str] = None,
         is_active: Optional[bool] = True,
@@ -79,10 +79,11 @@ class TemplateRepositoryDynamo(ITemplateRepository):
 
         query_kwargs = {
             "key_condition_expression": key_condition,
-            "IndexName": "GSI1",
-            "Limit": limit,
+            "IndexName": "UserPriorityIndex",
             "Select": "ALL_ATTRIBUTES",
         }
+        if limit is not None:
+            query_kwargs["Limit"] = limit
 
         start_key = exclusive_start_key
         if start_key is not None:
@@ -91,11 +92,20 @@ class TemplateRepositoryDynamo(ITemplateRepository):
         if name_contains is not None:
             query_kwargs["FilterExpression"] = Attr("name").contains(name_contains)
 
-        resp = self.dynamo.query(**query_kwargs)
-        items = resp.get("Items", [])
+        items: List[dict] = []
+        start_key = exclusive_start_key
+        while True:
+            if start_key is not None:
+                query_kwargs["ExclusiveStartKey"] = start_key
+            resp = self.dynamo.query(**query_kwargs)
+            items.extend(resp.get("Items", []))
+            start_key = resp.get("LastEvaluatedKey")
+            if limit is not None or start_key is None:
+                break
+
         templates = [TemplateDynamoDTO.from_dynamo(item).to_entity() for item in items]
 
-        next_key = resp.get("LastEvaluatedKey")
+        next_key = start_key if limit is not None else None
         return templates, encode_pagination_token(next_key)
 
     def update_template(self, template: Template) -> Template:

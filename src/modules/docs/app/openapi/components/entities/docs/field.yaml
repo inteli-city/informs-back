@@ -1,0 +1,193 @@
+BaseField:
+  type: object
+  description: Objeto genérico que representa qualquer tipo de campo (Text, Number, Date, etc)
+  properties:
+    field_type: { $ref: "../../enums/docs/field-type.yaml" }
+    label: { type: string }
+    required: { type: boolean }
+    key: { type: string }
+    help_text: { type: string, nullable: true }
+    order: { type: integer }
+    regex: { type: string, nullable: true }
+    max_length: { type: integer, nullable: true }
+    decimal: { type: boolean, nullable: true }
+    max_value: { type: number, nullable: true }
+    min_value: { type: number, nullable: true }
+    min_date: { type: number, nullable: true }
+    max_date: { type: number, nullable: true }
+    options:
+      type: array
+      items: { type: string }
+      nullable: true
+      description: "Usado para Dropdown, Radio, Checkbox Group, etc"
+    check_limit: { type: integer, nullable: true, description: "Usado para Checkbox Group, limita a quantidade de checkboxes selecionados" }
+    file_type: { type: string, enum: [IMAGE, DOCUMENT], nullable: true }
+    min_quantity: { type: integer, nullable: true }
+    max_quantity: { type: integer, nullable: true }
+    information_field_type: { $ref: "../../enums/docs/information-field-type.yaml", nullable: true }
+    file_path: { type: string, nullable: true }
+    value:
+      nullable: true
+      description: "Valor preenchido. Para FILE_FIELD, enviar objeto {filename, mimetype} (ou lista). Em respostas, pode ser URL (string ou lista)."
+  required: [field_type, label, required, key, order]
+
+
+
+Field:
+  oneOf:
+  - { $ref: "#/TextField" }
+  - { $ref: "#/NumberField" }
+  - { $ref: "#/DropdownField" }
+  - { $ref: "#/TypeaheadField" }
+  - { $ref: "#/RadioGroupField" }
+  - { $ref: "#/DateField" }
+  - { $ref: "#/CheckboxField" }
+  - { $ref: "#/CheckboxGroupField" }
+  - { $ref: "#/SwitchField" }
+  - { $ref: "#/FileField" }
+  discriminator:
+    propertyName: field_type
+    mapping:
+      TEXT_FIELD: "#/TextField"
+      NUMBER_FIELD: "#/NumberField"
+      DROPDOWN_FIELD: "#/DropdownField"
+      TYPEAHEAD_FIELD: "#/TypeaheadField"
+      RADIO_GROUP_FIELD: "#/RadioGroupField"
+      DATE_FIELD: "#/DateField"
+      CHECKBOX_FIELD: "#/CheckboxField"
+      CHECKBOX_GROUP_FIELD: "#/CheckboxGroupField"
+      SWITCH_BUTTON_FIELD: "#/SwitchField"
+      FILE_FIELD: "#/FileField"
+
+
+
+CheckboxField:
+  allOf:
+  - { $ref: "#/BaseField" }
+  - type: object
+    properties:
+      field_type: { const: CHECKBOX_FIELD }
+      value: { type: boolean, nullable: true }
+
+
+
+CheckboxGroupField:
+  allOf:
+  - { $ref: "#/BaseField" }
+  - type: object
+    required: [options]
+    properties:
+      field_type: { const: CHECKBOX_GROUP_FIELD }
+      options:
+        type: array
+        items: { type: string }
+      check_limit: { type: number, nullable: true }
+      value:
+        type: array
+        items: { type: boolean }
+        nullable: true
+
+
+
+DateField:
+  allOf:
+  - { $ref: "#/BaseField" }
+  - type: object
+    properties:
+      field_type: { const: DATE_FIELD }
+      min_date: { type: number, nullable: true }
+      max_date: { type: number, nullable: true }
+      value: { type: number, nullable: true }
+
+
+
+DropdownField:
+  allOf:
+    - { $ref: "#/BaseField" }
+    - type: object
+      required: [options]
+      properties:
+        field_type: { const: DROPDOWN_FIELD }
+        options:
+          type: array
+          items: { type: string }
+        value: { type: string, nullable: true }
+
+
+
+FileField:
+  allOf:
+  - { $ref: "#/BaseField" }
+  - type: object
+    required: [file_type]
+    properties:
+      field_type: { const: FILE_FIELD }
+      file_type: { $ref: "../../enums/docs/file-type.yaml" }
+      min_quantity: { type: number, nullable: true }
+      max_quantity: { type: number, nullable: true }
+      value: {}
+
+
+
+NumberField:
+  allOf:
+  - { $ref: "#/BaseField" }
+  - type: object
+    properties:
+      field_type: { const: NUMBER_FIELD }
+      decimal: { type: boolean, nullable: true }
+      min_value: { type: number, nullable: true }
+      max_value: { type: number, nullable: true }
+      value: { type: number, nullable: true }
+
+
+
+RadioGroupField:
+  allOf:
+  - { $ref: "#/BaseField" }
+  - type: object
+    required: [options]
+    properties:
+      field_type: { const: RADIO_GROUP_FIELD }
+      options:
+        type: array
+        items: { type: string }
+      value: { type: string, nullable: true }
+
+
+
+SwitchField:
+  allOf:
+  - { $ref: "#/BaseField" }
+  - type: object
+    properties:
+      field_type: { const: SWITCH_BUTTON_FIELD }
+      value: { type: boolean, nullable: true }
+
+
+
+TextField:
+  allOf:
+  - { $ref: "#/BaseField" }
+  - type: object
+    properties:
+      field_type: { const: TEXT_FIELD }
+      regex: { type: string, nullable: true }
+      max_length: { type: number, nullable: true }
+      value: { type: string, nullable: true }
+
+
+
+TypeaheadField:
+  allOf:
+  - { $ref: "#/BaseField" }
+  - type: object
+    required: [options]
+    properties:
+      field_type: { const: TYPEAHEAD_FIELD }
+      options:
+        type: array
+        items: { type: string }
+      max_length: { type: number, nullable: true }
+      value: { type: string, nullable: true }
+

@@ -12,13 +12,13 @@ class UpdateTemplateUsecase:
     def __init__(self, template_repo: ITemplateRepository):
         self.template_repo = template_repo
 
-    def _validate_sessions(self, sessions: Optional[List[Section]]) -> None:
-        if sessions is None:
+    def _validate_sections(self, sections: Optional[List[Section]]) -> None:
+        if sections is None:
             return
-        if not isinstance(sessions, list) or not sessions:
-            raise EntityError("sessions")
-        if any(len(section.fields) == 0 for section in sessions):
-            raise EntityError("sessions")
+        if not isinstance(sections, list) or not sections:
+            raise EntityError("sections")
+        if any(len(section.fields) == 0 for section in sections):
+            raise EntityError("sections")
 
     def __call__(
         self,
@@ -28,7 +28,7 @@ class UpdateTemplateUsecase:
         system: Optional[str] = None,
         description: Optional[str] = None,
         is_active: Optional[bool] = None,
-        sessions: Optional[List[Section]] = None,
+        sections: Optional[List[Section]] = None,
     ) -> Template:
         template = self.template_repo.get_template(template_id)
         if template is None:
@@ -38,9 +38,9 @@ class UpdateTemplateUsecase:
         new_system = system if system is not None else template.system
         new_description = description if description is not None else template.description
         new_is_active = is_active if is_active is not None else template.is_active
-        new_sections = sessions if sessions is not None else template.sections
+        new_sections = sections if sections is not None else template.sections
 
-        self._validate_sessions(sessions)
+        self._validate_sections(sections)
         
         now_ts = int(datetime.now(timezone.utc).timestamp() * 1000)
         updated_at = max(now_ts, template.updated_at + 1)
