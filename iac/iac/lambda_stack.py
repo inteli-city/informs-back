@@ -1,6 +1,9 @@
 from aws_cdk import (
     aws_lambda as lambda_,
-    Duration
+    Duration,
+    aws_events as events,
+    aws_events_targets as targets,
+    aws_logs as logs,
 )
 from constructs import Construct
 from aws_cdk.aws_apigateway import Resource, LambdaIntegration, CognitoUserPoolsAuthorizer
@@ -22,6 +25,12 @@ class LambdaStack(Construct):
             memory_size=512,
             environment=environment_variables,
             timeout=Duration.seconds(15)
+        )
+        logs.LogGroup(
+            self,
+            f"{module_name.title()}LogGroup",
+            log_group_name=f"/aws/lambda/{function.function_name}",
+            retention=logs.RetentionDays.ONE_MONTH,
         )
 
         resource = api_resource
@@ -138,9 +147,11 @@ class LambdaStack(Construct):
             authorizer=None,
         )
 
+        self.sync_forms_origin_module_name = "sync_forms_origin"
+
         self.sync_forms_origin = lambda_.Function(
             self,
-            "SyncFormsOrigin",
+            self.sync_forms_origin_module_name.title(),
             code=lambda_.Code.from_asset("../src/modules/sync_forms_origin"),
             handler="app.sync_forms_origin_presenter.lambda_handler",
             runtime=lambda_.Runtime.PYTHON_3_9,
@@ -148,6 +159,13 @@ class LambdaStack(Construct):
             memory_size=512,
             environment=environment_variables,
             timeout=Duration.seconds(60),
+            tracing=lambda_.Tracing.ACTIVE,
+        )
+        logs.LogGroup(
+            self,
+            f"{self.sync_forms_origin_module_name.title()}LogGroup",
+            log_group_name=f"/aws/lambda/{self.sync_forms_origin.function_name}",
+            retention=logs.RetentionDays.ONE_MONTH,
         )
 
         self.sync_forms_origin_rule = events.Rule(

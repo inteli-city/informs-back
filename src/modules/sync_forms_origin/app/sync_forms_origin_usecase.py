@@ -27,6 +27,7 @@ class SyncFormsOriginUsecase:
         system_mapping: Dict[str, str],
         window_minutes: int,
         limit: int,
+        logger=None,
     ) -> List[SyncResult]:
         now_ms = int(time.time() * 1000)
         window_ms = window_minutes * 60 * 1000
@@ -38,6 +39,8 @@ class SyncFormsOriginUsecase:
         for system in systems:
             origin_system = system_mapping.get(system)
             if not origin_system:
+                if logger:
+                    logger.warning("system mapping not found", extra={"system": system})
                 results.append(SyncResult(system=system, sent=0, failed=0, errors=["system mapping not found"]))
                 continue
 
@@ -58,13 +61,34 @@ class SyncFormsOriginUsecase:
 
                 for form in batch:
                     payload = FormItemViewmodel(form).to_dict()
+                    form_id = payload.get("id")
                     ok, status, body = self.origin_repo.sync_form(origin_system, payload)
                     if ok:
                         result.sent += 1
+                        if logger:
+                            logger.info(
+                                "form synced",
+                                extra={
+                                    "system": system,
+                                    "origin_system": origin_system,
+                                    "form_id": form_id,
+                                    "status": status,
+                                },
+                            )
                     else:
                         result.failed += 1
                         snippet = body[:500] if isinstance(body, str) else str(body)
-                        result.errors.append(f"{payload.get('id')} -> {status} {snippet}")
+                        result.errors.append(f"{form_id} -> {status} {snippet}")
+                        if logger:
+                            logger.warning(
+                                "form sync failed",
+                                extra={
+                                    "system": system,
+                                    "origin_system": origin_system,
+                                    "form_id": form_id,
+                                    "status": status,
+                                },
+                            )
 
                 if not next_key:
                     break
@@ -72,6 +96,8 @@ class SyncFormsOriginUsecase:
                 start_key = try_decode_pagination_token(next_key)
                 if start_key is None:
                     result.errors.append("invalid pagination token")
+                    if logger:
+                        logger.warning("invalid pagination token", extra={"system": system})
                     break
 
             if not result.errors:
