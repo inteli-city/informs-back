@@ -32,6 +32,10 @@ class Environments:
     bucket_name: str
     sqs_endpoint_url: Optional[str]
     s3_endpoint_url: Optional[str]
+    sync_forms_origin_systems: str
+    sync_forms_page_limit: int
+    sync_forms_window_minutes: int
+
 
     def _configure_local(self):
         from dotenv import load_dotenv
@@ -54,6 +58,9 @@ class Environments:
             self.bucket_name = "test"
             self.sqs_endpoint_url = "http://localhost:4566"
             self.s3_endpoint_url = None
+            self.sync_forms_origin_systems = "GAIA,GIPAV"
+            self.sync_forms_page_limit = 100
+            self.sync_forms_window_minutes = 10
         else:
             self.region = os.environ.get("REGION")
             self.endpoint_url = os.environ.get("ENDPOINT_URL")
@@ -65,6 +72,9 @@ class Environments:
             self.bucket_name = os.environ.get("BUCKET_NAME")
             self.sqs_endpoint_url = os.environ.get("AWS_SQS_ENDPOINT_URL")
             self.s3_endpoint_url = os.environ.get("S3_ENDPOINT_URL")
+            self.sync_forms_origin_systems = os.environ.get("SYNC_ORIGIN_SYSTEMS", "GAIA,GIPAV")
+            self.sync_forms_page_limit = int(os.environ.get("SYNC_FORMS_PAGE_LIMIT", "100"))
+            self.sync_forms_window_minutes = int(os.environ.get("SYNC_FORMS_WINDOW_MINUTES", "10"))
 
     @staticmethod
     def get_form_repo() -> IFormRepository:

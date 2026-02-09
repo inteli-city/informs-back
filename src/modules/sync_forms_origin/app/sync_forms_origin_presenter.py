@@ -59,11 +59,12 @@ def _parse_int_env(name: str, default: int) -> int:
 @metrics.log_metrics(capture_cold_start_metric=True)
 def lambda_handler(event, context):
     start_time = time.time()
-    limit = _parse_int_env("SYNC_FORMS_PAGE_LIMIT", 100)
-    window_minutes = _parse_int_env("SYNC_FORMS_WINDOW_MINUTES", 10)
+    limit = Environments.get_envs().sync_forms_page_limit
+    window_minutes = Environments.get_envs().sync_forms_window_minutes
+    raw_systems_env = Environments.get_envs().sync_forms_origin_systems
+    systems = raw_systems_env.split(",") if raw_systems_env else []
 
     event_request = LambdaEventBridgeRequest(event)
-    systems = _parse_systems()
     logger.info(
         "sync_forms_origin triggered",
         extra={
