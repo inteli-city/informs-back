@@ -42,6 +42,59 @@ class TestGetAllTemplatesController:
         assert response.body["system"] == self.repo.templates[0].system
         assert response.body["systems"] == [self.repo.templates[0].system]
 
+    def test_get_all_templates_controller_without_limit_returns_all_templates(self):
+        base = self.repo.templates[0]
+        duplicated = Template(
+            id=str(uuid.uuid4()),
+            name=f"{base.name} Inactive",
+            system=base.system,
+            description=base.description,
+            is_active=False,
+            created_by=base.created_by,
+            created_at=base.created_at,
+            updated_at=base.updated_at,
+            sections=base.sections,
+        )
+        self.repo.templates.append(duplicated)
+
+        request = HttpRequest(body={
+            "requester_user": self._make_requester(),
+            "system": self.repo.templates[0].system,
+        })
+
+        response = self.controller(request)
+
+        assert response.status_code == 200
+        assert len(response.body["templates"]) == 2
+        assert response.body["last_evaluated_key"] is None
+
+    def test_get_all_templates_controller_blank_limit_returns_all_templates(self):
+        base = self.repo.templates[0]
+        duplicated = Template(
+            id=str(uuid.uuid4()),
+            name=f"{base.name} Inactive",
+            system=base.system,
+            description=base.description,
+            is_active=False,
+            created_by=base.created_by,
+            created_at=base.created_at,
+            updated_at=base.updated_at,
+            sections=base.sections,
+        )
+        self.repo.templates.append(duplicated)
+
+        request = HttpRequest(body={
+            "requester_user": self._make_requester(),
+            "limit": "",
+            "system": self.repo.templates[0].system,
+        })
+
+        response = self.controller(request)
+
+        assert response.status_code == 200
+        assert len(response.body["templates"]) == 2
+        assert response.body["last_evaluated_key"] is None
+
     def test_get_all_templates_controller_invalid_limit(self):
         request = HttpRequest(body={
             "requester_user": self._make_requester(),

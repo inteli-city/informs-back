@@ -58,6 +58,36 @@ class TestGetAllTemplatesUsecase:
         templates_page_2, _ = self.usecase(requester=self.requester, limit=1, systems=["GAIA"], exclusive_start_key=next_key)
         assert len(templates_page_2) > 0
 
+    def test_get_all_templates_usecase_without_limit_returns_all_and_ignores_pagination_token(self):
+        templates, next_key = self.usecase(
+            requester=self.requester,
+            limit=None,
+            systems=["GAIA"],
+            exclusive_start_key="invalid-token",
+            is_active=True,
+        )
+
+        assert len(templates) == 2
+        assert all(template.system == "GAIA" for template in templates)
+        assert all(template.is_active for template in templates)
+        assert next_key is None
+
+    def test_get_all_templates_usecase_without_limit_and_without_is_active_returns_active_and_inactive(self):
+        now = int(datetime.now(timezone.utc).timestamp() * 1000)
+        self.repo.templates.append(_make_template("Template Inactive", "GAIA", False, now + 3000))
+
+        templates, next_key = self.usecase(
+            requester=self.requester,
+            limit=None,
+            systems=["GAIA"],
+            is_active=None,
+        )
+
+        assert len(templates) == 3
+        assert all(template.system == "GAIA" for template in templates)
+        assert any(not template.is_active for template in templates)
+        assert next_key is None
+
     def test_get_all_templates_usecase_name_filter(self):
         templates, _ = self.usecase(requester=self.requester, limit=10, systems=["GAIA"], name_contains="Default")
 
