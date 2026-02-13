@@ -1,0 +1,5 @@
+aws-lambda-powertools==2.9.0
+aws_xray_sdk==2.11.0
+jmespath==1.0.1
+typing_extensions==4.15.0
+wrapt==1.17.2

@@ -1,8 +1,8 @@
 from aws_cdk import (
     aws_lambda as lambda_,
     Duration,
-    aws_events as events,
-    aws_events_targets as targets,
+    aws_scheduler as scheduler,
+    aws_iam as iam,
     aws_logs as logs,
 )
 from constructs import Construct
@@ -158,13 +158,27 @@ class LambdaStack(Construct):
             log_retention=logs.RetentionDays.ONE_MONTH,
         )
 
-        self.sync_forms_origin_rule = events.Rule(
+        self.sync_forms_origin_scheduler_role = iam.Role(
             self,
-            "SyncFormsOriginSchedule",
-            schedule=events.Schedule.rate(Duration.minutes(5)),
+            "SyncFormsOriginSchedulerRole",
+            assumed_by=iam.ServicePrincipal("scheduler.amazonaws.com"),
         )
-        self.sync_forms_origin_rule.add_target(
-            targets.LambdaFunction(self.sync_forms_origin)
+        self.sync_forms_origin.grant_invoke(self.sync_forms_origin_scheduler_role)
+
+        self.sync_forms_origin_schedule = scheduler.CfnSchedule(
+            self,
+            "SyncFormsOriginEventBridgeScheduler",
+            schedule_expression="rate(5 minutes)",
+            flexible_time_window=scheduler.CfnSchedule.FlexibleTimeWindowProperty(
+                mode="OFF",
+            ),
+            target=scheduler.CfnSchedule.TargetProperty(
+                arn=self.sync_forms_origin.function_arn,
+                role_arn=self.sync_forms_origin_scheduler_role.role_arn,
+                input='{"trigger":"eventbridge-scheduler","job":"sync_forms_origin"}',
+            ),
+            description="Runs sync_forms_origin every 5 minutes",
+            state="ENABLED",
         )
 
         self.functions_that_need_dynamo_forms_permissions = [
