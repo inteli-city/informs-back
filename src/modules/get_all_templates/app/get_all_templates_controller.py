@@ -43,7 +43,6 @@ class GetAllTemplatesController:
         is_active_field = "is_active"
 
         if is_active_raw is None:
-            # When no limit is provided, disable default active filter so endpoint returns all templates.
             is_active = None if limit is None else True
         else:
             if not isinstance(is_active_raw, bool):
