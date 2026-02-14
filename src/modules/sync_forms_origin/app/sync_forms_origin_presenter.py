@@ -3,7 +3,7 @@ import time
 from typing import Dict, List
 
 from aws_lambda_powertools import Logger, Metrics, Tracer
-from aws_lambda_powertools.metrics import MetricUnit
+from aws_lambda_powertools.metrics import MetricUnit, single_metric
 
 from src.shared.environments import Environments
 from src.shared.helpers.external_interfaces.event_bridge_requests import LambdaEventBridgeRequest
@@ -16,9 +16,12 @@ SYSTEM_TO_ORIGIN = {
     "GIPAV": "servicos_poa",
 }
 
-logger = Logger(service="sync_forms_origin")
-metrics = Metrics(namespace="Informs", service="sync_forms_origin")
-tracer = Tracer(service="sync_forms_origin")
+SERVICE_NAME = "sync_forms_origin"
+METRICS_NAMESPACE = "Informs"
+
+logger = Logger(service=SERVICE_NAME)
+metrics = Metrics(namespace=METRICS_NAMESPACE, service=SERVICE_NAME)
+tracer = Tracer(service=SERVICE_NAME)
 
 form_repo = Environments.get_form_repo()
 origin_repo = Environments.get_origin_repo()
@@ -94,10 +97,22 @@ def lambda_handler(event, context):
     metrics.add_metric("SyncDurationMs", MetricUnit.Milliseconds, duration_ms)
 
     for result in results:
-        metrics.add_dimension("system", result.system)
-        metrics.add_metric("FormsSentBySystem", MetricUnit.Count, result.sent)
-        metrics.add_metric("FormsFailedBySystem", MetricUnit.Count, result.failed)
-        metrics.clear_dimensions()
+        with single_metric(
+            name="FormsSentBySystem",
+            unit=MetricUnit.Count,
+            value=result.sent,
+            namespace=METRICS_NAMESPACE,
+            default_dimensions={"service": SERVICE_NAME, "system": result.system},
+        ):
+            pass
+        with single_metric(
+            name="FormsFailedBySystem",
+            unit=MetricUnit.Count,
+            value=result.failed,
+            namespace=METRICS_NAMESPACE,
+            default_dimensions={"service": SERVICE_NAME, "system": result.system},
+        ):
+            pass
 
     summary = _summarize_results(results)
     logger.info(
