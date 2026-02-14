@@ -64,8 +64,7 @@ def lambda_handler(event, context):
     start_time = time.time()
     limit = Environments.get_envs().sync_forms_page_limit
     window_minutes = Environments.get_envs().sync_forms_window_minutes
-    raw_systems_env = Environments.get_envs().sync_forms_origin_systems
-    systems = raw_systems_env.split(",") if raw_systems_env else []
+    systems = _parse_systems()
 
     event_request = LambdaEventBridgeRequest(event)
     logger.info(

@@ -2,7 +2,7 @@ import json
 import os
 import time
 import urllib.request
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 from src.shared.domain.repositories.origin_repository_interface import IOriginRepository
 
@@ -41,20 +41,61 @@ class OriginRepositoryApex(IOriginRepository):
             body = resp.read().decode("utf-8", errors="replace")
         return status, body
 
-    def sync_form(self, origin_system: str, payload: dict) -> Tuple[bool, int, str]:
+    def sync_form(self, origin_system: str, payload: dict, logger: Optional[object] = None) -> Tuple[bool, int, str]:
         url = self._build_url(origin_system)
         headers = self._build_headers()
         last_status = 0
         last_body = ""
+        form_id = payload.get("id")
 
         for attempt in range(self.retries):
+            if logger:
+                logger.info(
+                    "origin request attempt",
+                    extra={
+                        "origin_system": origin_system,
+                        "form_id": form_id,
+                        "attempt": attempt + 1,
+                        "max_retries": self.retries,
+                        "url": url,
+                    },
+                )
             try:
                 status, body = self._post_json(url, payload, headers)
                 last_status, last_body = status, body
                 if 200 <= status < 300:
+                    if logger:
+                        logger.info(
+                            "origin request success",
+                            extra={
+                                "origin_system": origin_system,
+                                "form_id": form_id,
+                                "status": status,
+                            },
+                        )
                     return True, status, body
+                if logger:
+                    logger.warning(
+                        "origin request non-2xx",
+                        extra={
+                            "origin_system": origin_system,
+                            "form_id": form_id,
+                            "status": status,
+                            "response_body_sample": body[:500] if isinstance(body, str) else str(body),
+                        },
+                    )
             except Exception as err:
                 last_body = str(err)
+                if logger:
+                    logger.warning(
+                        "origin request exception",
+                        extra={
+                            "origin_system": origin_system,
+                            "form_id": form_id,
+                            "attempt": attempt + 1,
+                            "error": last_body,
+                        },
+                    )
 
             if attempt < self.retries - 1:
                 time.sleep(2 ** attempt)

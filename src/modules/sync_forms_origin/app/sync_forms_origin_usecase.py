@@ -1,5 +1,6 @@
 import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from src.shared.infra.dtos.form_dynamo_dto import FormDynamoDTO
@@ -46,8 +47,34 @@ class SyncFormsOriginUsecase:
 
             result = SyncResult(system=system, sent=0, failed=0, errors=[])
             start_key = None
+            page = 1
+            total_loaded = 0
+
+            if logger:
+                logger.info(
+                    "sync system started",
+                    extra={
+                        "system": system,
+                        "origin_system": origin_system,
+                        "limit": limit,
+                        "created_at_start_ms": created_at_start,
+                        "created_at_end_ms": created_at_end,
+                        "created_at_start_iso": datetime.fromtimestamp(created_at_start / 1000, timezone.utc).isoformat(),
+                        "created_at_end_iso": datetime.fromtimestamp(created_at_end / 1000, timezone.utc).isoformat(),
+                    },
+                )
 
             while True:
+                if logger:
+                    logger.info(
+                        "loading forms batch",
+                        extra={
+                            "system": system,
+                            "origin_system": origin_system,
+                            "page": page,
+                            "has_start_key": start_key is not None,
+                        },
+                    )
                 batch, next_key = self.form_repo.get_all_forms(
                     limit=limit,
                     exclusive_start_key=start_key,
@@ -58,11 +85,25 @@ class SyncFormsOriginUsecase:
                     created_at_end=created_at_end,
                     search=None,
                 )
+                batch_count = len(batch)
+                total_loaded += batch_count
+
+                if logger:
+                    logger.info(
+                        "forms batch loaded",
+                        extra={
+                            "system": system,
+                            "origin_system": origin_system,
+                            "page": page,
+                            "forms_in_batch": batch_count,
+                            "has_next_page": next_key is not None,
+                        },
+                    )
 
                 for form in batch:
                     payload = FormDynamoDTO.from_entity(form).to_dict()
                     form_id = payload.get("id")
-                    ok, status, body = self.origin_repo.sync_form(origin_system, payload)
+                    ok, status, body = self.origin_repo.sync_form(origin_system, payload, logger=logger)
                     if ok:
                         result.sent += 1
                         if logger:
@@ -97,8 +138,30 @@ class SyncFormsOriginUsecase:
                 if start_key is None:
                     result.errors.append("invalid pagination token")
                     if logger:
-                        logger.warning("invalid pagination token", extra={"system": system})
+                        logger.warning(
+                            "invalid pagination token",
+                            extra={
+                                "system": system,
+                                "origin_system": origin_system,
+                                "next_key_sample": str(next_key)[:200],
+                            },
+                        )
                     break
+                page += 1
+
+            if logger:
+                logger.info(
+                    "sync system completed",
+                    extra={
+                        "system": system,
+                        "origin_system": origin_system,
+                        "pages_loaded": page,
+                        "forms_loaded": total_loaded,
+                        "sent": result.sent,
+                        "failed": result.failed,
+                        "errors_count": len(result.errors),
+                    },
+                )
 
             if not result.errors:
                 result.errors = None
