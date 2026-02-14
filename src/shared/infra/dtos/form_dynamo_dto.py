@@ -214,3 +214,36 @@ class FormDynamoDTO:
             sections=self.sections,
             information_fields=self.information_fields,
         )
+    
+    def to_dict(self) -> dict:
+        return {
+            "form_title": self.form_title,
+            "id": self.id,
+            "created_by": self.created_by,
+            "user_id": self.user_id,
+            "template": self.template,
+            "area": self.area,
+            "system": self.system,
+            "street": self.street,
+            "city": self.city,
+            "number": self.number,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "observation": self.observation,
+            "priority": self.priority.value if isinstance(self.priority, PRIORITY) else self.priority,
+            "status": self.status.value if isinstance(self.status, FORM_STATUS) else self.status,
+            "expiration_date": self.expiration_date,
+            "created_at": self.created_at,
+            "in_progress_at": self.in_progress_at,
+            "completed_at": self.completed_at,
+            "cancelled_at": self.cancelled_at,
+            "updated_at": self.updated_at,
+            "justification": JustificationDTO.from_entity(self.justification).to_dict() if self.justification else None,
+            "sections": [
+                SectionDTO.from_entity(section).to_dict() for section in self.sections
+            ],
+            "information_fields": [
+                InformationFieldDTO.from_entity(information_field).to_dict()
+                for information_field in self.information_fields
+            ] if self.information_fields else None,
+        }

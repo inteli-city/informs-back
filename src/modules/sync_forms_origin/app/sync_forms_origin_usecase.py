@@ -2,7 +2,7 @@ import time
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
-from src.modules.get_all_forms.app.get_all_forms_viewmodel import FormItemViewmodel
+from src.shared.infra.dtos.form_dynamo_dto import FormDynamoDTO
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.origin_repository_interface import IOriginRepository
 from src.shared.helpers.functions.pagination_token import try_decode_pagination_token
@@ -60,7 +60,7 @@ class SyncFormsOriginUsecase:
                 )
 
                 for form in batch:
-                    payload = FormItemViewmodel(form).to_dict()
+                    payload = FormDynamoDTO.from_entity(form).to_dict()
                     form_id = payload.get("id")
                     ok, status, body = self.origin_repo.sync_form(origin_system, payload)
                     if ok:
