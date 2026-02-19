@@ -25,8 +25,11 @@ class GetAllTemplatesController:
             if isinstance(value, bool):
                 raise WrongTypeParameter(field, "int", type(value))
             if isinstance(value, str):
-                if value.isdigit() or (value.startswith("-") and value[1:].isdigit()):
-                    return int(value)
+                stripped_value = value.strip()
+                if stripped_value == "":
+                    return default
+                if stripped_value.isdigit() or (stripped_value.startswith("-") and stripped_value[1:].isdigit()):
+                    return int(stripped_value)
                 raise WrongTypeParameter(field, "int", type(value))
             if not isinstance(value, int):
                 raise WrongTypeParameter(field, "int", type(value))
@@ -38,13 +41,14 @@ class GetAllTemplatesController:
 
         is_active_raw = data.get("is_active")
         is_active_field = "is_active"
-        if is_active_raw is None:
-            is_active_raw = True
 
-        if not isinstance(is_active_raw, bool):
-            raise WrongTypeParameter(is_active_field, "bool", type(is_active_raw))
-        is_active = is_active_raw
-        
+        if is_active_raw is None:
+            is_active = None if limit is None else True
+        else:
+            if not isinstance(is_active_raw, bool):
+                raise WrongTypeParameter(is_active_field, "bool", type(is_active_raw))
+            is_active = is_active_raw
+
         system_raw = data.get("system")
         if system_raw is None:
             system = None
