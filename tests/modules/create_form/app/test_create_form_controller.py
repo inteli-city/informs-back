@@ -8,6 +8,7 @@ from src.modules.create_form.app.create_form_usecase import CreateFormUsecase
 from src.shared.helpers.external_interfaces.http_models import HttpRequest
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
+from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
 
 
 class Test_CreateFormController:
@@ -233,7 +234,23 @@ class Test_CreateFormController:
     def test_create_form_controller_missing_sections_with_uuid_template(self):
         repo = FormRepositoryMock()
         file_repo = FileRepositoryMock()
-        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
+        template_repo = TemplateRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo, template_repo))
+
+        body = self._make_base_body()
+        body["template"] = template_repo.templates[0].id
+        body.pop("sections")
+        request = HttpRequest(body=body)
+
+        response = controller(request)
+        assert response.status_code == 201
+        assert len(response.body["sections"]) == len(template_repo.templates[0].sections)
+
+    def test_create_form_controller_template_not_found(self):
+        repo = FormRepositoryMock()
+        file_repo = FileRepositoryMock()
+        template_repo = TemplateRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo, template_repo))
 
         body = self._make_base_body()
         body["template"] = "d61dbf66-a10f-11ed-a8fc-0242ac1200ab"
@@ -241,8 +258,8 @@ class Test_CreateFormController:
         request = HttpRequest(body=body)
 
         response = controller(request)
-        assert response.status_code == 201
-        assert response.body["sections"] == []
+        assert response.status_code == 404
+        assert response.body == "Template não encontrado"
 
     def test_create_form_controller_invalid_priority(self):
         repo = FormRepositoryMock()

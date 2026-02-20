@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from typing import List, Optional
 import uuid
+from copy import deepcopy
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.file_upload import FileUpload, FileUploadRequest
 from src.shared.domain.entities.information_field import FileInformationField, InformationField
@@ -11,14 +12,22 @@ from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.enums.priority_enum import PRIORITY
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.file_repository_interface import IFileRepository
+from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
 from src.shared.helpers.functions.s3_url import build_s3_url
 from src.shared.helpers.errors.domain_errors import EntityError
+from src.shared.helpers.errors.usecase_errors import NoItemsFound
 
 
 class CreateFormUsecase:
-    def __init__(self, form_repo: IFormRepository, file_repo: IFileRepository):
+    def __init__(
+        self,
+        form_repo: IFormRepository,
+        file_repo: IFileRepository,
+        template_repo: Optional[ITemplateRepository] = None
+    ):
         self.form_repo = form_repo
         self.file_repo = file_repo
+        self.template_repo = template_repo
 
     def __call__(
         self,
@@ -44,6 +53,15 @@ class CreateFormUsecase:
         form_id = str(uuid.uuid4())
         now_timestamp = int(datetime.now(timezone.utc).timestamp() * 1000)
         files: list[FileUpload] = []
+        resolved_sections = sections
+
+        if template is not None:
+            if self.template_repo is None:
+                raise EntityError("template")
+            resolved_template = self.template_repo.get_template(template)
+            if resolved_template is None:
+                raise NoItemsFound("Template não encontrado")
+            resolved_sections = deepcopy(resolved_template.sections)
 
         if information_fields:
             uploads = information_fields_uploads or []
@@ -97,7 +115,7 @@ class CreateFormUsecase:
             status=FORM_STATUS.PENDING,
             created_at=now_timestamp,
             updated_at=now_timestamp,
-            sections=sections,
+            sections=resolved_sections,
             observation=observation,
             expiration_date=expiration_date,
             justification=justification,
