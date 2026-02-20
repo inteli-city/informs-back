@@ -1,5 +1,6 @@
 from .create_form_usecase import CreateFormUsecase
 from .create_form_viewmodel import CreateFormViewmodel
+from uuid import UUID
 from src.shared.domain.enums.priority_enum import PRIORITY
 from src.shared.helpers.errors.controller_errors import MissingParameters, WrongTypeParameter
 from src.shared.helpers.errors.domain_errors import EntityError
@@ -27,6 +28,15 @@ class CreateFormController:
         return UserGatewayDTO.from_api_gateway(requester_user)
 
     def _validate_endpoint_parameters(self, data: dict) -> tuple:
+        def _is_uuid_string(value: str) -> bool:
+            if not isinstance(value, str):
+                return False
+            try:
+                UUID(value)
+                return True
+            except (ValueError, TypeError, AttributeError):
+                return False
+
         def _get_required(field: str):
             value = data.get(field)
             if value is None:
@@ -60,7 +70,7 @@ class CreateFormController:
         longitude_raw = _get_required("longitude")
         priority_payload = _get_required("priority")
         raw_justifications = _get_required("justifications")
-        sections_raw = _get_required("sections")
+        sections_raw = data.get("sections")
         observation = data.get("observation")
         expiration_date_raw = data.get("expiration_date")
         number_raw = data.get("number")
@@ -82,8 +92,15 @@ class CreateFormController:
         if template is not None:
             _require_type("template", template, str)
 
+        template_is_uuid = _is_uuid_string(template) if template is not None else False
+
         _require_type("justifications", raw_justifications, list)
-        _require_type("sections", sections_raw, list)
+        if sections_raw is None:
+            if not template_is_uuid:
+                raise MissingParameters("sections")
+            sections_raw = []
+        else:
+            _require_type("sections", sections_raw, list)
 
         if information_fields_raw is not None:
             _require_type("information_fields", information_fields_raw, list)

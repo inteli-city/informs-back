@@ -94,6 +94,18 @@ class Test_CreateFormUsecase:
         assert form.information_fields is None
         assert files == []
 
+    def test_create_form_usecase_without_sections_with_uuid_template(self):
+        usecase, payload = _make_usecase_and_payload()
+        payload = deepcopy(payload)
+        payload["template"] = "d61dbf66-a10f-11ed-a8fc-0242ac1200ab"
+        payload["sections"] = []
+
+        form, files = usecase(**payload)
+
+        assert form.template == "d61dbf66-a10f-11ed-a8fc-0242ac1200ab"
+        assert form.sections == []
+        assert files == []
+
     def test_create_form_usecase_duplicate_field_key(self):
         usecase, payload = _make_usecase_and_payload()
         payload = deepcopy(payload)

@@ -230,6 +230,20 @@ class Test_CreateFormController:
         assert response.status_code == 400
         assert response.body == "Parâmetro ausente: sections"
 
+    def test_create_form_controller_missing_sections_with_uuid_template(self):
+        repo = FormRepositoryMock()
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
+
+        body = self._make_base_body()
+        body["template"] = "d61dbf66-a10f-11ed-a8fc-0242ac1200ab"
+        body.pop("sections")
+        request = HttpRequest(body=body)
+
+        response = controller(request)
+        assert response.status_code == 201
+        assert response.body["sections"] == []
+
     def test_create_form_controller_invalid_priority(self):
         repo = FormRepositoryMock()
         file_repo = FileRepositoryMock()

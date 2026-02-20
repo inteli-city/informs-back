@@ -1,5 +1,6 @@
 import abc
 from typing import List, Optional
+from uuid import UUID
 
 from src.shared.domain.entities.information_field import InformationField
 from src.shared.domain.entities.justification import Justification
@@ -37,6 +38,16 @@ class Form(abc.ABC):
     information_fields: Optional[List[InformationField]]
 
     ID_LENGTH = 36
+
+    @staticmethod
+    def _is_uuid_string(value: str) -> bool:
+        if not isinstance(value, str):
+            return False
+        try:
+            UUID(value)
+            return True
+        except (ValueError, TypeError, AttributeError):
+            return False
 
     def __init__(
         self,
@@ -154,7 +165,10 @@ class Form(abc.ABC):
             raise EntityError('justification')
         self.justification = justification
 
-        if not isinstance(sections, list) or not sections or not all(isinstance(section, Section) for section in sections):
+        template_is_uuid = Form._is_uuid_string(template) if template is not None else False
+        if not isinstance(sections, list) or not all(isinstance(section, Section) for section in sections):
+            raise EntityError('sections')
+        if not sections and not template_is_uuid:
             raise EntityError('sections')
         self.sections = sections
 

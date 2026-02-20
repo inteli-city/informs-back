@@ -70,6 +70,10 @@ class Test_Form:
         with pytest.raises(EntityError):
             make_form(sections=[])
 
+    def test_sections_empty_list_with_uuid_template(self):
+        form = make_form(template=valid_id, justification=justification, sections=[])
+        assert form.sections == []
+
     def test_information_fields_type(self):
         with pytest.raises(EntityError):
             make_form(information_fields=['invalid'])
