@@ -86,6 +86,20 @@ class Test_CreateFormController:
         assert len(response.body["files"]) == 1
         assert response.body["files"][0]["filename"] == "a.jpg"
 
+    def test_create_form_controller_without_information_fields(self):
+        repo = FormRepositoryMock()
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
+
+        body = self._make_base_body()
+        body.pop("information_fields")
+        request = HttpRequest(body=body)
+        response = controller(request)
+
+        assert response.status_code == 201
+        assert response.body["information_fields"] is None
+        assert response.body["files"] == []
+
     def test_create_form_controller_missing_requester(self):
         repo = FormRepositoryMock()
         file_repo = FileRepositoryMock()

@@ -84,6 +84,16 @@ class Test_CreateFormUsecase:
         assert files[0].filename == "a.jpg"
         assert files[0].mimetype == "image/jpeg"
 
+    def test_create_form_usecase_without_information_fields(self):
+        usecase, payload = _make_usecase_and_payload()
+        payload = deepcopy(payload)
+        payload.pop("information_fields")
+
+        form, files = usecase(**payload)
+
+        assert form.information_fields is None
+        assert files == []
+
     def test_create_form_usecase_duplicate_field_key(self):
         usecase, payload = _make_usecase_and_payload()
         payload = deepcopy(payload)

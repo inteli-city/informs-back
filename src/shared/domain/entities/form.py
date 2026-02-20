@@ -159,7 +159,7 @@ class Form(abc.ABC):
         self.sections = sections
 
         if information_fields is not None:
-            if not isinstance(information_fields, list) or not information_fields or not all(isinstance(information_field, InformationField) for information_field in information_fields):
+            if not isinstance(information_fields, list) or not all(isinstance(information_field, InformationField) for information_field in information_fields):
                 raise EntityError('information_fields')
         self.information_fields = information_fields
 

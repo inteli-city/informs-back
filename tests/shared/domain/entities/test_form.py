@@ -74,6 +74,10 @@ class Test_Form:
         with pytest.raises(EntityError):
             make_form(information_fields=['invalid'])
 
+    def test_information_fields_empty_list(self):
+        form = make_form(justification=justification, information_fields=[])
+        assert form.information_fields == []
+
     def test_justification_type(self):
         with pytest.raises(EntityError):
             make_form(justification='not_valid')
