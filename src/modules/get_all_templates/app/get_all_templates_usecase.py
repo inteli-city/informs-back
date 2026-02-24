@@ -37,7 +37,7 @@ class GetAllTemplatesUsecase:
 
         if len(systems_to_use) == 1:
             start_key = None
-            if exclusive_start_key is not None:
+            if limit is not None and exclusive_start_key is not None:
                 start_key = try_decode_pagination_token(exclusive_start_key)
                 if start_key is None:
                     raise InvalidPaginationToken()

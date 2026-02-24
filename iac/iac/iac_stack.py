@@ -55,6 +55,22 @@ class IacStack(Stack):
             "REGION": self.region,
             "BUCKET_NAME": self.bucket_name
         }
+        optional_env_keys = [
+            "APEX_FORM_REGISTER_URL_TEMPLATE",
+            "APEX_FORM_REGISTER_API_KEY",
+            "SYNC_ORIGIN_SYSTEMS",
+            "SYNC_FORMS_WINDOW_MINUTES",
+            "SYNC_FORMS_PAGE_LIMIT",
+            "SYNC_FORMS_TIMEOUT",
+            "SYNC_FORMS_RETRIES",
+            "S3_ENDPOINT_URL",
+            "AWS_SQS_ENDPOINT_URL",
+            "ENDPOINT_URL"
+        ]
+        for key in optional_env_keys:
+            value = os.environ.get(key)
+            if value:
+                ENVIRONMENT_VARIABLES[key] = value
 
         api_gateway_resource = self.rest_api.root.add_resource("mss-formularios", default_cors_preflight_options={
             "allow_origins": Cors.ALL_ORIGINS,

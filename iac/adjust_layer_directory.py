@@ -1,11 +1,13 @@
 import os
 import shutil
 from pathlib import Path
+import subprocess
 import sys
 
 IAC_DIRECTORY_NAME = "iac"
 SOURCE_DIRECTORY_NAME = "src"
 LAMBDA_LAYER_PREFIX = os.path.join("python", "src")
+LAMBDA_LAYER_REQUIREMENTS_FILE = "lambda_layer_requirements.txt"
 
 
 def adjust_layer_directory(shared_dir_name: str, destination: str):
@@ -27,10 +29,30 @@ def adjust_layer_directory(shared_dir_name: str, destination: str):
     if os.path.exists(destination_directory):
         shutil.rmtree(destination_directory)
 
-    # Copy the source directory to the destination directory
+    # Copy the shared source code to the layer
     shutil.copytree(source_directory, os.path.join(destination_directory, LAMBDA_LAYER_PREFIX, shared_dir_name))
     print(
         f"Copying files from {source_directory} to {os.path.join(destination_directory, LAMBDA_LAYER_PREFIX, shared_dir_name)}")
+
+    # Install runtime dependencies used by Lambdas into the layer root (/opt/python)
+    layer_python_directory = os.path.join(destination_directory, "python")
+    requirements_path = os.path.join(iac_directory, LAMBDA_LAYER_REQUIREMENTS_FILE)
+    if os.path.exists(requirements_path):
+        print(f"Installing layer dependencies from {requirements_path} to {layer_python_directory}")
+        subprocess.check_call([
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "-r",
+            requirements_path,
+            "-t",
+            layer_python_directory,
+            "--no-deps",
+            "--upgrade",
+        ])
+    else:
+        print(f"Requirements file not found for layer dependencies: {requirements_path}")
 
 
 if __name__ == '__main__':

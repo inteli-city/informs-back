@@ -1,6 +1,9 @@
 from aws_cdk import (
     aws_lambda as lambda_,
-    Duration
+    Duration,
+    aws_scheduler as scheduler,
+    aws_iam as iam,
+    aws_logs as logs,
 )
 from constructs import Construct
 from aws_cdk.aws_apigateway import Resource, LambdaIntegration, CognitoUserPoolsAuthorizer
@@ -21,7 +24,8 @@ class LambdaStack(Construct):
             layers=[self.lambda_layer],
             memory_size=512,
             environment=environment_variables,
-            timeout=Duration.seconds(15)
+            timeout=Duration.seconds(15),
+            log_retention=logs.RetentionDays.ONE_MONTH,
         )
 
         resource = api_resource
@@ -138,6 +142,45 @@ class LambdaStack(Construct):
             authorizer=None,
         )
 
+        self.sync_forms_origin_module_name = "sync_forms_origin"
+
+        self.sync_forms_origin = lambda_.Function(
+            self,
+            self.sync_forms_origin_module_name.title(),
+            code=lambda_.Code.from_asset("../src/modules/sync_forms_origin"),
+            handler="app.sync_forms_origin_presenter.lambda_handler",
+            runtime=lambda_.Runtime.PYTHON_3_9,
+            layers=[self.lambda_layer],
+            memory_size=512,
+            environment=environment_variables,
+            timeout=Duration.seconds(60),
+            tracing=lambda_.Tracing.ACTIVE,
+            log_retention=logs.RetentionDays.ONE_MONTH,
+        )
+
+        self.sync_forms_origin_scheduler_role = iam.Role(
+            self,
+            "SyncFormsOriginSchedulerRole",
+            assumed_by=iam.ServicePrincipal("scheduler.amazonaws.com"),
+        )
+        self.sync_forms_origin.grant_invoke(self.sync_forms_origin_scheduler_role)
+
+        self.sync_forms_origin_schedule = scheduler.CfnSchedule(
+            self,
+            "SyncFormsOriginEventBridgeScheduler",
+            schedule_expression="rate(5 minutes)",
+            flexible_time_window=scheduler.CfnSchedule.FlexibleTimeWindowProperty(
+                mode="OFF",
+            ),
+            target=scheduler.CfnSchedule.TargetProperty(
+                arn=self.sync_forms_origin.function_arn,
+                role_arn=self.sync_forms_origin_scheduler_role.role_arn,
+                input='{"trigger":"eventbridge-scheduler","job":"sync_forms_origin"}',
+            ),
+            description="Runs sync_forms_origin every 5 minutes",
+            state="ENABLED",
+        )
+
         self.functions_that_need_dynamo_forms_permissions = [
             self.create_form,
             self.cancel_form,
@@ -148,7 +191,8 @@ class LambdaStack(Construct):
             self.create_template,
             self.update_template,
             self.get_template,
-            self.get_all_templates
+            self.get_all_templates,
+            self.sync_forms_origin,
         ]
 
         self.functions_that_need_cognito_permissions = [

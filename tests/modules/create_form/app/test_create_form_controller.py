@@ -8,6 +8,7 @@ from src.modules.create_form.app.create_form_usecase import CreateFormUsecase
 from src.shared.helpers.external_interfaces.http_models import HttpRequest
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
+from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
 
 
 class Test_CreateFormController:
@@ -85,6 +86,20 @@ class Test_CreateFormController:
         assert response.status_code == 201
         assert len(response.body["files"]) == 1
         assert response.body["files"][0]["filename"] == "a.jpg"
+
+    def test_create_form_controller_without_information_fields(self):
+        repo = FormRepositoryMock()
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
+
+        body = self._make_base_body()
+        body.pop("information_fields")
+        request = HttpRequest(body=body)
+        response = controller(request)
+
+        assert response.status_code == 201
+        assert response.body["information_fields"] is None
+        assert response.body["files"] == []
 
     def test_create_form_controller_missing_requester(self):
         repo = FormRepositoryMock()
@@ -215,6 +230,36 @@ class Test_CreateFormController:
         response = controller(request)
         assert response.status_code == 400
         assert response.body == "Parâmetro ausente: sections"
+
+    def test_create_form_controller_missing_sections_with_uuid_template(self):
+        repo = FormRepositoryMock()
+        file_repo = FileRepositoryMock()
+        template_repo = TemplateRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo, template_repo))
+
+        body = self._make_base_body()
+        body["template"] = template_repo.templates[0].id
+        body.pop("sections")
+        request = HttpRequest(body=body)
+
+        response = controller(request)
+        assert response.status_code == 201
+        assert len(response.body["sections"]) == len(template_repo.templates[0].sections)
+
+    def test_create_form_controller_template_not_found(self):
+        repo = FormRepositoryMock()
+        file_repo = FileRepositoryMock()
+        template_repo = TemplateRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo, template_repo))
+
+        body = self._make_base_body()
+        body["template"] = "d61dbf66-a10f-11ed-a8fc-0242ac1200ab"
+        body.pop("sections")
+        request = HttpRequest(body=body)
+
+        response = controller(request)
+        assert response.status_code == 404
+        assert response.body == "Template não encontrado"
 
     def test_create_form_controller_invalid_priority(self):
         repo = FormRepositoryMock()
