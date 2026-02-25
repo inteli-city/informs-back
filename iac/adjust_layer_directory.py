@@ -8,6 +8,15 @@ IAC_DIRECTORY_NAME = "iac"
 SOURCE_DIRECTORY_NAME = "src"
 LAMBDA_LAYER_PREFIX = os.path.join("python", "src")
 LAMBDA_LAYER_REQUIREMENTS_FILE = "lambda_layer_requirements.txt"
+LAMBDA_RUNTIME_PYTHON_ENV = "LAMBDA_RUNTIME_PYTHON"
+LAMBDA_RUNTIME_ARCH_ENV = "LAMBDA_RUNTIME_ARCH"
+
+
+def _resolve_runtime_platform(runtime_arch: str) -> str:
+    runtime_arch = (runtime_arch or "x86_64").lower()
+    if runtime_arch in {"arm64", "aarch64"}:
+        return "manylinux2014_aarch64"
+    return "manylinux2014_x86_64"
 
 
 def adjust_layer_directory(shared_dir_name: str, destination: str):
@@ -38,7 +47,16 @@ def adjust_layer_directory(shared_dir_name: str, destination: str):
     layer_python_directory = os.path.join(destination_directory, "python")
     requirements_path = os.path.join(iac_directory, LAMBDA_LAYER_REQUIREMENTS_FILE)
     if os.path.exists(requirements_path):
+        runtime_python = os.environ.get(LAMBDA_RUNTIME_PYTHON_ENV, "3.9")
+        runtime_python_compact = runtime_python.replace(".", "")
+        runtime_arch = os.environ.get(LAMBDA_RUNTIME_ARCH_ENV, "x86_64")
+        runtime_platform = _resolve_runtime_platform(runtime_arch)
+
         print(f"Installing layer dependencies from {requirements_path} to {layer_python_directory}")
+        print(
+            f"Layer wheel target: python={runtime_python} arch={runtime_arch} "
+            f"platform={runtime_platform}"
+        )
         subprocess.check_call([
             sys.executable,
             "-m",
@@ -48,6 +66,13 @@ def adjust_layer_directory(shared_dir_name: str, destination: str):
             requirements_path,
             "-t",
             layer_python_directory,
+            "--platform",
+            runtime_platform,
+            "--implementation",
+            "cp",
+            "--python-version",
+            runtime_python_compact,
+            "--only-binary=:all:",
             "--no-deps",
             "--upgrade",
         ])
