@@ -53,14 +53,14 @@ class IacStack(Stack):
             "DYNAMO_PARTITION_KEY": "PK",
             "DYNAMO_SORT_KEY": "SK",
             "REGION": self.region,
-            "BUCKET_NAME": self.bucket_name
+            "BUCKET_NAME": self.bucket_name,
+            "SYNC_FORMS_PAGE_LIMIT": "100",
         }
         optional_env_keys = [
             "APEX_FORM_REGISTER_URL_TEMPLATE",
             "APEX_FORM_REGISTER_API_KEY",
             "SYNC_ORIGIN_SYSTEMS",
             "SYNC_FORMS_WINDOW_MINUTES",
-            "SYNC_FORMS_PAGE_LIMIT",
             "SYNC_FORMS_TIMEOUT",
             "SYNC_FORMS_RETRIES",
             "S3_ENDPOINT_URL",
