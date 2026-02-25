@@ -25,6 +25,12 @@ jobs:
           python scripts/merge_openapi.py
           git diff --exit-code src/modules/docs/app/swagger.json
           git diff --exit-code src/modules/docs/app/swagger.merged.yaml
+      - name: Generate OpenAPI Contracts
+        run: |
+          PYTHONPATH=. python -m src.shared.helpers.functions.generate_openapi_from_contracts
+      - name: Check OpenAPI Contract Drift
+        run: |
+          PYTHONPATH=. python -m src.shared.helpers.functions.check_openapi_contract_drift
       - name: Runs tests
         run: pytest
         env:

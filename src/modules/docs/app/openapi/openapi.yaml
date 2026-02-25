@@ -19,6 +19,48 @@ paths:
   /forms/{formId}/start: { $ref: ./paths/docs/start-form-by-id.yaml }
   /forms/{formId}/submit: { $ref: ./paths/docs/submit-form-by-id.yaml }
   /forms/{formId}/cancel: { $ref: ./paths/docs/cancel-form-by-id.yaml }
+  /forms/sync-origin/callback:
+    post:
+      summary: Callback de falhas de sincronização de formulários
+      tags: [Sync]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [form_ids]
+              properties:
+                form_ids:
+                  type: array
+                  items: { type: string }
+                execution_id: { type: string, nullable: true }
+      responses:
+        "200":
+          description: Callback processado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [received_count, saved_error_forms, received_at, message]
+                properties:
+                  received_count: { type: integer }
+                  saved_error_forms:
+                    type: array
+                    items:
+                      type: object
+                      required: [job_name, system, form_id, last_failed_at]
+                      properties:
+                        job_name: { type: string }
+                        system: { type: string }
+                        form_id: { type: string }
+                        source_updated_at: { type: integer, nullable: true }
+                        last_failed_at: { type: integer }
+                  received_at: { type: integer }
+                  execution_id: { type: string, nullable: true }
+                  message: { type: string }
+        "400": { description: Payload inválido }
+        "404": { description: Formulário não encontrado }
   /templates: { $ref: ./paths/docs/form-templates.yaml }
   /templates/{template_id}: { $ref: ./paths/docs/form-template-by-id.yaml }
-
