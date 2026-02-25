@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import List, Optional, Tuple, Union
 from src.shared.domain.entities.form import Form
@@ -31,6 +31,15 @@ class FormRepositoryDynamo(IFormRepository):
     @staticmethod
     def form_gsi1_sort_key_format(priority: str, status: FORM_STATUS, created_at: int) -> str:
         return f'priority#{priority}#status#{status.value}#created_at#{created_at}'
+
+    @staticmethod
+    def form_gsi2_partition_key_format(system: str) -> str:
+        return f"system#{system}"
+
+    @staticmethod
+    def form_gsi2_sort_key_format(updated_at: int, form_id: str) -> str:
+        return f"updated_at#{int(updated_at):013d}#form#{form_id}"
+
 
     def __init__(self):
         self.dynamo = DynamoDatasource(
@@ -169,6 +178,8 @@ class FormRepositoryDynamo(IFormRepository):
 
         item["GSI1PK"] = self.form_gsi1_partition_key_format(form.user_id)
         item["GSI1SK"] = self.form_gsi1_sort_key_format(priority=form.priority.value, status=form.status, created_at=form.created_at)
+        item["GSI2PK"] = self.form_gsi2_partition_key_format(form.system)
+        item["GSI2SK"] = self.form_gsi2_sort_key_format(updated_at=form.updated_at, form_id=form.id)
 
         self.dynamo.put_item(
             item=item,
@@ -191,6 +202,7 @@ class FormRepositoryDynamo(IFormRepository):
         justification: Optional[Justification] = None,
     ) -> Form:
         update_dict = {}
+        current_form = self.get_form_by_id(user_id=user_id, form_id=form_id)
 
         def _put(key, value):
             if value is None:
@@ -213,6 +225,10 @@ class FormRepositoryDynamo(IFormRepository):
         _put("updated_at", updated_at)
         _put("sections", sections)
         _put("justification", justification)
+        if current_form is not None:
+            update_dict["GSI2PK"] = self.form_gsi2_partition_key_format(current_form.system)
+            if updated_at is not None:
+                update_dict["GSI2SK"] = self.form_gsi2_sort_key_format(updated_at=updated_at, form_id=form_id)
 
         resp = self.dynamo.update_item(
             partition_key=self.form_partition_key_format(form_id),
@@ -224,4 +240,34 @@ class FormRepositoryDynamo(IFormRepository):
             return None
         
         return FormDynamoDTO.from_dynamo(resp['Attributes']).to_entity()
-    
+
+    def get_forms_updated_since(
+        self,
+        system: str,
+        updated_at_start: int,
+        updated_at_end: Optional[int] = None,
+        limit: Optional[int] = None,
+        exclusive_start_key: Optional[dict] = None,
+    ) -> Tuple[List[Form], Optional[str]]:
+        start_ms = max(0, int(updated_at_start))
+        end_ms = int(updated_at_end) if updated_at_end is not None else int(datetime.now(timezone.utc).timestamp() * 1000)
+
+        start_key = self.form_gsi2_sort_key_format(updated_at=start_ms, form_id="")
+        end_key = self.form_gsi2_sort_key_format(updated_at=end_ms, form_id="~")
+        query_kwargs = {
+            "key_condition_expression": Key("GSI2PK").eq(self.form_gsi2_partition_key_format(system))
+            & Key("GSI2SK").between(start_key, end_key),
+            "IndexName": "SystemUpdatedAtIndex",
+            "Select": "ALL_ATTRIBUTES",
+            "ScanIndexForward": True,
+        }
+        if limit is not None:
+            query_kwargs["Limit"] = limit
+        if exclusive_start_key is not None:
+            query_kwargs["ExclusiveStartKey"] = exclusive_start_key
+
+        resp = self.dynamo.query(**query_kwargs)
+        items = resp.get("Items", [])
+        forms = [FormDynamoDTO.from_dynamo(item).to_entity() for item in items]
+        next_key = resp.get("LastEvaluatedKey")
+        return forms, encode_pagination_token(next_key)

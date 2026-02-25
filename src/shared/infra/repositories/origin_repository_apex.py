@@ -16,17 +16,16 @@ DEFAULT_URL_TEMPLATE = (
 class OriginRepositoryApex(IOriginRepository):
     def __init__(self):
         self.url_template = os.environ.get("APEX_FORM_REGISTER_URL_TEMPLATE") or DEFAULT_URL_TEMPLATE
-        self.api_key = os.environ.get("APEX_FORM_REGISTER_API_KEY")
         self.timeout = int(os.environ.get("SYNC_FORMS_TIMEOUT", "20"))
         self.retries = int(os.environ.get("SYNC_FORMS_RETRIES", "3"))
 
     def _build_url(self, origin_system: str) -> str:
         return self.url_template.format(system=origin_system)
 
-    def _build_headers(self) -> Dict[str, str]:
+    def _build_headers(self, execution_id: Optional[str] = None) -> Dict[str, str]:
         headers: Dict[str, str] = {}
-        if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
+        if execution_id:
+            headers["X-Informs-Execution-Id"] = execution_id
         return headers
 
     def _post_json(self, url: str, payload: dict, headers: Dict[str, str]) -> Tuple[int, str]:
@@ -41,9 +40,15 @@ class OriginRepositoryApex(IOriginRepository):
             body = resp.read().decode("utf-8", errors="replace")
         return status, body
 
-    def sync_form(self, origin_system: str, payload: dict, logger: Optional[object] = None) -> Tuple[bool, int, str]:
+    def sync_form(
+        self,
+        origin_system: str,
+        payload: dict,
+        execution_id: Optional[str] = None,
+        logger: Optional[object] = None,
+    ) -> Tuple[bool, int, str]:
         url = self._build_url(origin_system)
-        headers = self._build_headers()
+        headers = self._build_headers(execution_id=execution_id)
         last_status = 0
         last_body = ""
         form_id = payload.get("id")
@@ -58,6 +63,7 @@ class OriginRepositoryApex(IOriginRepository):
                         "attempt": attempt + 1,
                         "max_retries": self.retries,
                         "url": url,
+                        "execution_id": execution_id,
                     },
                 )
             try:
@@ -71,6 +77,7 @@ class OriginRepositoryApex(IOriginRepository):
                                 "origin_system": origin_system,
                                 "form_id": form_id,
                                 "status": status,
+                                "execution_id": execution_id,
                             },
                         )
                     return True, status, body
@@ -81,6 +88,7 @@ class OriginRepositoryApex(IOriginRepository):
                             "origin_system": origin_system,
                             "form_id": form_id,
                             "status": status,
+                            "execution_id": execution_id,
                             "response_body_sample": body[:500] if isinstance(body, str) else str(body),
                         },
                     )
@@ -93,6 +101,7 @@ class OriginRepositoryApex(IOriginRepository):
                             "origin_system": origin_system,
                             "form_id": form_id,
                             "attempt": attempt + 1,
+                            "execution_id": execution_id,
                             "error": last_body,
                         },
                     )
