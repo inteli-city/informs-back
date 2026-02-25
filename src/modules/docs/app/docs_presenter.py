@@ -1,8 +1,12 @@
 import json
+import os
 from pathlib import Path
+
+import yaml
 
 JSON_PATH_SUFFIXES = ("/docs/json", "/docs/swagger.json", "/docs/openapi.json")
 JSON_QUERY_KEYS = ("format", "output")
+DEFAULT_SWAGGER_FILES = ("swagger.merged.yaml", "swagger.json", "swagger.contracts.json")
 
 def _get_request_path(event: dict) -> str:
     if not event:
@@ -36,11 +40,36 @@ def _should_return_json(path: str) -> bool:
     normalized = path.rstrip("/")
     return normalized.endswith(JSON_PATH_SUFFIXES)
 
+
+def _load_swagger_content() -> str:
+    custom_file = os.getenv("SWAGGER_DOC_FILE")
+    candidates = [custom_file] if custom_file else []
+    candidates.extend(DEFAULT_SWAGGER_FILES)
+
+    docs_dir = Path(__file__).resolve().parent
+    tried_files = []
+
+    for filename in candidates:
+        if not filename:
+            continue
+        file_path = docs_dir / filename
+        tried_files.append(str(file_path.name))
+        if not file_path.exists():
+            continue
+
+        raw_content = file_path.read_text()
+        if file_path.suffix in {".yaml", ".yml"}:
+            parsed = yaml.safe_load(raw_content) or {}
+            return json.dumps(parsed, ensure_ascii=True)
+
+        parsed = json.loads(raw_content)
+        return json.dumps(parsed, ensure_ascii=True)
+
+    raise FileNotFoundError(f"Swagger documentation not found. Tried: {', '.join(tried_files)}")
+
 def lambda_handler(event, context):
     try:
-        swagger_path = Path(__file__).with_name("swagger.json")
-        with swagger_path.open("r") as file:
-            swagger_content = file.read()
+        swagger_content = _load_swagger_content()
     except FileNotFoundError:
         return {
             "statusCode": 500,
