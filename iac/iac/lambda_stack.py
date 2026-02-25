@@ -143,6 +143,7 @@ class LambdaStack(Construct):
         )
 
         self.sync_forms_origin_module_name = "sync_forms_origin"
+        self.sync_forms_origin_callback_module_name = "sync_forms_origin_callback"
 
         self.sync_forms_origin = lambda_.Function(
             self,
@@ -156,6 +157,15 @@ class LambdaStack(Construct):
             timeout=Duration.seconds(60),
             tracing=lambda_.Tracing.ACTIVE,
             log_retention=logs.RetentionDays.ONE_MONTH,
+        )
+
+        self.sync_forms_origin_callback = self.create_lambda_api_gateway_integration(
+            module_name=self.sync_forms_origin_callback_module_name,
+            method="POST",
+            api_resource=forms_resource,
+            path="sync-origin/callback",
+            environment_variables=environment_variables,
+            authorizer=authorizer,
         )
 
         self.sync_forms_origin_scheduler_role = iam.Role(
