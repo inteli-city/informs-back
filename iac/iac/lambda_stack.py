@@ -43,7 +43,7 @@ class LambdaStack(Construct):
 
         self.lambda_layer = lambda_.LayerVersion(self, "Formularios_Layer",
                                                  code=lambda_.Code.from_asset("./lambda_layer_out_temp"),
-                                                 compatible_runtimes=[lambda_.Runtime.PYTHON_3_9]
+                                                 compatible_runtimes=[lambda_.Runtime.PYTHON_3_10]
                                                  )
         forms_resource = api_gateway_resource.add_resource("forms")
         form_id_resource = forms_resource.add_resource("{form_id}")
@@ -150,7 +150,7 @@ class LambdaStack(Construct):
             self.sync_forms_origin_module_name.title(),
             code=lambda_.Code.from_asset("../src/modules/sync_forms_origin"),
             handler="app.sync_forms_origin_presenter.lambda_handler",
-            runtime=lambda_.Runtime.PYTHON_3_9,
+            runtime=lambda_.Runtime.PYTHON_3_10,
             layers=[self.lambda_layer],
             memory_size=512,
             environment=environment_variables,

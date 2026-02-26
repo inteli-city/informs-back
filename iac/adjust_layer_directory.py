@@ -47,7 +47,7 @@ def adjust_layer_directory(shared_dir_name: str, destination: str):
     layer_python_directory = os.path.join(destination_directory, "python")
     requirements_path = os.path.join(iac_directory, LAMBDA_LAYER_REQUIREMENTS_FILE)
     if os.path.exists(requirements_path):
-        runtime_python = os.environ.get(LAMBDA_RUNTIME_PYTHON_ENV, "3.9")
+        runtime_python = os.environ.get(LAMBDA_RUNTIME_PYTHON_ENV, "3.10")
         runtime_python_compact = runtime_python.replace(".", "")
         runtime_arch = os.environ.get(LAMBDA_RUNTIME_ARCH_ENV, "x86_64")
         runtime_platform = _resolve_runtime_platform(runtime_arch)

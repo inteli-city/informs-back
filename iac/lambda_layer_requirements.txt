@@ -3,3 +3,7 @@ aws_xray_sdk==2.11.0
 jmespath==1.0.1
 typing_extensions==4.15.0
 wrapt==1.17.2
+pyyaml==6.0.1
+pydantic==2.9.2
+pydantic-core==2.23.4
+annotated-types==0.7.0
