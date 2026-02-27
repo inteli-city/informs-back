@@ -12,3 +12,5 @@ cdk.out
 /lambda_layer_out_temp
 
 .aws-sam
+
+local/env.json
