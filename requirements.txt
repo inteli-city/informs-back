@@ -5,4 +5,3 @@ python-dotenv==0.21.0
 aws-lambda-powertools==2.9.0
 aws_xray_sdk==2.11.0
 pydantic==2.9.2
-pyyaml==6.0.1

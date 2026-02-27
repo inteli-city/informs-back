@@ -19,18 +19,12 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Merge OpenAPI YAMLs
+      - name: Generate OpenAPI from Pydantic Contracts
         run: |
-          pip install pyyaml==6.0.1
-          python scripts/merge_openapi.py
-          git diff --exit-code src/modules/docs/app/swagger.json
-          git diff --exit-code src/modules/docs/app/swagger.merged.yaml
-      - name: Generate OpenAPI Contracts
-        run: |
+          pip install pydantic==2.9.2
           PYTHONPATH=. python -m src.shared.helpers.functions.generate_openapi_from_contracts
-      - name: Check OpenAPI Contract Drift
-        run: |
-          PYTHONPATH=. python -m src.shared.helpers.functions.check_openapi_contract_drift
+          git diff --exit-code src/modules/docs/app/swagger.json
+          git diff --exit-code src/modules/docs/app/swagger.contracts.json
       - name: Runs tests
         run: pytest
         env:

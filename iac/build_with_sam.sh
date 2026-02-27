@@ -51,19 +51,12 @@ echo -e "${BLUE}📚 Sincronizando OpenAPI (local)${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 
-ensure_python_dep "yaml" "pyyaml==6.0.1"
 ensure_python_dep "pydantic" "pydantic==2.9.2"
 
-echo -e "${YELLOW}🔄 Merge OpenAPI YAML modular...${NC}"
-PYTHONPATH=.. "${PYTHON_BIN}" ../scripts/merge_openapi.py
-
-echo -e "${YELLOW}🧩 Gerando OpenAPI por contracts (Pydantic)...${NC}"
+echo -e "${YELLOW}🧩 Gerando OpenAPI JSON por contracts (Pydantic)...${NC}"
 PYTHONPATH=.. "${PYTHON_BIN}" -m src.shared.helpers.functions.generate_openapi_from_contracts
 
-echo -e "${YELLOW}🔍 Validando drift contracts x YAML modular...${NC}"
-PYTHONPATH=.. "${PYTHON_BIN}" -m src.shared.helpers.functions.check_openapi_contract_drift
-
-echo -e "${GREEN}✅ OpenAPI sincronizado e validado${NC}"
+echo -e "${GREEN}✅ OpenAPI sincronizado${NC}"
 echo ""
 
 # Remover cdk.out
