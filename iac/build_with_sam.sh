@@ -27,6 +27,45 @@ fi
 echo -e "${GREEN}✅ Pasta correta detectada${NC}"
 echo ""
 
+# Python command (prefere o venv do repositório quando disponível)
+if [ -x "../venv/bin/python" ]; then
+    PYTHON_BIN="../venv/bin/python"
+else
+    PYTHON_BIN="python3"
+fi
+
+ensure_python_dep() {
+    local import_name="$1"
+    local install_spec="$2"
+    if ! "${PYTHON_BIN}" - <<PY >/dev/null 2>&1
+import ${import_name}
+PY
+    then
+        echo -e "${YELLOW}📦 Instalando dependência Python: ${install_spec}${NC}"
+        "${PYTHON_BIN}" -m pip install "${install_spec}"
+    fi
+}
+
+echo -e "${BLUE}========================================${NC}"
+echo -e "${BLUE}📚 Sincronizando OpenAPI (local)${NC}"
+echo -e "${BLUE}========================================${NC}"
+echo ""
+
+ensure_python_dep "yaml" "pyyaml==6.0.1"
+ensure_python_dep "pydantic" "pydantic==2.9.2"
+
+echo -e "${YELLOW}🔄 Merge OpenAPI YAML modular...${NC}"
+PYTHONPATH=.. "${PYTHON_BIN}" ../scripts/merge_openapi.py
+
+echo -e "${YELLOW}🧩 Gerando OpenAPI por contracts (Pydantic)...${NC}"
+PYTHONPATH=.. "${PYTHON_BIN}" -m src.shared.helpers.functions.generate_openapi_from_contracts
+
+echo -e "${YELLOW}🔍 Validando drift contracts x YAML modular...${NC}"
+PYTHONPATH=.. "${PYTHON_BIN}" -m src.shared.helpers.functions.check_openapi_contract_drift
+
+echo -e "${GREEN}✅ OpenAPI sincronizado e validado${NC}"
+echo ""
+
 # Remover cdk.out
 if [ -d "cdk.out" ]; then
     echo -e "${YELLOW}🗑️  Removendo pasta cdk.out...${NC}"
