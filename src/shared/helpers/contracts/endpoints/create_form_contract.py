@@ -1,7 +1,8 @@
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import Field, model_validator
 
+from src.shared.helpers.contracts.base import RequestContractModel
 from src.shared.helpers.contracts.schemas.file_upload import FileUploadSchema
 from src.shared.helpers.contracts.schemas.form import FormResponseSchema, FormSectionSchema
 from src.shared.helpers.contracts.schemas.information_field import InformationFieldInputSchema
@@ -16,7 +17,7 @@ def _is_uuid(value: str) -> bool:
         return False
 
 
-class CreateFormRequestSchema(BaseModel):
+class CreateFormRequestSchema(RequestContractModel):
     form_title: str
     user_id: str
     system: str

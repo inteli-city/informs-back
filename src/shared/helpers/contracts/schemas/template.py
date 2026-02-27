@@ -1,14 +1,13 @@
-from pydantic import BaseModel
-
+from src.shared.helpers.contracts.base import RequestContractModel, ResponseContractModel
 from .field import GenericFieldSchema
 
 
-class TemplateSectionSchema(BaseModel):
+class TemplateSectionSchema(RequestContractModel):
     section_id: int
     fields: list[GenericFieldSchema]
 
 
-class TemplateSchema(BaseModel):
+class TemplateSchema(ResponseContractModel):
     id: str
     name: str
     system: str

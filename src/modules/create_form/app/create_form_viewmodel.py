@@ -7,6 +7,7 @@ from src.shared.domain.entities.information_field import InformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption
 from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.fields_enum import FIELD_TYPE
+from src.shared.helpers.contracts.endpoints.create_form_contract import CreateFormResponseSchema
 
 
 class FieldViewmodel:
@@ -138,4 +139,4 @@ class CreateFormViewmodel:
             file.to_dict() if isinstance(file, FileUpload) else file
             for file in self.files
         ]
-        return payload
+        return CreateFormResponseSchema.model_validate(payload).model_dump()

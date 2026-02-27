@@ -69,3 +69,14 @@ def test_openapi_contract_generator_exposes_callback_endpoint():
     assert callback_op["requestBody"]["required"] is True
     assert "SyncCallbackRequestSchema" in openapi_doc["components"]["schemas"]
     assert "SyncCallbackResponseSchema" in openapi_doc["components"]["schemas"]
+
+
+def test_openapi_contract_keeps_legacy_template_request_field_names():
+    openapi_doc = build_openapi_from_contracts()
+    create_template_schema = openapi_doc["components"]["schemas"]["CreateTemplateRequestSchema"]
+    update_template_schema = openapi_doc["components"]["schemas"]["UpdateTemplateRequestSchema"]
+
+    assert "isActive" in create_template_schema["properties"]
+    assert "is_active" not in create_template_schema["properties"]
+    assert "isActive" in update_template_schema["properties"]
+    assert "is_active" not in update_template_schema["properties"]

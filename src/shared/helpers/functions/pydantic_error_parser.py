@@ -16,6 +16,20 @@ def _format_loc(loc: tuple) -> str:
     return ".".join(parts) if parts else "payload"
 
 
+_TYPE_LABEL_BY_ERROR = {
+    "bool_parsing": "bool",
+    "bool_type": "bool",
+    "dict_type": "dict",
+    "float_type": "float",
+    "float_parsing": "float",
+    "int_type": "int",
+    "int_parsing": "int",
+    "list_type": "list",
+    "model_type": "dict",
+    "string_type": "str",
+}
+
+
 def get_validation_error_message(err: ValidationError) -> str:
     errors = err.errors()
     if not errors:
@@ -28,5 +42,13 @@ def get_validation_error_message(err: ValidationError) -> str:
 
     if error_type == "missing":
         return f"Parâmetro ausente: {field}"
+
+    expected_type = _TYPE_LABEL_BY_ERROR.get(error_type)
+    if expected_type is not None:
+        input_value = first_error.get("input")
+        return (
+            f"Campo {field} deveria ser do tipo {expected_type}, "
+            f"mas foi recebido um campo do tipo {type(input_value)}"
+        )
 
     return f"Parâmetro inválido: {field}"

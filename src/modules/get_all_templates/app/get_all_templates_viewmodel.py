@@ -3,6 +3,7 @@ from typing import List, Optional
 from src.shared.domain.entities.field import Field
 from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.template import Template
+from src.shared.helpers.contracts.endpoints.get_all_templates_contract import GetAllTemplatesResponseSchema
 
 
 class FieldViewmodel:
@@ -66,6 +67,7 @@ class GetAllTemplatesViewmodel:
         }
         if self.systems is not None:
             payload["systems"] = self.systems
-            if len(self.systems) == 1:
-                payload["system"] = self.systems[0]
-        return payload
+        validated = GetAllTemplatesResponseSchema.model_validate(payload).model_dump()
+        if self.systems is not None and len(self.systems) == 1:
+            validated["system"] = self.systems[0]
+        return validated

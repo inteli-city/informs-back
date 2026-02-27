@@ -1,9 +1,13 @@
+from pydantic import ValidationError
+
 from .start_form_usecase import StartFormUsecase
+from src.shared.helpers.contracts.runtime_requests import StartFormControllerRequestSchema
 from src.shared.helpers.errors.controller_errors import MissingParameters, WrongTypeParameter
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
 from src.shared.helpers.external_interfaces.http_codes import BadRequest, Forbidden, InternalServerError, NoContent, NotFound
+from src.shared.helpers.functions.pydantic_error_parser import get_validation_error_message
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 
 
@@ -11,43 +15,24 @@ class StartFormController:
     def __init__(self, usecase: StartFormUsecase):
         self.usecase = usecase
 
-    def _validate_requester_user(self, data: dict) -> UserGatewayDTO:
-        requester_user = data.get("requester_user")
-        if requester_user is None:
-            raise MissingParameters("requester_user")
-        return UserGatewayDTO.from_api_gateway(requester_user)
-
-    def _validate_endpoint_parameters(self, data: dict) -> tuple:
-        form_id = data.get("form_id")
-        if form_id is None:
-            raise MissingParameters("form_id")
-        if not isinstance(form_id, str):
-            raise WrongTypeParameter("form_id", "str", type(form_id))
-
-        in_progress_at_raw = data.get("in_progress_at")
-        if in_progress_at_raw is None:
-            raise MissingParameters("in_progress_at")
-
-        if isinstance(in_progress_at_raw, bool) or not isinstance(in_progress_at_raw, int):
-            raise WrongTypeParameter("in_progress_at", "int", type(in_progress_at_raw))
-
-        in_progress_at = in_progress_at_raw
-
-        return form_id, in_progress_at
-
     def __call__(self, request: IRequest) -> IResponse:
         try:
             data = request.data if isinstance(request.data, dict) else {}
-            requester_user = self._validate_requester_user(data)
-            form_id, in_progress_at = self._validate_endpoint_parameters(data)
+            if data.get("requester_user") is None:
+                return BadRequest(body="Parâmetro ausente: requester_user")
+            payload = StartFormControllerRequestSchema.model_validate(data)
+            requester_user = UserGatewayDTO.from_api_gateway(payload.requester_user.model_dump(by_alias=True))
 
             self.usecase(
                 requester_user_id=requester_user.user_id,
-                form_id=form_id,
-                in_progress_at=in_progress_at
+                form_id=payload.form_id,
+                in_progress_at=payload.in_progress_at
             )
 
             return NoContent()
+
+        except ValidationError as err:
+            return BadRequest(body=get_validation_error_message(err))
 
         except NoItemsFound as err:
             return NotFound(body=err.message)

@@ -1,6 +1,7 @@
 from typing import Optional
 
 from src.shared.domain.entities.file_upload import FileUpload
+from src.shared.helpers.contracts.endpoints.cancel_form_contract import CancelFormResponseSchema
 
 
 class CancelFormViewmodel:
@@ -13,6 +14,7 @@ class CancelFormViewmodel:
             files = [
                 self.file_upload.to_dict() if isinstance(self.file_upload, FileUpload) else self.file_upload
             ]
-        return {
+        payload = {
             "files": files
         }
+        return CancelFormResponseSchema.model_validate(payload).model_dump()

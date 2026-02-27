@@ -1,12 +1,12 @@
-from pydantic import BaseModel
+from src.shared.helpers.contracts.base import RequestContractModel, ResponseContractModel
 
 
-class FileUploadParamsSchema(BaseModel):
+class FileUploadParamsSchema(RequestContractModel):
     filename: str
     mimetype: str
 
 
-class FileUploadSchema(BaseModel):
+class FileUploadSchema(ResponseContractModel):
     filename: str
     mimetype: str
     pre_signed_url: str

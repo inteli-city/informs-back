@@ -1,20 +1,21 @@
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
+from src.shared.helpers.contracts.base import RequestContractModel, ResponseContractModel
 from src.shared.helpers.contracts.schemas.file_upload import FileUploadSchema
 
 
-class SubmitFormFieldFlatSchema(BaseModel):
+class SubmitFormFieldFlatSchema(RequestContractModel):
     section_id: int
     field_key: str
     value: Any | None = None
 
 
-class SubmitFormRequestSchema(BaseModel):
+class SubmitFormRequestSchema(RequestContractModel):
     fields: list[SubmitFormFieldFlatSchema]
     completed_at: int
 
 
-class SubmitFormResponseSchema(BaseModel):
+class SubmitFormResponseSchema(ResponseContractModel):
     files: list[FileUploadSchema] = Field(default_factory=list)

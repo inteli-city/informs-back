@@ -85,3 +85,14 @@ class TestUpdateTemplateController:
 
         response = self.controller(request)
         assert response.status_code == 400
+
+    def test_update_template_controller_accepts_legacy_isActive(self):
+        request = HttpRequest(body={
+            "requester_user": {"sub": "user-1", "name": "Tester", "email": "t@example.com", "cognito:groups": "FORMULARIOS"},
+            "template_id": self.template.id,
+            "isActive": False,
+        })
+
+        response = self.controller(request)
+        assert response.status_code == 200
+        assert response.body["is_active"] is False

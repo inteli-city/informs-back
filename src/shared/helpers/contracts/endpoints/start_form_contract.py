@@ -1,5 +1,5 @@
-from pydantic import BaseModel
+from src.shared.helpers.contracts.base import RequestContractModel
 
 
-class StartFormRequestSchema(BaseModel):
+class StartFormRequestSchema(RequestContractModel):
     in_progress_at: int

@@ -7,6 +7,7 @@ from src.shared.domain.entities.justification import Justification, Justificatio
 from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.enums.priority_enum import PRIORITY
+from src.shared.helpers.contracts.endpoints.get_form_contract import GetFormResponseSchema
 
 
 class FieldViewmodel:
@@ -100,7 +101,7 @@ class GetFormViewmodel:
         self.updated_at = form.updated_at
 
     def to_dict(self):
-        return {
+        payload = {
             "id": self.id,
             "status": self.status.value if isinstance(self.status, FORM_STATUS) else self.status,
             "form_title": self.form_title,
@@ -123,3 +124,6 @@ class GetFormViewmodel:
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }
+        validated = GetFormResponseSchema.model_validate(payload).model_dump()
+        validated["priority"] = self.priority.value if isinstance(self.priority, PRIORITY) else self.priority
+        return validated

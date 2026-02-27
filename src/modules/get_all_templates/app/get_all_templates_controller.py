@@ -1,10 +1,14 @@
+from pydantic import ValidationError
+
 from .get_all_templates_usecase import GetAllTemplatesUsecase
 from .get_all_templates_viewmodel import GetAllTemplatesViewmodel
+from src.shared.helpers.contracts.runtime_requests import GetAllTemplatesControllerRequestSchema
 from src.shared.helpers.errors.controller_errors import MissingParameters, WrongTypeParameter
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, InvalidPaginationToken, NoItemsFound
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
 from src.shared.helpers.external_interfaces.http_codes import BadRequest, Forbidden, InternalServerError, NotFound, OK
+from src.shared.helpers.functions.pydantic_error_parser import get_validation_error_message
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 
 
@@ -12,44 +16,19 @@ class GetAllTemplatesController:
     def __init__(self, usecase: GetAllTemplatesUsecase):
         self.usecase = usecase
 
-    def _validate_requester_user(self, data: dict) -> UserGatewayDTO:
-        requester_user = data.get("requester_user")
-        if requester_user is None:
-            raise MissingParameters("requester_user")
-        return UserGatewayDTO.from_api_gateway(requester_user)
-
-    def _validate_endpoint_parameters(self, data: dict):
-        def _parse_optional_int(field: str, value, default=None):
-            if value is None:
-                return default
-            if isinstance(value, bool):
-                raise WrongTypeParameter(field, "int", type(value))
-            if isinstance(value, str):
-                stripped_value = value.strip()
-                if stripped_value == "":
-                    return default
-                if stripped_value.isdigit() or (stripped_value.startswith("-") and stripped_value[1:].isdigit()):
-                    return int(stripped_value)
-                raise WrongTypeParameter(field, "int", type(value))
-            if not isinstance(value, int):
-                raise WrongTypeParameter(field, "int", type(value))
-            return value
-
-        limit = _parse_optional_int("limit", data.get("limit"), default=None)
+    def _validate_endpoint_parameters(self, payload: GetAllTemplatesControllerRequestSchema):
+        limit = payload.limit
         if limit is not None and (limit < 1 or limit > 10000):
             raise EntityError("limit")
 
-        is_active_raw = data.get("is_active")
-        is_active_field = "is_active"
+        is_active_raw = payload.is_active
 
         if is_active_raw is None:
             is_active = None if limit is None else True
         else:
-            if not isinstance(is_active_raw, bool):
-                raise WrongTypeParameter(is_active_field, "bool", type(is_active_raw))
             is_active = is_active_raw
 
-        system_raw = data.get("system")
+        system_raw = payload.system
         if system_raw is None:
             system = None
         elif isinstance(system_raw, list):
@@ -61,27 +40,14 @@ class GetAllTemplatesController:
         else:
             raise WrongTypeParameter("system", "list[str]", type(system_raw))
 
-        name_filter = data.get("name")
-        if name_filter is not None and not isinstance(name_filter, str):
-            raise WrongTypeParameter("name", "str", type(name_filter))
-
-        exclusive_start_key_field = "exclusive_start_key"
-        exclusive_start_key_raw = data.get("exclusive_start_key")
-
-        if exclusive_start_key_raw is None:
-            exclusive_start_key = None
-        else:
-            if not isinstance(exclusive_start_key_raw, str):
-                raise WrongTypeParameter(exclusive_start_key_field, "str", type(exclusive_start_key_raw))
-            exclusive_start_key = exclusive_start_key_raw
-
-        return limit, is_active, system, name_filter, exclusive_start_key
+        return limit, is_active, system, payload.name, payload.exclusive_start_key
 
     def __call__(self, request: IRequest) -> IResponse:
         try:
             data = request.data if isinstance(request.data, dict) else {}
-            requester = self._validate_requester_user(data)
-            limit, is_active, system, name_filter, exclusive_start_key = self._validate_endpoint_parameters(data)
+            payload = GetAllTemplatesControllerRequestSchema.model_validate(data)
+            requester = UserGatewayDTO.from_api_gateway(payload.requester_user.model_dump(by_alias=True))
+            limit, is_active, system, name_filter, exclusive_start_key = self._validate_endpoint_parameters(payload)
 
             templates, next_key = self.usecase(
                 requester=requester,
@@ -101,6 +67,10 @@ class GetAllTemplatesController:
             )
             return OK(viewmodel.to_dict())
 
+        except ValidationError as err:
+            if isinstance(data.get("system"), int):
+                return BadRequest(body=WrongTypeParameter("system", "list[str]", type(data.get("system"))).message)
+            return BadRequest(body=get_validation_error_message(err))
         except NoItemsFound as err:
             return NotFound(body=err.message)
         except MissingParameters as err:

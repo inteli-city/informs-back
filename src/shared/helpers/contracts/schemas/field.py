@@ -1,7 +1,9 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
+
+from src.shared.helpers.contracts.base import RequestContractModel
 
 
-class GenericFieldSchema(BaseModel):
+class GenericFieldSchema(RequestContractModel):
     model_config = ConfigDict(extra="allow")
 
     field_type: str

@@ -1,12 +1,14 @@
-from typing import Optional
+from pydantic import ValidationError
 
 from src.modules.update_template.app.update_template_viewmodel import TemplateViewmodel
 from src.modules.update_template.app.update_template_usecase import UpdateTemplateUsecase
+from src.shared.helpers.contracts.runtime_requests import UpdateTemplateControllerRequestSchema
 from src.shared.helpers.errors.controller_errors import MissingParameters, WrongTypeParameter
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem, NoItemsFound
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
 from src.shared.helpers.external_interfaces.http_codes import BadRequest, Conflict, InternalServerError, NotFound, OK
+from src.shared.helpers.functions.pydantic_error_parser import get_validation_error_message
 from src.shared.infra.dtos.section_dto import SectionDTO
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 
@@ -15,59 +17,32 @@ class UpdateTemplateController:
     def __init__(self, usecase: UpdateTemplateUsecase):
         self.usecase = usecase
 
-    def _validate_requester_user(self, data: dict) -> UserGatewayDTO:
-        requester_user = data.get("requester_user")
-        if requester_user is None:
-            raise MissingParameters("requester_user")
-        return UserGatewayDTO.from_api_gateway(requester_user)
-
-    def _validate_endpoint_parameters(self, data: dict) -> tuple:
-        template_id = data.get("template_id")
-        if template_id is None:
-            raise MissingParameters("template_id")
-        if not isinstance(template_id, str):
-            raise WrongTypeParameter("template_id", "str", type(template_id))
-
-        name: Optional[str] = data.get("name")
-        system: Optional[str] = data.get("system")
-        description: Optional[str] = data.get("description")
-        is_active = data.get("is_active")
-        sections_raw = data.get("sections")
-
-        if name is not None and not isinstance(name, str):
-            raise WrongTypeParameter("name", "str", type(name))
-        if system is not None and not isinstance(system, str):
-            raise WrongTypeParameter("system", "str", type(system))
-        if description is not None and not isinstance(description, str):
-            raise WrongTypeParameter("description", "str", type(description))
-        if is_active is not None and not isinstance(is_active, bool):
-            raise WrongTypeParameter("is_active", "bool", type(is_active))
-        if sections_raw is not None and not isinstance(sections_raw, list):
-            raise WrongTypeParameter("sections", "list", type(sections_raw))
-
-        sections = [SectionDTO.from_request(section).to_entity() for section in sections_raw] if sections_raw is not None else None
-
-        return template_id, name, system, description, is_active, sections
-
     def __call__(self, request: IRequest) -> IResponse:
         try:
             data = request.data if isinstance(request.data, dict) else {}
-            requester = self._validate_requester_user(data)
-            template_id, name, system, description, is_active, sections = self._validate_endpoint_parameters(data)
+            payload = UpdateTemplateControllerRequestSchema.model_validate(data)
+            requester = UserGatewayDTO.from_api_gateway(payload.requester_user.model_dump(by_alias=True))
+            sections = (
+                [SectionDTO.from_request(section.model_dump()).to_entity() for section in payload.sections]
+                if payload.sections is not None
+                else None
+            )
 
             updated_template = self.usecase(
-                template_id=template_id,
+                template_id=payload.template_id,
                 requester_user_id=requester.user_id,
-                name=name,
-                system=system,
-                description=description,
-                is_active=is_active,
+                name=payload.name,
+                system=payload.system,
+                description=payload.description,
+                is_active=payload.is_active,
                 sections=sections,
             )
 
             viewmodel = TemplateViewmodel(updated_template)
             return OK(viewmodel.to_dict())
 
+        except ValidationError as err:
+            return BadRequest(get_validation_error_message(err))
         except MissingParameters as err:
             return BadRequest(err.message)
         except WrongTypeParameter as err:

@@ -1,16 +1,15 @@
-from pydantic import BaseModel
-
+from src.shared.helpers.contracts.base import RequestContractModel, ResponseContractModel
 from .field import GenericFieldSchema
 from .information_field import InformationFieldSchema
 from .justification import JustificationSchema
 
 
-class FormSectionSchema(BaseModel):
+class FormSectionSchema(RequestContractModel):
     section_id: int
     fields: list[GenericFieldSchema]
 
 
-class FormResponseSchema(BaseModel):
+class FormResponseSchema(ResponseContractModel):
     id: str
     status: str
     form_title: str

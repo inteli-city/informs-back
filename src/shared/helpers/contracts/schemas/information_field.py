@@ -1,20 +1,22 @@
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from src.shared.helpers.contracts.base import RequestContractModel, ResponseContractModel
 
 
-class TextInformationFieldInputSchema(BaseModel):
+class TextInformationFieldInputSchema(RequestContractModel):
     information_field_type: Literal["TEXT_INFORMATION_FIELD"]
     value: str
 
 
-class MapInformationFieldInputSchema(BaseModel):
+class MapInformationFieldInputSchema(RequestContractModel):
     information_field_type: Literal["MAP_INFORMATION_FIELD"]
     latitude: float
     longitude: float
 
 
-class FileInformationFieldInputSchema(BaseModel):
+class FileInformationFieldInputSchema(RequestContractModel):
     information_field_type: Literal["FILE_INFORMATION_FIELD"]
     filename: str
     mimetype: str
@@ -27,18 +29,18 @@ InformationFieldInputSchema = Annotated[
 ]
 
 
-class TextInformationFieldSchema(BaseModel):
+class TextInformationFieldSchema(ResponseContractModel):
     information_field_type: Literal["TEXT_INFORMATION_FIELD"]
     value: str
 
 
-class MapInformationFieldSchema(BaseModel):
+class MapInformationFieldSchema(ResponseContractModel):
     information_field_type: Literal["MAP_INFORMATION_FIELD"]
     latitude: float
     longitude: float
 
 
-class FileInformationFieldSchema(BaseModel):
+class FileInformationFieldSchema(ResponseContractModel):
     information_field_type: Literal["FILE_INFORMATION_FIELD"]
     file_path: str
     file_type: Literal["IMAGE", "DOCUMENT"] | None = None

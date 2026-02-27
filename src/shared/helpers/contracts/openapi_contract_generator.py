@@ -33,7 +33,10 @@ def _collect_models(contracts: Iterable[EndpointContract]) -> list[Type[BaseMode
 def _build_components(models: Iterable[Type[BaseModel]]) -> dict:
     schemas: dict = {}
     for model in models:
-        model_schema = model.model_json_schema(ref_template="#/components/schemas/{model}")
+        model_schema = model.model_json_schema(
+            ref_template="#/components/schemas/{model}",
+            by_alias=True,
+        )
         model_schema = _rewrite_refs(model_schema)
         defs = model_schema.pop("$defs", {})
 
