@@ -26,7 +26,7 @@ class IacStack(Stack):
 
         self.dynamo_stack = DynamoStack(self)
 
-        use_local_authorizer = os.environ.get("USE_LOCAL_AUTHORIZER").lower()
+        use_local_authorizer = os.environ.get("USE_LOCAL_AUTHORIZER", "false").lower() == "true"
         if use_local_authorizer:
             local_authorizer_fn = lambda_.Function(
                 self,
@@ -76,11 +76,9 @@ class IacStack(Stack):
         }
         optional_env_keys = [
             "APEX_FORM_REGISTER_URL_TEMPLATE",
-            "APEX_FORM_REGISTER_API_KEY",
             "SYNC_ORIGIN_SYSTEMS",
             "SYNC_FORMS_WINDOW_MINUTES",
             "SYNC_FORMS_TIMEOUT",
-            "SYNC_FORMS_RETRIES",
             "S3_ENDPOINT_URL",
             "AWS_SQS_ENDPOINT_URL",
             "ENDPOINT_URL"
