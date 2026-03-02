@@ -17,36 +17,39 @@ class GetAllFormsController:
     def __init__(self, usecase: GetAllFormsUsecase):
         self.usecase = usecase
 
+    def _validate_status(self, status_raw):
+        if status_raw is None:
+            return None
+        
+        status_values = status_raw if isinstance(status_raw, list) else [status_raw]
+        parsed_statuses = []
+        for status_item in status_values:
+            if not isinstance(status_item, str):
+                raise WrongTypeParameter("status", "str", type(status_item))
+            status_str = status_item.upper()
+            if status_str not in FORM_STATUS.__members__:
+                raise EntityError("status")
+            parsed_statuses.append(FORM_STATUS[status_str])
+        return parsed_statuses[0] if len(parsed_statuses) == 1 else parsed_statuses
+
+    def _validate_system(self, system_raw):
+        if system_raw is None:
+            return None
+        if isinstance(system_raw, list):
+            if not all(isinstance(item, str) for item in system_raw):
+                raise WrongTypeParameter("system", "list[str]", type(system_raw))
+            return system_raw
+        if isinstance(system_raw, str):
+            return [system_raw]
+        raise WrongTypeParameter("system", "list[str]", type(system_raw))
+
     def _validate_endpoint_parameters(self, payload: GetAllFormsControllerRequestSchema):
         limit = payload.limit
         if limit is not None and (limit < 1 or limit > 10000):
             raise EntityError("limit")
 
-        status = None
-        status_raw = payload.status
-        if status_raw is not None:
-            status_values = status_raw if isinstance(status_raw, list) else [status_raw]
-            parsed_statuses = []
-            for status_item in status_values:
-                if not isinstance(status_item, str):
-                    raise WrongTypeParameter("status", "str", type(status_item))
-                status_str = status_item.upper()
-                if status_str not in FORM_STATUS.__members__:
-                    raise EntityError("status")
-                parsed_statuses.append(FORM_STATUS[status_str])
-            status = parsed_statuses[0] if len(parsed_statuses) == 1 else parsed_statuses
-
-        system_raw = payload.system
-        if system_raw is None:
-            system = None
-        elif isinstance(system_raw, list):
-            if not all(isinstance(item, str) for item in system_raw):
-                raise WrongTypeParameter("system", "list[str]", type(system_raw))
-            system = system_raw
-        elif isinstance(system_raw, str):
-            system = [system_raw]
-        else:
-            raise WrongTypeParameter("system", "list[str]", type(system_raw))
+        status = self._validate_status(payload.status)
+        system = self._validate_system(payload.system)
 
         return (
             limit,
