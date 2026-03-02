@@ -15,6 +15,7 @@ from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 class GetAllTemplatesController:
     def __init__(self, usecase: GetAllTemplatesUsecase):
         self.usecase = usecase
+        self.expected_list_str = 'list[str]'
 
     def _validate_endpoint_parameters(self, payload: GetAllTemplatesControllerRequestSchema):
         limit = payload.limit
@@ -33,12 +34,12 @@ class GetAllTemplatesController:
             system = None
         elif isinstance(system_raw, list):
             if not all(isinstance(item, str) for item in system_raw):
-                raise WrongTypeParameter("system", "list[str]", type(system_raw))
+                raise WrongTypeParameter("system", self.expected_list_str, type(system_raw))
             system = system_raw
         elif isinstance(system_raw, str):
             system = [system_raw]
         else:
-            raise WrongTypeParameter("system", "list[str]", type(system_raw))
+            raise WrongTypeParameter("system", self.expected_list_str, type(system_raw))
 
         return limit, is_active, system, payload.name, payload.exclusive_start_key
 
@@ -69,7 +70,7 @@ class GetAllTemplatesController:
 
         except ValidationError as err:
             if isinstance(data.get("system"), int):
-                return BadRequest(body=WrongTypeParameter("system", "list[str]", type(data.get("system"))).message)
+                return BadRequest(body=WrongTypeParameter("system", self.expected_list_str, type(data.get("system"))).message)
             return BadRequest(body=get_validation_error_message(err))
         except NoItemsFound as err:
             return NotFound(body=err.message)
