@@ -6,7 +6,8 @@ from aws_cdk import (
     aws_logs as logs,
 )
 from constructs import Construct
-from aws_cdk.aws_apigateway import Resource, LambdaIntegration, CognitoUserPoolsAuthorizer
+from typing import Optional
+from aws_cdk.aws_apigateway import IAuthorizer, Resource, LambdaIntegration, CognitoUserPoolsAuthorizer
 
 
 class LambdaStack(Construct):
@@ -14,13 +15,13 @@ class LambdaStack(Construct):
     functions_that_need_cognito_permissions = []
 
     def create_lambda_api_gateway_integration(self, module_name: str, method: str, api_resource: Resource,
-                                              path: str = None, environment_variables: dict = {"STAGE": "DEV"}, authorizer=None):
+                                              path: str = None, environment_variables: dict = None, authorizer: Optional[IAuthorizer] = None):
 
         function = lambda_.Function(
             self, module_name.title(),
             code=lambda_.Code.from_asset(f"../src/modules/{module_name}"),
             handler=f"app.{module_name}_presenter.lambda_handler",
-            runtime=lambda_.Runtime.PYTHON_3_9,
+            runtime=lambda_.Runtime.PYTHON_3_10,
             layers=[self.lambda_layer],
             memory_size=512,
             environment=environment_variables,
@@ -38,12 +39,12 @@ class LambdaStack(Construct):
         return function
 
     def __init__(self, scope: Construct, api_gateway_resource: Resource, environment_variables: dict,
-                 authorizer: CognitoUserPoolsAuthorizer) -> None:
+                 authorizer: Optional[IAuthorizer]) -> None:
         super().__init__(scope, "Formularios_Lambda")
 
         self.lambda_layer = lambda_.LayerVersion(self, "Formularios_Layer",
                                                  code=lambda_.Code.from_asset("./lambda_layer_out_temp"),
-                                                 compatible_runtimes=[lambda_.Runtime.PYTHON_3_9]
+                                                 compatible_runtimes=[lambda_.Runtime.PYTHON_3_10]
                                                  )
         forms_resource = api_gateway_resource.add_resource("forms")
         form_id_resource = forms_resource.add_resource("{form_id}")
@@ -143,19 +144,29 @@ class LambdaStack(Construct):
         )
 
         self.sync_forms_origin_module_name = "sync_forms_origin"
+        self.sync_forms_origin_callback_module_name = "sync_forms_origin_callback"
 
         self.sync_forms_origin = lambda_.Function(
             self,
             self.sync_forms_origin_module_name.title(),
             code=lambda_.Code.from_asset("../src/modules/sync_forms_origin"),
             handler="app.sync_forms_origin_presenter.lambda_handler",
-            runtime=lambda_.Runtime.PYTHON_3_9,
+            runtime=lambda_.Runtime.PYTHON_3_10,
             layers=[self.lambda_layer],
             memory_size=512,
             environment=environment_variables,
             timeout=Duration.seconds(60),
             tracing=lambda_.Tracing.ACTIVE,
             log_retention=logs.RetentionDays.ONE_MONTH,
+        )
+
+        self.sync_forms_origin_callback = self.create_lambda_api_gateway_integration(
+            module_name=self.sync_forms_origin_callback_module_name,
+            method="POST",
+            api_resource=forms_resource,
+            path="sync-origin/callback",
+            environment_variables=environment_variables,
+            authorizer=authorizer,
         )
 
         self.sync_forms_origin_scheduler_role = iam.Role(

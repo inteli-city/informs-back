@@ -85,3 +85,15 @@ class TestCreateTemplateController:
         response = controller(request)
         assert response.status_code == 400
         assert response.body == "Parâmetro inválido: sections"
+
+    def test_create_template_controller_accepts_legacy_isActive(self):
+        repo = TemplateRepositoryMock()
+        controller = CreateTemplateController(CreateTemplateUsecase(repo))
+
+        body = self._make_base_body()
+        body.pop("is_active")
+        body["isActive"] = True
+        request = HttpRequest(body=body)
+
+        response = controller(request)
+        assert response.status_code == 201

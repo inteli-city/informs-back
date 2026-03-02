@@ -7,6 +7,12 @@ class OriginRepositoryMock(IOriginRepository):
     def __init__(self):
         self.sent: List[tuple] = []
 
-    def sync_form(self, origin_system: str, payload: dict, logger: Optional[object] = None) -> Tuple[bool, int, str]:
-        self.sent.append((origin_system, payload))
+    def sync_forms(
+        self,
+        origin_system: str,
+        payloads: list[dict],
+        execution_id: Optional[str] = None,
+        logger: Optional[object] = None,
+    ) -> Tuple[bool, int, str]:
+        self.sent.append((origin_system, payloads, execution_id))
         return True, 200, "OK"

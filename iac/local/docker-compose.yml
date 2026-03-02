@@ -34,7 +34,7 @@ services:
     ports:
       - "4566:4566"
     environment:
-      - SERVICES=sqs
+      - SERVICES=s3
       - DEFAULT_REGION=sa-east-1
     networks:
       - formularios-network

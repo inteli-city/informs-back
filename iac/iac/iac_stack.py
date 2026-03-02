@@ -9,7 +9,7 @@ from aws_cdk import (
 from constructs import Construct
 from .dynamo_stack import DynamoStack
 from .lambda_stack import LambdaStack
-from aws_cdk.aws_apigateway import RestApi, Cors, CognitoUserPoolsAuthorizer
+from aws_cdk.aws_apigateway import RestApi, Cors, CognitoUserPoolsAuthorizer, TokenAuthorizer
 
 
 class IacStack(Stack):
@@ -24,15 +24,33 @@ class IacStack(Stack):
         self.github_ref_name = os.environ.get("GITHUB_REF_NAME")
         self.bucket_name = os.environ.get("BUCKET_NAME")
 
-
         self.dynamo_stack = DynamoStack(self)
 
-        self.cognito_auth = CognitoUserPoolsAuthorizer(self, f"formularios_cognito_cognito_auth_{self.github_ref_name}",
-                                                       cognito_user_pools=[aws_cognito.UserPool.from_user_pool_arn(
-                                                           self, f"formularios_cognito_auth_userpool_{self.github_ref_name}",
-                                                           self.user_pool_arn
-                                                       )]
-                                                       )
+        use_local_authorizer = os.environ.get("USE_LOCAL_AUTHORIZER").lower()
+        if use_local_authorizer:
+            local_authorizer_fn = lambda_.Function(
+                self,
+                f"formularios_local_authorizer_{self.github_ref_name}",
+                code=lambda_.Code.from_asset("./authorizers/local_authorizer"),
+                handler="local_authorizer.lambda_handler",
+                runtime=lambda_.Runtime.PYTHON_3_10,
+                memory_size=128,
+                timeout=Duration.seconds(5),
+            )
+            self.cognito_auth = TokenAuthorizer(
+                self,
+                f"formularios_local_token_authorizer_{self.github_ref_name}",
+                handler=local_authorizer_fn,
+                identity_source="method.request.header.Authorization",
+                results_cache_ttl=Duration.seconds(0),
+            )
+        else:
+            self.cognito_auth = CognitoUserPoolsAuthorizer(self, f"formularios_cognito_cognito_auth_{self.github_ref_name}",
+                                                           cognito_user_pools=[aws_cognito.UserPool.from_user_pool_arn(
+                                                               self, f"formularios_cognito_auth_userpool_{self.github_ref_name}",
+                                                               self.user_pool_arn
+                                                           )]
+                                                           )
  
         self.rest_api = RestApi(self, f"Formularios_RestApi_{self.github_ref_name}",
                                 rest_api_name=f"Formularios_RestApi_{self.github_ref_name}",
@@ -53,14 +71,14 @@ class IacStack(Stack):
             "DYNAMO_PARTITION_KEY": "PK",
             "DYNAMO_SORT_KEY": "SK",
             "REGION": self.region,
-            "BUCKET_NAME": self.bucket_name
+            "BUCKET_NAME": self.bucket_name,
+            "SYNC_FORMS_PAGE_LIMIT": "100",
         }
         optional_env_keys = [
             "APEX_FORM_REGISTER_URL_TEMPLATE",
             "APEX_FORM_REGISTER_API_KEY",
             "SYNC_ORIGIN_SYSTEMS",
             "SYNC_FORMS_WINDOW_MINUTES",
-            "SYNC_FORMS_PAGE_LIMIT",
             "SYNC_FORMS_TIMEOUT",
             "SYNC_FORMS_RETRIES",
             "S3_ENDPOINT_URL",

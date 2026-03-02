@@ -4,6 +4,7 @@ from typing import List
 from src.shared.domain.entities.field import Field
 from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.template import Template
+from src.shared.helpers.contracts.endpoints.create_template_contract import CreateTemplateResponseSchema
 
 
 class FieldViewmodel:
@@ -39,7 +40,7 @@ class TemplateViewmodel:
         self.template = template
 
     def to_dict(self):
-        return {
+        payload = {
             "id": self.template.id,
             "name": self.template.name,
             "system": self.template.system,
@@ -50,3 +51,4 @@ class TemplateViewmodel:
             "created_at": self.template.created_at,
             "updated_at": self.template.updated_at,
         }
+        return CreateTemplateResponseSchema.model_validate(payload).model_dump()

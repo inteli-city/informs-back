@@ -46,6 +46,19 @@ class DynamoStack(Construct):
                 projection_type=aws_dynamodb.ProjectionType.ALL
             )
 
+            self.gsi_system_updated_at = self.dynamo_table_forms.add_global_secondary_index(
+                index_name="SystemUpdatedAtIndex",
+                partition_key=aws_dynamodb.Attribute(
+                    name="GSI2PK",
+                    type=aws_dynamodb.AttributeType.STRING
+                ),
+                sort_key=aws_dynamodb.Attribute(
+                    name="GSI2SK",
+                    type=aws_dynamodb.AttributeType.STRING
+                ),
+                projection_type=aws_dynamodb.ProjectionType.ALL
+            )
+
             CfnOutput(self, 'DynamoFormulariosRemovalPolicy',
                         value=REMOVAL_POLICY.value,
                         export_name=f'Formularios{self.github_ref_name}DynamoRemovalPolicyValue')

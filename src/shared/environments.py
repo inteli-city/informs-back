@@ -5,6 +5,8 @@ from src.shared.domain.repositories.form_repository_interface import IFormReposi
 from src.shared.domain.repositories.origin_repository_interface import IOriginRepository
 from src.shared.domain.repositories.file_repository_interface import IFileRepository
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
+from src.shared.domain.repositories.sync_state_repository_interface import ISyncStateRepository
+from src.shared.domain.repositories.sync_error_form_repository_interface import ISyncErrorFormRepository
 
 class STAGE(Enum):
     DOTENV = "DOTENV"
@@ -35,6 +37,7 @@ class Environments:
     sync_forms_origin_systems: str
     sync_forms_page_limit: int
     sync_forms_window_minutes: int
+    sync_forms_first_run_full_sync: bool
 
 
     def _configure_local(self):
@@ -61,6 +64,7 @@ class Environments:
             self.sync_forms_origin_systems = "GAIA,GIPAV"
             self.sync_forms_page_limit = 100
             self.sync_forms_window_minutes = 10
+            self.sync_forms_first_run_full_sync = False
         else:
             self.region = os.environ.get("REGION")
             self.endpoint_url = os.environ.get("ENDPOINT_URL")
@@ -75,6 +79,7 @@ class Environments:
             self.sync_forms_origin_systems = os.environ.get("SYNC_ORIGIN_SYSTEMS", "GAIA,GIPAV")
             self.sync_forms_page_limit = int(os.environ.get("SYNC_FORMS_PAGE_LIMIT", "100"))
             self.sync_forms_window_minutes = int(os.environ.get("SYNC_FORMS_WINDOW_MINUTES", "10"))
+            self.sync_forms_first_run_full_sync = os.environ.get("SYNC_FORMS_FIRST_RUN_FULL_SYNC", False)
 
     @staticmethod
     def get_form_repo() -> IFormRepository:
@@ -117,6 +122,28 @@ class Environments:
         elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
             from src.shared.infra.repositories.origin_repository_apex import OriginRepositoryApex
             return OriginRepositoryApex()
+        else:
+            raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
+
+    @staticmethod
+    def get_sync_state_repo() -> ISyncStateRepository:
+        if Environments.get_envs().stage in [STAGE.TEST, STAGE.DOTENV]:
+            from src.shared.infra.repositories.sync_state_repository_mock import SyncStateRepositoryMock
+            return SyncStateRepositoryMock()
+        elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
+            from src.shared.infra.repositories.sync_state_repository_dynamo import SyncStateRepositoryDynamo
+            return SyncStateRepositoryDynamo()
+        else:
+            raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
+
+    @staticmethod
+    def get_sync_error_form_repo() -> ISyncErrorFormRepository:
+        if Environments.get_envs().stage in [STAGE.TEST, STAGE.DOTENV]:
+            from src.shared.infra.repositories.sync_error_form_repository_mock import SyncErrorFormRepositoryMock
+            return SyncErrorFormRepositoryMock()
+        elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
+            from src.shared.infra.repositories.sync_error_form_repository_dynamo import SyncErrorFormRepositoryDynamo
+            return SyncErrorFormRepositoryDynamo()
         else:
             raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
 

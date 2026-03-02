@@ -169,3 +169,29 @@ class Test_CancelFormController:
 
         assert response.status_code == 400
         assert response.body == 'Campo file deveria ser do tipo dict, mas foi recebido um campo do tipo <class \'int\'>'
+
+    def test_cancel_form_controller_accepts_legacy_justification_fields(self):
+        form_repo = FormRepositoryMock()
+        file_repo = FileRepositoryMock()
+        usecase = CancelFormUsecase(form_repo, file_repo)
+        controller = CancelFormController(usecase)
+
+        form_repo.forms[0].status = FORM_STATUS.IN_PROGRESS
+
+        data = HttpRequest(body={
+            "requester_user": {
+                "sub": 'd61dbf66-a10f-11ed-a8fc-0242ac120001',
+                "name": 'Gabriel Godoy',
+                "email": 'gabriel@gmail.com',
+                "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
+            },
+            "form_id": form_repo.forms[0].id,
+            "option": "option",
+            "justification_text": "justification_test",
+            "justification_image": {"filename": "a.jpg", "mimetype": "image/png"}
+        })
+
+        response = controller(data)
+
+        assert response.status_code == 200
+        assert response.body["files"][0]["filename"] == "a.jpg"

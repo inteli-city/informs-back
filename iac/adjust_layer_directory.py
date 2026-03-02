@@ -48,7 +48,6 @@ def adjust_layer_directory(shared_dir_name: str, destination: str):
             requirements_path,
             "-t",
             layer_python_directory,
-            "--no-deps",
             "--upgrade",
         ])
     else:

@@ -258,3 +258,35 @@ class FormRepositoryMock(IFormRepository):
                     form.justification = justification
                 return form
         return None
+
+    def get_forms_updated_since(
+        self,
+        system: str,
+        updated_at_start: int,
+        updated_at_end: Optional[int] = None,
+        limit: Optional[int] = None,
+        exclusive_start_key: Optional[dict] = None,
+    ) -> tuple[List[Form], Optional[str]]:
+        forms = [form for form in self.forms if form.system == system and form.updated_at >= updated_at_start]
+        if updated_at_end is not None:
+            forms = [form for form in forms if form.updated_at <= updated_at_end]
+
+        forms = sorted(forms, key=lambda form: (form.updated_at, form.id))
+
+        start = self._parse_start_index(forms, exclusive_start_key)
+        if limit is None:
+            return forms[start:], None
+
+        end = start + limit
+        page = forms[start:end]
+        next_key = None
+        if end < len(forms):
+            next_form = forms[end - 1]
+            next_key = {
+                "PK": f"form#{next_form.id}",
+                "SK": "METADATA",
+                "id": next_form.id,
+            }
+            next_key = encode_pagination_token(next_key)
+
+        return page, next_key

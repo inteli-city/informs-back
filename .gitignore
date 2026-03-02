@@ -139,3 +139,7 @@ json.json
 
 cdk.out/
 lambda_layer_out_temp/
+
+openapi/
+!src/modules/docs/app/openapi/
+!src/modules/docs/app/openapi/**

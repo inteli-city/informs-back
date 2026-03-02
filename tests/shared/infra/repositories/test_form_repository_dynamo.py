@@ -85,6 +85,8 @@ def test_form_repository_dynamo_create_and_get_by_user():
     saved_item, pk, sk, _ = repo.dynamo.put_calls[0]
     assert saved_item["GSI1PK"] == f"user#{form.user_id}"
     assert "GSI1SK" in saved_item
+    assert saved_item["GSI2PK"] == f"system#{form.system}"
+    assert saved_item["GSI2SK"] == f"updated_at#{int(form.updated_at):013d}#form#{form.id}"
     assert pk == f"form#{form.id}"
     assert sk == "METADATA"
 
@@ -133,6 +135,7 @@ def test_form_repository_dynamo_get_all_forms_scan_path():
 def test_form_repository_dynamo_update_and_cancel():
     repo, form, item = _make_repo_with_item()
     repo.dynamo.update_response = {"Attributes": item}
+    repo.dynamo.get_item_response = {"Item": item}
 
     updated = repo.update_form(
         user_id=form.user_id,
@@ -146,6 +149,8 @@ def test_form_repository_dynamo_update_and_cancel():
     assert "status" in repo.dynamo.last_update["update_dict"]
     assert "sections" in repo.dynamo.last_update["update_dict"]
     assert "justification" in repo.dynamo.last_update["update_dict"]
+    assert "GSI2PK" in repo.dynamo.last_update["update_dict"]
+    assert "GSI2SK" in repo.dynamo.last_update["update_dict"]
 
     cancelled = repo.update_form(
         user_id=form.user_id,
@@ -168,3 +173,20 @@ def test_form_repository_dynamo_update_without_attributes():
         updated_at=123,
     )
     assert updated is None
+
+
+def test_form_repository_dynamo_get_forms_updated_since():
+    repo, form, item = _make_repo_with_item()
+    repo.dynamo.query_response = {"Items": [item], "LastEvaluatedKey": None}
+
+    forms, next_key = repo.get_forms_updated_since(
+        system=form.system,
+        updated_at_start=1,
+        updated_at_end=9999999999999,
+        limit=10,
+    )
+
+    assert len(forms) == 1
+    assert next_key is None
+    assert repo.dynamo.query_kwargs["IndexName"] == "SystemUpdatedAtIndex"
+    assert repo.dynamo.query_kwargs["ScanIndexForward"] is True

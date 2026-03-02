@@ -1,201 +1,88 @@
+from pydantic import ValidationError
+
 from .create_form_usecase import CreateFormUsecase
 from .create_form_viewmodel import CreateFormViewmodel
-from uuid import UUID
+from src.shared.domain.entities.file_upload import FileUploadRequest
+from src.shared.domain.entities.information_field import FileInformationField
+from src.shared.domain.enums.file_type_enum import FILE_TYPE
 from src.shared.domain.enums.priority_enum import PRIORITY
+from src.shared.helpers.contracts.runtime_requests import CreateFormControllerRequestSchema
 from src.shared.helpers.errors.controller_errors import MissingParameters, WrongTypeParameter
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction, NoItemsFound
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
-from src.shared.helpers.external_interfaces.http_codes import BadRequest, Conflict, Created, Forbidden, InternalServerError, NotFound
-from src.shared.domain.entities.information_field import FileInformationField
-from src.shared.domain.enums.file_type_enum import FILE_TYPE
+from src.shared.helpers.external_interfaces.http_codes import (
+    BadRequest,
+    Conflict,
+    Created,
+    Forbidden,
+    InternalServerError,
+    NotFound,
+)
+from src.shared.helpers.functions.pydantic_error_parser import get_validation_error_message
 from src.shared.infra.dtos.information_field_dto import InformationFieldDTO
 from src.shared.infra.dtos.justification_dto import JustificationDTO
 from src.shared.infra.dtos.section_dto import SectionDTO
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
-from src.shared.domain.entities.file_upload import FileUploadRequest
 
 
 class CreateFormController:
     def __init__(self, usecase: CreateFormUsecase):
         self.usecase = usecase
 
-    def _validate_requester_user(self, data: dict) -> UserGatewayDTO:
-        requester_user = data.get("requester_user")
-        if requester_user is None:
-            raise MissingParameters("requester_user")
+    def _build_usecase_payload(self, payload: CreateFormControllerRequestSchema) -> tuple:
+        priority = PRIORITY(str(payload.priority))
 
-        return UserGatewayDTO.from_api_gateway(requester_user)
+        sections_raw = [section.model_dump() for section in (payload.sections or [])]
+        sections = [SectionDTO.from_request(section).to_entity() for section in sections_raw]
 
-    def _validate_endpoint_parameters(self, data: dict) -> tuple:
-        def _is_uuid_string(value: str) -> bool:
-            if not isinstance(value, str):
-                return False
-            try:
-                UUID(value)
-                return True
-            except (ValueError, TypeError, AttributeError):
-                return False
+        normalized_justifications = [option.model_dump() for option in payload.justifications]
+        justification_entity = JustificationDTO.from_request({"options": normalized_justifications}).to_entity()
 
-        def _get_required(field: str):
-            value = data.get(field)
-            if value is None:
-                raise MissingParameters(field)
-            return value
-
-        def _require_type(field: str, value, expected_type, expected_label: str = None):
-            if not isinstance(value, expected_type):
-                label = expected_label or expected_type.__name__
-                raise WrongTypeParameter(field, label, type(value))
-            return value
-
-        def _parse_optional_int(field: str, value):
-            if value is None:
-                return None
-            if isinstance(value, bool) or not isinstance(value, int):
-                raise WrongTypeParameter(field, "int", type(value))
-            return value
-
-        def _parse_float(field: str, value):
-            if isinstance(value, bool) or not isinstance(value, (int, float)):
-                raise WrongTypeParameter(field, "float", type(value))
-            return float(value)
-
-        form_title = _get_required("form_title")
-        user_id = _get_required("user_id")
-        system = _get_required("system")
-        street = _get_required("street")
-        city = _get_required("city")
-        latitude_raw = _get_required("latitude")
-        longitude_raw = _get_required("longitude")
-        priority_payload = _get_required("priority")
-        raw_justifications = _get_required("justifications")
-        sections_raw = data.get("sections")
-        observation = data.get("observation")
-        expiration_date_raw = data.get("expiration_date")
-        number_raw = data.get("number")
-        template = data.get("template")
-        information_fields_raw = data.get("information_fields")
+        information_fields = None
         information_fields_uploads = None
+        if payload.information_fields is not None:
+            information_fields = []
+            info_raw = [field.model_dump() for field in payload.information_fields]
+            information_fields_uploads = [None] * len(info_raw)
 
-        for field_name, value in [
-            ("form_title", form_title),
-            ("user_id", user_id),
-            ("system", system),
-            ("street", street),
-            ("city", city),
-        ]:
-            _require_type(field_name, value, str)
-
-        if observation is not None:
-            _require_type("observation", observation, str)
-        if template is not None:
-            _require_type("template", template, str)
-
-        template_is_uuid = _is_uuid_string(template) if template is not None else False
-
-        _require_type("justifications", raw_justifications, list)
-        if sections_raw is None:
-            if not template_is_uuid:
-                raise MissingParameters("sections")
-            sections_raw = []
-        else:
-            _require_type("sections", sections_raw, list)
-
-        if information_fields_raw is not None:
-            _require_type("information_fields", information_fields_raw, list)
-            information_fields_uploads = [None] * len(information_fields_raw)
-            for idx, information_field in enumerate(information_fields_raw):
+            for idx, information_field in enumerate(info_raw):
                 info_type = information_field.get("information_field_type")
                 if info_type == "FILE_INFORMATION_FIELD":
                     mimetype = information_field.get("mimetype")
-                    if mimetype is None:
-                        raise MissingParameters("mimetype")
-                    if not isinstance(mimetype, str):
-                        raise WrongTypeParameter("mimetype", "str", type(mimetype))
                     filename = information_field.get("filename")
-                    if filename is None:
-                        raise MissingParameters("filename")
-                    if not isinstance(filename, str):
-                        raise WrongTypeParameter("filename", "str", type(filename))
                     information_fields_uploads[idx] = FileUploadRequest(filename=filename, mimetype=mimetype)
 
-        priority_values = {priority.value for priority in PRIORITY}
-        if isinstance(priority_payload, bool) or not isinstance(priority_payload, int):
-            raise WrongTypeParameter("priority", "int", type(priority_payload))
-
-        priority_value = str(priority_payload)
-        if priority_value in priority_values:
-            priority = PRIORITY(priority_value)
-        else:
-            raise EntityError("priority")
-
-        latitude = _parse_float("latitude", latitude_raw)
-        longitude = _parse_float("longitude", longitude_raw)
-
-        expiration_date = _parse_optional_int("expiration_date", expiration_date_raw)
-        number = _parse_optional_int("number", number_raw)
-
-        normalized_justifications = []
-        for option in raw_justifications:
-            required_image = option.get("required_image")
-            if required_image is not None and not isinstance(required_image, bool):
-                raise WrongTypeParameter("justifications.required_image", "bool", type(required_image))
-
-            required_text = option.get("required_text")
-            if required_text is not None and not isinstance(required_text, bool):
-                raise WrongTypeParameter("justifications.required_text", "bool", type(required_text))
-
-            normalized_justifications.append(
-                {
-                    "option": option.get("option"),
-                    "required_image": required_image if required_image is not None else False,
-                    "required_text": required_text if required_text is not None else False,
-                }
-            )
-
-        justification_entity = JustificationDTO.from_request({"options": normalized_justifications}).to_entity()
-        sections = [SectionDTO.from_request(section).to_entity() for section in sections_raw]
-        information_fields = None
-        if information_fields_raw is not None:
-            information_fields = []
-            for information_field in information_fields_raw:
-                info_type = information_field.get("information_field_type")
-                if info_type == "FILE_INFORMATION_FIELD":
                     file_type_raw = information_field.get("file_type")
-                    file_type = None
-                    if file_type_raw is not None:
-                        if not isinstance(file_type_raw, str) or file_type_raw not in [ft.value for ft in FILE_TYPE]:
-                            raise WrongTypeParameter("file_type", "str", type(file_type_raw))
-                        file_type = FILE_TYPE(file_type_raw)
+                    file_type = FILE_TYPE(file_type_raw) if file_type_raw is not None else None
                     information_fields.append(FileInformationField(file_path="", file_type=file_type))
                 else:
                     information_fields.append(InformationFieldDTO.from_request(information_field).to_entity())
 
         return (
-            form_title,
-            user_id,
-            system,
-            street,
-            city,
-            latitude,
-            longitude,
+            payload.form_title,
+            payload.user_id,
+            payload.system,
+            payload.street,
+            payload.city,
+            payload.latitude,
+            payload.longitude,
             priority,
             sections,
             justification_entity,
-            number,
-            observation,
-            expiration_date,
-            template,
+            payload.number,
+            payload.observation,
+            payload.expiration_date,
+            payload.template,
             information_fields,
             information_fields_uploads,
         )
 
-    
     def __call__(self, request: IRequest) -> IResponse:
         try:
             data = request.data if isinstance(request.data, dict) else {}
-            requester_user = self._validate_requester_user(data)
+            payload = CreateFormControllerRequestSchema.model_validate(data)
+            requester_user = UserGatewayDTO.from_api_gateway(payload.requester_user.model_dump(by_alias=True))
             (
                 form_title,
                 user_id,
@@ -213,7 +100,7 @@ class CreateFormController:
                 template,
                 information_fields,
                 information_fields_uploads,
-            ) = self._validate_endpoint_parameters(data)
+            ) = self._build_usecase_payload(payload)
 
             form, files = self.usecase(
                 form_title=form_title,
@@ -236,26 +123,23 @@ class CreateFormController:
             )
 
             viewmodel = CreateFormViewmodel(form=form, files=files)
-            
             return Created(viewmodel.to_dict())
-        
+
+        except ValidationError as err:
+            if "sections is required when template is not a UUID" in str(err):
+                return BadRequest(body="Parâmetro ausente: sections")
+            return BadRequest(body=get_validation_error_message(err))
         except NoItemsFound as err:
             return NotFound(body=err.message)
-        
         except DuplicatedItem as err:
             return Conflict(body=err.message)
-
         except MissingParameters as err:
-            return BadRequest(body= err.message)
-
+            return BadRequest(body=err.message)
         except ForbiddenAction as err:
             return Forbidden(body=err.message)
-
         except WrongTypeParameter as err:
             return BadRequest(body=err.message)
-        
         except EntityError as err:
             return BadRequest(body=f"Parâmetro inválido: {err.message}")
-        
         except Exception as err:
-            return InternalServerError(body=err.args[0])
+            return InternalServerError(body=err.args[0] if err.args else str(err))

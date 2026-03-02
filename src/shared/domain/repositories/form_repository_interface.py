@@ -32,6 +32,17 @@ class IFormRepository(ABC):
         pass
 
     @abstractmethod
+    def get_forms_updated_since(
+        self,
+        system: str,
+        updated_at_start: int,
+        updated_at_end: Optional[int] = None,
+        limit: Optional[int] = None,
+        exclusive_start_key: Optional[dict] = None,
+    ) -> Tuple[List[Form], Optional[str]]:
+        pass
+
+    @abstractmethod
     def create_form(self, form: Form) -> Form:
         pass
 

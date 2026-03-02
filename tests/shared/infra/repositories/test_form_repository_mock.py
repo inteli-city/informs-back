@@ -119,3 +119,9 @@ class Test_FormRepositoryMock:
 
         assert form.status == FORM_STATUS.COMPLETED
         assert form.sections == [section]
+
+    def test_form_repository_mock_get_forms_updated_since(self):
+        repo = FormRepositoryMock()
+        forms, next_key = repo.get_forms_updated_since(system="GAIA", updated_at_start=0, updated_at_end=946407600000)
+        assert len(forms) >= 1
+        assert next_key is None

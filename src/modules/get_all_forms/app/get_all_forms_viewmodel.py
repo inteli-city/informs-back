@@ -7,6 +7,7 @@ from src.shared.domain.entities.information_field import InformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption
 from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.fields_enum import FIELD_TYPE
+from src.shared.helpers.contracts.endpoints.get_all_forms_contract import GetAllFormsResponseSchema
 
 
 class FieldViewmodel:
@@ -130,8 +131,9 @@ class GetAllFormsViewmodel:
         self.last_evaluated_key = last_evaluated_key
 
     def to_dict(self):
-        return {
+        payload = {
             'forms': [FormItemViewmodel(form).to_dict() for form in self.forms],
             'limit': self.limit,
             'last_evaluated_key': self.last_evaluated_key
         }
+        return GetAllFormsResponseSchema.model_validate(payload).model_dump()
