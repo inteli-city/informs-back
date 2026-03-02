@@ -28,8 +28,8 @@ class OriginRepositoryApex(IOriginRepository):
             headers["X-Informs-Execution-Id"] = execution_id
         return headers
 
-    def _post_json(self, url: str, payload: dict, headers: Dict[str, str]) -> Tuple[int, str]:
-        data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    def _post_json(self, url: str, payloads: list[dict], headers: Dict[str, str]) -> Tuple[int, str]:
+        data = json.dumps({"forms": payloads}, ensure_ascii=False).encode("utf-8")
         req = urllib.request.Request(url, data=data, method="POST")
         req.add_header("Content-Type", "application/json")
         for key, value in headers.items():
@@ -40,18 +40,23 @@ class OriginRepositoryApex(IOriginRepository):
             body = resp.read().decode("utf-8", errors="replace")
         return status, body
 
-    def sync_form(
+    def sync_forms(
         self,
         origin_system: str,
-        payload: dict,
+        payloads: list[dict],
         execution_id: Optional[str] = None,
         logger: Optional[object] = None,
     ) -> Tuple[bool, int, str]:
+        if not payloads:
+            return True, 200, "EMPTY_BATCH"
+
         url = self._build_url(origin_system)
         headers = self._build_headers(execution_id=execution_id)
         last_status = 0
         last_body = ""
-        form_id = payload.get("id")
+        form_ids = [item.get("id") for item in payloads if isinstance(item, dict)]
+        first_form_id = form_ids[0] if form_ids else None
+        last_form_id = form_ids[-1] if form_ids else None
 
         for attempt in range(self.retries):
             if logger:
@@ -59,7 +64,9 @@ class OriginRepositoryApex(IOriginRepository):
                     "origin request attempt",
                     extra={
                         "origin_system": origin_system,
-                        "form_id": form_id,
+                        "batch_size": len(payloads),
+                        "batch_first_form_id": first_form_id,
+                        "batch_last_form_id": last_form_id,
                         "attempt": attempt + 1,
                         "max_retries": self.retries,
                         "url": url,
@@ -67,7 +74,7 @@ class OriginRepositoryApex(IOriginRepository):
                     },
                 )
             try:
-                status, body = self._post_json(url, payload, headers)
+                status, body = self._post_json(url, payloads, headers)
                 last_status, last_body = status, body
                 if 200 <= status < 300:
                     if logger:
@@ -75,7 +82,9 @@ class OriginRepositoryApex(IOriginRepository):
                             "origin request success",
                             extra={
                                 "origin_system": origin_system,
-                                "form_id": form_id,
+                                "batch_size": len(payloads),
+                                "batch_first_form_id": first_form_id,
+                                "batch_last_form_id": last_form_id,
                                 "status": status,
                                 "execution_id": execution_id,
                             },
@@ -86,7 +95,9 @@ class OriginRepositoryApex(IOriginRepository):
                         "origin request non-2xx",
                         extra={
                             "origin_system": origin_system,
-                            "form_id": form_id,
+                            "batch_size": len(payloads),
+                            "batch_first_form_id": first_form_id,
+                            "batch_last_form_id": last_form_id,
                             "status": status,
                             "execution_id": execution_id,
                             "response_body_sample": body[:500] if isinstance(body, str) else str(body),
@@ -99,7 +110,9 @@ class OriginRepositoryApex(IOriginRepository):
                         "origin request exception",
                         extra={
                             "origin_system": origin_system,
-                            "form_id": form_id,
+                            "batch_size": len(payloads),
+                            "batch_first_form_id": first_form_id,
+                            "batch_last_form_id": last_form_id,
                             "attempt": attempt + 1,
                             "execution_id": execution_id,
                             "error": last_body,

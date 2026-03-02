@@ -5,10 +5,10 @@ from typing import Optional, Tuple
 class IOriginRepository(ABC):
 
     @abstractmethod
-    def sync_form(
+    def sync_forms(
         self,
         origin_system: str,
-        payload: dict,
+        payloads: list[dict],
         execution_id: Optional[str] = None,
         logger: Optional[object] = None,
     ) -> Tuple[bool, int, str]:

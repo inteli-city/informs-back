@@ -67,7 +67,7 @@ class SyncFormsOriginUsecase:
             raw = value
         else:
             raw = json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
-        return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:12]
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:12]
 
     def __call__(
         self,
@@ -157,57 +157,69 @@ class SyncFormsOriginUsecase:
                     },
                 )
 
-            def process_form(form):
+            def _build_form_payload(form: object) -> dict:
                 payload = FormDynamoDTO.from_entity(form).to_dynamo()
                 payload["id"] = form.id
                 payload = self._to_json_compatible(payload)
-                form_id = payload.get("id")
+                return payload
 
-                ok, status, body = self.origin_repo.sync_form(
+            def process_batch(forms: list) -> None:
+                if not forms:
+                    return
+
+                payloads = [_build_form_payload(form) for form in forms]
+                form_ids = [payload.get("id") for payload in payloads]
+
+                ok, status, body = self.origin_repo.sync_forms(
                     origin_system,
-                    payload,
+                    payloads,
                     execution_id=execution_id,
                     logger=logger,
                 )
                 if ok:
-                    result.sent += 1
+                    result.sent += len(forms)
                     self.sync_error_form_repo.delete_error_forms(
                         job_name=self.JOB_NAME,
                         system=system,
-                        form_ids=[form.id],
+                        form_ids=[form.id for form in forms],
                     )
                     if logger:
                         logger.info(
-                            "form synced",
+                            "forms synced batch",
                             extra={
                                 "system": system,
                                 "origin_system": origin_system,
-                                "form_id": form_id,
+                                "batch_size": len(forms),
+                                "batch_first_form_id": form_ids[0] if form_ids else None,
+                                "batch_last_form_id": form_ids[-1] if form_ids else None,
                                 "status": status,
                                 "execution_id": execution_id,
                             },
                         )
                     return
 
-                result.failed += 1
+                result.failed += len(forms)
                 snippet = body[:500] if isinstance(body, str) else str(body)
-                result.errors.append(f"{form_id} -> {status} {snippet}")
-                self.sync_error_form_repo.upsert_error_form(
-                    SyncErrorForm(
-                        job_name=self.JOB_NAME,
-                        system=system,
-                        form_id=form.id,
-                        source_updated_at=form.updated_at,
-                        last_failed_at=int(time.time() * 1000),
+                for form in forms:
+                    result.errors.append(f"{form.id} -> {status} {snippet}")
+                    self.sync_error_form_repo.upsert_error_form(
+                        SyncErrorForm(
+                            job_name=self.JOB_NAME,
+                            system=system,
+                            form_id=form.id,
+                            source_updated_at=form.updated_at,
+                            last_failed_at=int(time.time() * 1000),
+                        )
                     )
-                )
                 if logger:
                     logger.warning(
-                        "form sync failed",
+                        "forms sync batch failed",
                         extra={
                             "system": system,
                             "origin_system": origin_system,
-                            "form_id": form_id,
+                            "batch_size": len(forms),
+                            "batch_first_form_id": form_ids[0] if form_ids else None,
+                            "batch_last_form_id": form_ids[-1] if form_ids else None,
                             "status": status,
                             "execution_id": execution_id,
                         },
@@ -258,7 +270,7 @@ class SyncFormsOriginUsecase:
 
                 for form in batch:
                     processed_form_ids.add(form.id)
-                    process_form(form)
+                process_batch(batch)
 
                 if not next_key:
                     break
@@ -279,6 +291,7 @@ class SyncFormsOriginUsecase:
                 page += 1
 
             pending_error_forms = self.sync_error_form_repo.list_error_forms(self.JOB_NAME, system)
+            pending_forms_to_retry = []
             for pending_error in pending_error_forms:
                 if pending_error.form_id in processed_form_ids:
                     continue
@@ -293,8 +306,11 @@ class SyncFormsOriginUsecase:
                             },
                         )
                     continue
-                process_form(form)
-                total_loaded += 1
+                pending_forms_to_retry.append(form)
+
+            total_loaded += len(pending_forms_to_retry)
+            for idx in range(0, len(pending_forms_to_retry), page_size):
+                process_batch(pending_forms_to_retry[idx : idx + page_size])
 
             result.new_synced_at = sync_ended_at
             self.sync_state_repo.set_state(
