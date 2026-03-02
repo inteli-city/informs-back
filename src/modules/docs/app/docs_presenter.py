@@ -2,11 +2,9 @@ import json
 import os
 from pathlib import Path
 
-import yaml
-
 JSON_PATH_SUFFIXES = ("/docs/json", "/docs/swagger.json", "/docs/openapi.json")
 JSON_QUERY_KEYS = ("format", "output")
-DEFAULT_SWAGGER_FILES = ("swagger.merged.yaml", "swagger.json", "swagger.contracts.json")
+DEFAULT_SWAGGER_FILES = ("swagger.json", "swagger.contracts.json")
 
 def _get_request_path(event: dict) -> str:
     if not event:
@@ -58,10 +56,6 @@ def _load_swagger_content() -> str:
             continue
 
         raw_content = file_path.read_text()
-        if file_path.suffix in {".yaml", ".yml"}:
-            parsed = yaml.safe_load(raw_content) or {}
-            return json.dumps(parsed, ensure_ascii=True)
-
         parsed = json.loads(raw_content)
         return json.dumps(parsed, ensure_ascii=True)
 

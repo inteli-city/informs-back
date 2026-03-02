@@ -10,11 +10,11 @@ from src.modules.docs.app import docs_presenter
 
 def test_docs_presenter_success(monkeypatch):
     def fake_exists(self):
-        return str(self).endswith("swagger.merged.yaml")
+        return str(self).endswith("swagger.json")
 
     def fake_read_text(self, *args, **kwargs):
-        if str(self).endswith("swagger.merged.yaml"):
-            return "openapi: 3.0.0\npaths: {}\n"
+        if str(self).endswith("swagger.json"):
+            return '{"openapi":"3.0.0","paths":{}}'
         raise FileNotFoundError
 
     monkeypatch.setattr(Path, "exists", fake_exists)
@@ -38,7 +38,7 @@ def test_docs_presenter_file_not_found(monkeypatch):
 
 def test_docs_presenter_unexpected_error(monkeypatch):
     def fake_exists(self):
-        return str(self).endswith("swagger.merged.yaml")
+        return str(self).endswith("swagger.json")
 
     def fake_read_text(*args, **kwargs):
         raise OSError("boom")
