@@ -17,10 +17,10 @@ class SelectiveFailOriginRepository(OriginRepositoryMock):
         super().__init__()
         self.fail_form_id = fail_form_id
 
-    def sync_form(self, origin_system: str, payload: dict, execution_id=None, logger=None):
-        form_id = payload.get("id")
-        self.sent.append((origin_system, payload, execution_id))
-        if form_id == self.fail_form_id:
+    def sync_forms(self, origin_system: str, payloads: list[dict], execution_id=None, logger=None):
+        self.sent.append((origin_system, payloads, execution_id))
+        form_ids = {payload.get("id") for payload in payloads}
+        if self.fail_form_id in form_ids:
             return False, 500, "forced failure"
         return True, 200, "OK"
 
@@ -202,7 +202,7 @@ def test_sync_forms_origin_failure_marks_error_form_and_keeps_it_for_next_run(mo
         systems=["GAIA"],
         system_mapping={"GAIA": "gaia"},
         bootstrap_window_minutes=10,
-        page_size=100,
+        page_size=1,
         logger=None,
     )
 
