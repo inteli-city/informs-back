@@ -146,10 +146,10 @@ def create_formularios_table():
         # Aguarda a tabela ser criada
         table.meta.client.get_waiter('table_exists').wait(TableName=table_name)
         print(f"✅ Tabela '{table_name}' criada com sucesso!")
-        print(f"   - Partition Key: PK (String)")
-        print(f"   - Sort Key: SK (String)")
-        print(f"   - GSI: UserPriorityIndex (GSI1PK, GSI1SK)")
-        print(f"   - GSI: SystemUpdatedAtIndex (GSI2PK, GSI2SK)")
+        print("   - Partition Key: PK (String)")
+        print("   - Sort Key: SK (String)")
+        print("   - GSI: UserPriorityIndex (GSI1PK, GSI1SK)")
+        print("   - GSI: SystemUpdatedAtIndex (GSI2PK, GSI2SK)")
         
     except ClientError as e:
         if e.response['Error']['Code'] == 'ResourceInUseException':
