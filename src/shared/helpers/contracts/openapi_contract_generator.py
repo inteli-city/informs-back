@@ -89,7 +89,7 @@ def build_openapi_from_contracts() -> dict:
     return {
         "openapi": "3.0.0",
         "info": {
-            "title": "Informs Contracts (Code-first)",
+            "title": "Informs API",
             "version": "1.0.0",
         },
         "paths": _build_paths(contracts),

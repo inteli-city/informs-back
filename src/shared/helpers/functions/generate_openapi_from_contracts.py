@@ -27,8 +27,9 @@ def main() -> int:
 
     json_path.parent.mkdir(parents=True, exist_ok=True)
     contracts_json_path.parent.mkdir(parents=True, exist_ok=True)
-    json_path.write_text(json.dumps(openapi_doc, ensure_ascii=True))
-    contracts_json_path.write_text(json.dumps(openapi_doc, ensure_ascii=True))
+    rendered = json.dumps(openapi_doc, ensure_ascii=True) + "\n"
+    json_path.write_text(rendered, encoding="utf-8")
+    contracts_json_path.write_text(rendered, encoding="utf-8")
     return 0
 
 
