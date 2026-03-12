@@ -12,6 +12,10 @@ DEFAULT_URL_TEMPLATE = (
     "https://g1a99674895752e-intelicity.adb.sa-saopaulo-1.oraclecloudapps.com"
     "/ords/{system}/informs/cadastrar_formulario"
 )
+GAIA_URL_TEMPLATE = (
+    "https://g1a99674895752e-intelicitydataapex.adb.sa-saopaulo-1.oraclecloudapps.com"
+    "/ords/{system}/informs/cadastrar_formulario"
+)
 
 
 class OriginRepositoryApex(IOriginRepository):
@@ -37,11 +41,14 @@ class OriginRepositoryApex(IOriginRepository):
     }
 
     def __init__(self):
-        self.url_template = os.environ.get("APEX_FORM_REGISTER_URL_TEMPLATE") or DEFAULT_URL_TEMPLATE
+        self.url_template = DEFAULT_URL_TEMPLATE
+        self.gaia_url_template = GAIA_URL_TEMPLATE
         self.timeout = int(os.environ.get("SYNC_FORMS_TIMEOUT", "20"))
 
     def _build_url(self, origin_system: str) -> str:
-        return self.url_template.format(system=origin_system)
+        normalized_system = (origin_system or "").strip().lower()
+        template = self.gaia_url_template if normalized_system == "gaia" else self.url_template
+        return template.format(system=origin_system)
 
     def _build_headers(self, execution_id: Optional[str] = None) -> Dict[str, str]:
         headers: Dict[str, str] = {}
