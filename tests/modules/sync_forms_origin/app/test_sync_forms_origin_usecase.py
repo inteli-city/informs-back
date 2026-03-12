@@ -79,6 +79,9 @@ def test_sync_forms_origin_updates_sync_state_and_clears_pending_errors(monkeypa
     assert len(results) == 1
     assert results[0].sent == 2
     assert results[0].failed == 0
+    assert results[0].requests_made == 1
+    assert results[0].status_code_counts == {"200": 1}
+    assert results[0].response_tails_80_sample == ["OK"]
     assert results[0].previous_synced_at == 1999
     assert results[0].new_synced_at == 4000
 
@@ -121,6 +124,9 @@ def test_sync_forms_origin_bootstrap_window_when_state_missing(monkeypatch):
     assert results[0].previous_synced_at == 10000
     assert results[0].sync_started_at == 10001
     assert results[0].sent == 0
+    assert results[0].requests_made == 0
+    assert results[0].status_code_counts is None
+    assert results[0].response_tails_80_sample is None
     assert results[0].new_synced_at == 10000
 
     state = state_repo.get_state("sync_forms_origin", "GAIA")
@@ -159,6 +165,9 @@ def test_sync_forms_origin_full_sync_when_state_missing_and_enabled(monkeypatch)
     assert results[0].previous_synced_at == 0
     assert results[0].sync_started_at == 0
     assert results[0].sent == 2
+    assert results[0].requests_made == 1
+    assert results[0].status_code_counts == {"200": 1}
+    assert results[0].response_tails_80_sample == ["OK"]
     assert results[0].new_synced_at == 10000
 
     state = state_repo.get_state("sync_forms_origin", "GAIA")
@@ -209,6 +218,9 @@ def test_sync_forms_origin_failure_marks_error_form_and_keeps_it_for_next_run(mo
     assert len(results) == 1
     assert results[0].sent == 1
     assert results[0].failed == 1
+    assert results[0].requests_made == 2
+    assert results[0].status_code_counts == {"500": 1, "200": 1}
+    assert results[0].response_tails_80_sample == ["forced failure", "OK"]
     assert results[0].new_synced_at == 4000
 
     state = state_repo.get_state("sync_forms_origin", "GAIA")
