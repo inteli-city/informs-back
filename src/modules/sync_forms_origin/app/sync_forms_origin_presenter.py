@@ -14,6 +14,7 @@ SYSTEM_TO_ORIGIN = {
     "GAIA": "gaia",
     "GIPAV": "servicos_poa",
 }
+SYNC_SYSTEMS = tuple(SYSTEM_TO_ORIGIN.keys())
 
 SERVICE_NAME = "sync_forms_origin"
 METRICS_NAMESPACE = "Informs"
@@ -33,10 +34,6 @@ usecase = SyncFormsOriginUsecase(
     sync_error_form_repo=sync_error_form_repo,
 )
 
-
-def _parse_systems() -> List[str]:
-    raw = Environments.get_envs().sync_forms_origin_systems
-    return [item.strip().upper() for item in raw.split(",") if item.strip()]
 
 def _summarize_results(results, error_limit: int = 5) -> List[Dict[str, object]]:
     summaries: List[Dict[str, object]] = []
@@ -72,7 +69,7 @@ def lambda_handler(event, context):
     page_size = envs.sync_forms_page_limit
     bootstrap_window_minutes = envs.sync_forms_window_minutes
     full_sync_on_first_run = envs.sync_forms_first_run_full_sync
-    systems = _parse_systems()
+    systems = list(SYNC_SYSTEMS)
 
     event_request = LambdaEventBridgeRequest(event)
     logger.info(

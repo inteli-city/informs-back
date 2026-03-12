@@ -75,8 +75,6 @@ class IacStack(Stack):
             "SYNC_FORMS_PAGE_LIMIT": "100",
         }
         optional_env_keys = [
-            "APEX_FORM_REGISTER_URL_TEMPLATE",
-            "SYNC_ORIGIN_SYSTEMS",
             "SYNC_FORMS_WINDOW_MINUTES",
             "SYNC_FORMS_TIMEOUT",
             "S3_ENDPOINT_URL",
