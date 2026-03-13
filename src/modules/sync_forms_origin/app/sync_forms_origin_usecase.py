@@ -23,6 +23,7 @@ class SyncExecutionMetrics:
     execution_id: Optional[str] = None
     sent: int = 0
     failed: int = 0
+    requests_made: int = 0
     pages_loaded: int = 0
     forms_loaded: int = 0
     previous_synced_at: Optional[int] = None
@@ -31,6 +32,8 @@ class SyncExecutionMetrics:
     sync_ended_at: Optional[int] = None
     start_cursor_fingerprint: Optional[str] = None
     end_cursor_fingerprint: Optional[str] = None
+    status_code_counts: Optional[Dict[str, int]] = None
+    response_tails_80_sample: Optional[List[str]] = None
     errors: Optional[List[str]] = None
 
 
@@ -154,11 +157,14 @@ class SyncFormsOriginUsecase:
                 execution_id=execution_id,
                 sent=0,
                 failed=0,
+                requests_made=0,
                 previous_synced_at=previous_synced_at,
                 new_synced_at=previous_synced_at,
                 sync_started_at=sync_started_at,
                 sync_ended_at=sync_ended_at,
                 start_cursor_fingerprint=self._fingerprint(start_key),
+                status_code_counts={},
+                response_tails_80_sample=[],
                 errors=[],
             )
             page = 1
@@ -203,6 +209,16 @@ class SyncFormsOriginUsecase:
                     execution_id=execution_id,
                     logger=logger,
                 )
+                result.requests_made += 1
+                status_key = str(status)
+                result.status_code_counts[status_key] = result.status_code_counts.get(status_key, 0) + 1
+                body_text = body if isinstance(body, str) else str(body)
+                response_tail_80 = body_text[-80:] if body_text else ""
+                if response_tail_80:
+                    if len(result.response_tails_80_sample) >= 5:
+                        result.response_tails_80_sample.pop(0)
+                    result.response_tails_80_sample.append(response_tail_80)
+
                 if self._is_success_response(ok=ok, status=status):
                     result.sent += len(forms)
                     self.sync_error_form_repo.delete_error_forms(
@@ -221,6 +237,7 @@ class SyncFormsOriginUsecase:
                                 "batch_last_form_id": form_ids[-1] if form_ids else None,
                                 "status": status,
                                 "execution_id": execution_id,
+                                "response_tail_80": response_tail_80,
                             },
                         )
                     return
@@ -243,6 +260,7 @@ class SyncFormsOriginUsecase:
                             "batch_last_form_id": form_ids[-1] if form_ids else None,
                             "status": status,
                             "execution_id": execution_id,
+                            "response_tail_80": response_tail_80,
                         },
                     )
 
@@ -361,15 +379,22 @@ class SyncFormsOriginUsecase:
                         "forms_loaded": total_loaded,
                         "sent": result.sent,
                         "failed": result.failed,
+                        "requests_made": result.requests_made,
+                        "status_code_counts": result.status_code_counts,
                         "execution_id": execution_id,
                         "previous_synced_at": result.previous_synced_at,
                         "new_synced_at": result.new_synced_at,
                         "errors_count": len(result.errors),
+                        "response_tails_80_sample": result.response_tails_80_sample,
                     },
                 )
 
             if not result.errors:
                 result.errors = None
+            if not result.status_code_counts:
+                result.status_code_counts = None
+            if not result.response_tails_80_sample:
+                result.response_tails_80_sample = None
 
             results.append(result)
 

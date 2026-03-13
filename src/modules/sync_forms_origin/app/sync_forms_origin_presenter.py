@@ -14,6 +14,7 @@ SYSTEM_TO_ORIGIN = {
     "GAIA": "gaia",
     "GIPAV": "servicos_poa",
 }
+SYNC_SYSTEMS = tuple(SYSTEM_TO_ORIGIN.keys())
 
 SERVICE_NAME = "sync_forms_origin"
 METRICS_NAMESPACE = "Informs"
@@ -34,10 +35,6 @@ usecase = SyncFormsOriginUsecase(
 )
 
 
-def _parse_systems() -> List[str]:
-    raw = Environments.get_envs().sync_forms_origin_systems
-    return [item.strip().upper() for item in raw.split(",") if item.strip()]
-
 def _summarize_results(results, error_limit: int = 5) -> List[Dict[str, object]]:
     summaries: List[Dict[str, object]] = []
     for result in results:
@@ -48,6 +45,7 @@ def _summarize_results(results, error_limit: int = 5) -> List[Dict[str, object]]
                 "execution_id": result.execution_id,
                 "sent": result.sent,
                 "failed": result.failed,
+                "requests_made": result.requests_made,
                 "pages_loaded": result.pages_loaded,
                 "forms_loaded": result.forms_loaded,
                 "previous_synced_at": result.previous_synced_at,
@@ -56,6 +54,8 @@ def _summarize_results(results, error_limit: int = 5) -> List[Dict[str, object]]
                 "sync_ended_at": result.sync_ended_at,
                 "start_cursor_fingerprint": result.start_cursor_fingerprint,
                 "end_cursor_fingerprint": result.end_cursor_fingerprint,
+                "status_code_counts": result.status_code_counts,
+                "response_tails_80_sample": result.response_tails_80_sample,
                 "errors_count": len(errors),
                 "errors_sample": errors[:error_limit] if errors else None,
             }
@@ -72,7 +72,7 @@ def lambda_handler(event, context):
     page_size = envs.sync_forms_page_limit
     bootstrap_window_minutes = envs.sync_forms_window_minutes
     full_sync_on_first_run = envs.sync_forms_first_run_full_sync
-    systems = _parse_systems()
+    systems = list(SYNC_SYSTEMS)
 
     event_request = LambdaEventBridgeRequest(event)
     logger.info(
@@ -98,11 +98,13 @@ def lambda_handler(event, context):
     total_sent = sum(result.sent for result in results)
     total_failed = sum(result.failed for result in results)
     total_processed = total_sent + total_failed
+    total_requests = sum(result.requests_made for result in results)
     duration_ms = int((time.time() - start_time) * 1000)
 
     metrics.add_metric("FormsSent", MetricUnit.Count, total_sent)
     metrics.add_metric("FormsFailed", MetricUnit.Count, total_failed)
     metrics.add_metric("FormsProcessed", MetricUnit.Count, total_processed)
+    metrics.add_metric("OriginRequests", MetricUnit.Count, total_requests)
     metrics.add_metric("SyncDurationMs", MetricUnit.Milliseconds, duration_ms)
 
     for result in results:
@@ -122,6 +124,27 @@ def lambda_handler(event, context):
             default_dimensions={"service": SERVICE_NAME, "system": result.system},
         ):
             pass
+        with single_metric(
+            name="OriginRequestsBySystem",
+            unit=MetricUnit.Count,
+            value=result.requests_made,
+            namespace=METRICS_NAMESPACE,
+            default_dimensions={"service": SERVICE_NAME, "system": result.system},
+        ):
+            pass
+        for status_code, status_count in (result.status_code_counts or {}).items():
+            with single_metric(
+                name="OriginResponsesByStatus",
+                unit=MetricUnit.Count,
+                value=status_count,
+                namespace=METRICS_NAMESPACE,
+                default_dimensions={
+                    "service": SERVICE_NAME,
+                    "system": result.system,
+                    "status_code": status_code,
+                },
+            ):
+                pass
 
     summary = _summarize_results(results)
     logger.info(
@@ -130,6 +153,7 @@ def lambda_handler(event, context):
             "duration_ms": duration_ms,
             "total_sent": total_sent,
             "total_failed": total_failed,
+            "total_requests": total_requests,
             "results": summary,
         },
     )
@@ -144,6 +168,7 @@ def lambda_handler(event, context):
             "sent": total_sent,
             "failed": total_failed,
             "processed": total_processed,
+            "requests_made": total_requests,
         },
         "results": [result.__dict__ for result in results],
     }
