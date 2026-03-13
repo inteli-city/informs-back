@@ -25,6 +25,12 @@ class SelectiveFailOriginRepository(OriginRepositoryMock):
         return True, 200, "OK"
 
 
+class InconsistentStatusOriginRepository(OriginRepositoryMock):
+    def sync_forms(self, origin_system: str, payloads: list[dict], execution_id=None, logger=None):
+        self.sent.append((origin_system, payloads, execution_id))
+        return True, 503, "apex unavailable"
+
+
 def test_sync_forms_origin_updates_sync_state_and_clears_pending_errors(monkeypatch):
     form_repo = FormRepositoryMock()
     state_repo = SyncStateRepositoryMock()
@@ -230,3 +236,55 @@ def test_sync_forms_origin_failure_marks_error_form_and_keeps_it_for_next_run(mo
     errors = error_repo.list_error_forms("sync_forms_origin", "GAIA")
     assert len(errors) == 1
     assert errors[0].form_id == form_repo.forms[0].id
+
+
+def test_sync_forms_origin_marks_entire_batch_as_error_for_4xx_5xx(monkeypatch):
+    form_repo = FormRepositoryMock()
+    state_repo = SyncStateRepositoryMock()
+    error_repo = SyncErrorFormRepositoryMock()
+    form_repo.forms[0].system = "GAIA"
+    form_repo.forms[0].updated_at = 2000
+    form_repo.forms[1].system = "GAIA"
+    form_repo.forms[1].updated_at = 3000
+
+    state_repo.set_state(
+        SyncState(
+            job_name="sync_forms_origin",
+            system="GAIA",
+            checkpoint_synced_at=1999,
+            status="COMPLETED",
+            execution_id="old-exec",
+            started_at=1000,
+            ended_at=1001,
+            window_end=1001,
+            updated_at=1001,
+        )
+    )
+
+    origin_repo = InconsistentStatusOriginRepository()
+    usecase = SyncFormsOriginUsecase(
+        form_repo=form_repo,
+        origin_repo=origin_repo,
+        sync_state_repo=state_repo,
+        sync_error_form_repo=error_repo,
+    )
+    monkeypatch.setattr("src.modules.sync_forms_origin.app.sync_forms_origin_usecase.time.time", lambda: 4.0)
+
+    results = usecase(
+        systems=["GAIA"],
+        system_mapping={"GAIA": "gaia"},
+        bootstrap_window_minutes=10,
+        page_size=100,
+        logger=None,
+    )
+
+    assert len(results) == 1
+    assert results[0].sent == 0
+    assert results[0].failed == 2
+    assert results[0].requests_made == 1
+    assert results[0].status_code_counts == {"503": 1}
+    assert results[0].response_tails_80_sample == ["apex unavailable"]
+
+    errors = error_repo.list_error_forms("sync_forms_origin", "GAIA")
+    assert len(errors) == 2
+    assert {item.form_id for item in errors} == {form_repo.forms[0].id, form_repo.forms[1].id}
