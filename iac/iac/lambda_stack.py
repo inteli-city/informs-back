@@ -204,6 +204,7 @@ class LambdaStack(Construct):
             self.get_template,
             self.get_all_templates,
             self.sync_forms_origin,
+            self.sync_forms_origin_callback,
         ]
 
         self.functions_that_need_cognito_permissions = [
