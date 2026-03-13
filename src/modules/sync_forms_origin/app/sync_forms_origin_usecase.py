@@ -50,6 +50,33 @@ class SyncFormsOriginUsecase:
         self.sync_error_form_repo = sync_error_form_repo
 
     @staticmethod
+    def _is_success_response(ok: bool, status: int) -> bool:
+        return ok and 200 <= int(status) < 300
+
+    def _register_failed_batch(
+        self,
+        system: str,
+        forms: list,
+        status: int,
+        body: object,
+        result: SyncExecutionMetrics,
+    ) -> None:
+        result.failed += len(forms)
+        snippet = body[:500] if isinstance(body, str) else str(body)
+        failed_at = int(time.time() * 1000)
+        for form in forms:
+            result.errors.append(f"{form.id} -> {status} {snippet}")
+            self.sync_error_form_repo.upsert_error_form(
+                SyncErrorForm(
+                    job_name=self.JOB_NAME,
+                    system=system,
+                    form_id=form.id,
+                    source_updated_at=form.updated_at,
+                    last_failed_at=failed_at,
+                )
+            )
+
+    @staticmethod
     def _to_json_compatible(value):
         if isinstance(value, Decimal):
             return int(value) if value == value.to_integral_value() else float(value)
@@ -176,7 +203,7 @@ class SyncFormsOriginUsecase:
                     execution_id=execution_id,
                     logger=logger,
                 )
-                if ok:
+                if self._is_success_response(ok=ok, status=status):
                     result.sent += len(forms)
                     self.sync_error_form_repo.delete_error_forms(
                         job_name=self.JOB_NAME,
@@ -198,19 +225,13 @@ class SyncFormsOriginUsecase:
                         )
                     return
 
-                result.failed += len(forms)
-                snippet = body[:500] if isinstance(body, str) else str(body)
-                for form in forms:
-                    result.errors.append(f"{form.id} -> {status} {snippet}")
-                    self.sync_error_form_repo.upsert_error_form(
-                        SyncErrorForm(
-                            job_name=self.JOB_NAME,
-                            system=system,
-                            form_id=form.id,
-                            source_updated_at=form.updated_at,
-                            last_failed_at=int(time.time() * 1000),
-                        )
-                    )
+                self._register_failed_batch(
+                    system=system,
+                    forms=forms,
+                    status=status,
+                    body=body,
+                    result=result,
+                )
                 if logger:
                     logger.warning(
                         "forms sync batch failed",
