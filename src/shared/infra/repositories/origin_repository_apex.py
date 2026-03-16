@@ -3,7 +3,7 @@ import os
 import time
 import urllib.error
 import urllib.request
-from typing import Dict, Optional, Tuple
+from typing import Optional, Tuple
 
 from src.shared.domain.repositories.origin_repository_interface import IOriginRepository
 
@@ -50,18 +50,18 @@ class OriginRepositoryApex(IOriginRepository):
         template = self.gaia_url_template if normalized_system == "gaia" else self.url_template
         return template.format(system=origin_system)
 
-    def _build_headers(self, execution_id: Optional[str] = None) -> Dict[str, str]:
-        headers: Dict[str, str] = {}
+    def _post_json(
+        self,
+        url: str,
+        payloads: list[dict],
+        execution_id: Optional[str] = None,
+    ) -> Tuple[int, str]:
+        body = {"forms": payloads}
         if execution_id:
-            headers["X-Informs-Execution-Id"] = execution_id
-        return headers
-
-    def _post_json(self, url: str, payloads: list[dict], headers: Dict[str, str]) -> Tuple[int, str]:
-        data = json.dumps({"forms": payloads}, ensure_ascii=False).encode("utf-8")
+            body["execution_id"] = execution_id
+        data = json.dumps(body, ensure_ascii=False).encode("utf-8")
         req = urllib.request.Request(url, data=data, method="POST")
         req.add_header("Content-Type", "application/json")
-        for key, value in headers.items():
-            req.add_header(key, value)
 
         with urllib.request.urlopen(req, timeout=self.timeout) as resp:
             status = resp.getcode()
@@ -173,7 +173,6 @@ class OriginRepositoryApex(IOriginRepository):
             return True, self.SUCCESS_STATUS_CODE, "EMPTY_BATCH"
 
         url = self._build_url(origin_system)
-        headers = self._build_headers(execution_id=execution_id)
         first_form_id, last_form_id = self._get_batch_info(payloads)
         started_at = time.time()
 
@@ -189,7 +188,7 @@ class OriginRepositoryApex(IOriginRepository):
             )
 
         try:
-            status, body = self._post_json(url, payloads, headers)
+            status, body = self._post_json(url, payloads, execution_id=execution_id)
         except urllib.error.HTTPError as err:
             status = int(err.code or 0)
             body = self._safe_http_error_body(err)
