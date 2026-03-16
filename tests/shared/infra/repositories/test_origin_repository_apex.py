@@ -1,4 +1,5 @@
 import io
+import json
 import os
 import sys
 import urllib.error
@@ -72,6 +73,12 @@ def test_origin_repository_apex_sync_forms_200_success(monkeypatch):
         "https://g1a99674895752e-intelicitydataapex.adb.sa-saopaulo-1.oraclecloudapps.com"
         "/ords/gaia/informs/cadastrar_formulario"
     )
+    request_body = json.loads(request.data.decode("utf-8"))
+    assert request_body == {
+        "forms": [{"id": "form-1"}],
+        "execution_id": "exec-1",
+    }
+    assert "X-informs-execution-id" not in dict(request.header_items())
     assert any(event[1] == "origin request started" for event in logger.events)
     assert any(event[1] == "origin request completed" for event in logger.events)
 
@@ -190,3 +197,8 @@ def test_origin_repository_apex_sync_forms_servicos_poa_keeps_default_host(monke
         "https://g1a99674895752e-intelicity.adb.sa-saopaulo-1.oraclecloudapps.com"
         "/ords/servicos_poa/informs/cadastrar_formulario"
     )
+    request_body = json.loads(request.data.decode("utf-8"))
+    assert request_body == {
+        "forms": [{"id": "form-1"}],
+        "execution_id": "exec-2",
+    }
