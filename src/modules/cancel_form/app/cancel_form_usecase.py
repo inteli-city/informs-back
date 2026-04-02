@@ -43,7 +43,7 @@ class CancelFormUsecase:
         if justification_image:
             mimetype = justification_image.mimetype
             filename = justification_image.filename
-            file_path = f'{datetime.now().year}/{form_id}/justification/{str(uuid.uuid4())}.{mimetype.split("/")[-1]}'
+            file_path = f'{datetime.now().year}/{form.system}/{form_id}/justification/{str(uuid.uuid4())}.{mimetype.split("/")[-1]}'
             presigned_url = self.file_repo.generate_presigned_url(
                 file_path=file_path,
                 mimetype=mimetype,
