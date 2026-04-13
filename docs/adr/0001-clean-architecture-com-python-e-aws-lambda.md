@@ -10,16 +10,29 @@
 
 ## Contexto
 
-O MSS Formulários (mss-formularios) é um microserviço serverless responsável por gerenciar formulários dinâmicos na plataforma Intelicity. Precisávamos de uma arquitetura que:
+O MSS Formulários é um microserviço serverless responsável por gerenciar formulários dinâmicos.
 
-- Isolasse a lógica de negócio da infraestrutura AWS (Lambda, DynamoDB, S3)
-- Permitisse testes unitários sem dependências externas
-- Facilitasse a manutenção e evolução do sistema por múltiplos desenvolvedores
-- Suportasse troca de implementações de infraestrutura sem impactar regras de negócio
+A decisão arquitetural foi guiada principalmente por:
+
+- Familiaridade do time com Python e AWS Lambda
+- Necessidade de entregar rápido com uma base organizada
+- Falta de clareza sobre escala, volumetria e integrações futuras
+
+Ou seja, não havia ainda informação suficiente para otimizar a arquitetura para alta escala ou cenários complexos.
+
+Buscamos apenas:
+
+- Separar minimamente regra de negócio da infraestrutura
+- Permitir testes unitários básicos
+- Manter o código organizado para evolução futura
 
 ## Decisão
 
-Adotamos uma variação de **Clean Architecture** adaptada para o contexto serverless com Python. Cada módulo (feature) segue a estrutura:
+Adotamos uma variação simples de Clean Architecture adaptada para Lambda.
+
+A escolha foi motivada mais por organização de código e familiaridade do time do que por necessidade comprovada de uma arquitetura mais robusta.
+
+A estrutura por camadas foi utilizada para evitar acoplamento direto com AWS e facilitar manutenção futura, caso o sistema cresça em complexidade.
 
 ```
 src/modules/{modulo}/app/
@@ -58,6 +71,8 @@ API Gateway → Lambda Event
 - `helpers/functions/` — Utilitários (paginação, URLs S3, etc.)
 - `environments.py` — Configuração e injeção de dependência
 
+A arquitetura poderá ser simplificada ou evoluída conforme o comportamento real do sistema em produção.
+
 ## Consequências
 
 ### Positivas
@@ -66,8 +81,10 @@ API Gateway → Lambda Event
 - Cada módulo é autocontido — mudanças em `submit_form` não afetam `create_form`
 - Presenter isola preocupações de Lambda (parsing de eventos, claims Cognito)
 - Viewmodel garante formato de resposta consistente e desacoplado do domínio
+- Base preparada para evolução futura
 
 ### Negativas
+- Overengineering para o momento atual
 - Mais boilerplate por módulo (4 arquivos por feature mesmo para operações simples)
 - Curva de aprendizado para novos desenvolvedores entenderem o fluxo entre camadas
 - Duplicação de estrutura entre módulos que compartilham padrões similares
