@@ -3,7 +3,22 @@
     "allow": [
       "Bash(python -m pytest tests/ -x -q)",
       "Bash(python -m pytest tests/ -q --ignore=tests/shared/infra/repositories/test_file_repository_s3.py)",
-      "Bash(python -m pytest tests/ -q --ignore=tests/shared/infra/repositories/)"
+      "Bash(python -m pytest tests/ -q --ignore=tests/shared/infra/repositories/)",
+      "Bash(python -m pytest tests/modules/get_all_forms/ tests/modules/get_form/ -x -q)",
+      "Bash(.venv/Scripts/pytest tests/modules/get_all_forms/ tests/modules/get_form/ -x -q)",
+      "Bash(E:/repos/mss_formularios/.venv/Scripts/pytest.exe tests/modules/get_all_forms/ tests/modules/get_form/ -x -q)",
+      "PowerShell(& \"E:\\\\repos\\\\mss_formularios\\\\venv\\\\Scripts\\\\pytest.exe\" tests/modules/get_all_forms/ tests/modules/get_form/ -x -q 2>&1 | Select-Object -Last 20)",
+      "PowerShell(& \"E:\\\\repos\\\\mss_formularios\\\\venv\\\\Scripts\\\\pip.exe\" install -r \"E:\\\\repos\\\\mss_formularios\\\\requirements.txt\" -q 2>&1 | Select-Object -Last 5)",
+      "PowerShell(& \"E:\\\\repos\\\\mss_formularios\\\\venv\\\\Scripts\\\\pytest.exe\" tests/modules/get_all_forms/ tests/modules/get_form/ -x -q 2>&1 | Select-Object -Last 15)",
+      "Bash(xargs grep *)",
+      "Bash(pytest --collect-only)",
+      "Bash(python -m pytest --collect-only)",
+      "Bash(python -m pytest --cov=src --cov-report=term-missing)",
+      "Bash(xargs wc *)",
+      "Bash(read d *)",
+      "Bash(python3 -c 'import os; print\\('\\\\''__TRACKED_VAR__'\\\\''\\); files = [f for f in os.listdir\\('\\\\''__TRACKED_VAR__'\\\\''\\) if f.endswith\\('\\\\''.py'\\\\''\\)]; print\\(len\\(files\\), '\\\\''py files'\\\\'' if files else '\\\\''NO PY FILES'\\\\''\\)')",
+      "Bash(python -m pytest --co -q)",
+      "Bash(python -m pytest tests/ -v)"
     ]
   }
 }

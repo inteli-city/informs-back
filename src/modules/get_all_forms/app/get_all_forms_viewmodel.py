@@ -43,6 +43,13 @@ class FieldViewmodel:
             base['file_type'] = getattr(self.field.file_type, 'value', None)
             base['min_quantity'] = getattr(self.field, 'min_quantity', None)
             base['max_quantity'] = getattr(self.field, 'max_quantity', None)
+        if hasattr(self.field, 'min_date'):
+            base['min_date'] = getattr(self.field, 'min_date', None)
+        if hasattr(self.field, 'max_date'):
+            base['max_date'] = getattr(self.field, 'max_date', None)
+        if hasattr(self.field, 'value'):
+            value = getattr(self.field, 'value')
+            base['value'] = value.value if isinstance(value, Enum) else value
 
         return base
 
