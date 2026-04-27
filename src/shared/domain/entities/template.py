@@ -63,47 +63,47 @@ class Template:
     @staticmethod
     def _validate_id(id_to_validate: str) -> None:
         if not isinstance(id_to_validate, str) or len(id_to_validate) != Template.ID_LENGTH:
-            raise EntityError("id")
+            raise EntityError("ID do template inválido ou ausente")
 
     @staticmethod
     def _validate_name(name: str) -> None:
         if not isinstance(name, str) or not name:
-            raise EntityError("name")
+            raise EntityError("Nome do template deve ser uma string não vazia")
 
     @staticmethod
     def _validate_description(description: Optional[str]) -> None:
         if description is not None and (not isinstance(description, str) or description == ""):
-            raise EntityError("description")
+            raise EntityError("Descrição deve ser uma string não vazia")
 
     @staticmethod
     def _validate_system(system: str) -> None:
         if not isinstance(system, str) or not system:
-            raise EntityError("system")
+            raise EntityError("Sistema deve ser uma string não vazia")
 
     @staticmethod
     def _validate_is_active(is_active: bool) -> None:
         if not isinstance(is_active, bool):
-            raise EntityError("is_active")
+            raise EntityError("Campo 'is_active' deve ser verdadeiro ou falso")
 
     @staticmethod
     def _validate_created_by(created_by: str) -> None:
         if not isinstance(created_by, str):
-            raise EntityError("created_by")
+            raise EntityError("ID do criador deve ser uma string")
 
     @staticmethod
     def _validate_created_at(created_at: int) -> None:
         if not isinstance(created_at, int):
-            raise EntityError("created_at")
+            raise EntityError("Timestamp de criação deve ser um inteiro")
 
     @staticmethod
     def _validate_updated_at(updated_at: int) -> None:
         if not isinstance(updated_at, int):
-            raise EntityError("updated_at")
+            raise EntityError("Timestamp de atualização deve ser um inteiro")
 
     @staticmethod
     def _validate_sections(sections: List[Section]) -> None:
         if not isinstance(sections, list) or not sections or not all(isinstance(section, Section) for section in sections):
-            raise EntityError("sections")
+            raise EntityError("Seções devem ser uma lista não vazia de seções válidas")
 
     @staticmethod
     def validate_id(id_to_validate: str) -> bool:

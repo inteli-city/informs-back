@@ -148,4 +148,4 @@ class Test_CreateFormUsecase:
             Section(section_id=1, fields=[field_a, field_b])
             assert False, "Expected EntityError"
         except EntityError as err:
-            assert "duplicated field key(s)" in err.message
+            assert "Chaves de campo duplicadas na seção" in err.message

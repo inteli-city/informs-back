@@ -11,15 +11,15 @@ class Section(abc.ABC):
 
     def __init__(self, section_id: int, fields: List[Field]):
         if not isinstance(section_id, int):
-            raise EntityError('section_id')
+            raise EntityError('ID da seção deve ser um número inteiro')
         self.section_id = section_id
 
         if not isinstance(fields, list):
-            raise EntityError('fields')
+            raise EntityError('Campos da seção devem ser uma lista')
         if not fields:
-            raise EntityError('fields')
+            raise EntityError('A seção deve ter ao menos um campo')
         if not all(isinstance(field, Field) for field in fields):
-            raise EntityError('fields')
+            raise EntityError('Todos os campos da seção devem ser instâncias válidas de Field')
         self._ensure_unique_field_keys(fields)
         self.fields = fields
 
@@ -34,4 +34,4 @@ class Section(abc.ABC):
                 else:
                     seen.add(key)
         if duplicated:
-            raise EntityError(f'duplicated field key(s): {duplicated}')
+            raise EntityError(f'Chaves de campo duplicadas na seção: {duplicated}')

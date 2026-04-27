@@ -20,7 +20,7 @@ class GetAllTemplatesController:
     def _validate_endpoint_parameters(self, payload: GetAllTemplatesControllerRequestSchema):
         limit = payload.limit
         if limit is not None and (limit < 1 or limit > 10000):
-            raise EntityError("limit")
+            raise EntityError(f"Parâmetro 'limit' deve ser um número entre 1 e 10000, recebido: {limit}")
 
         is_active_raw = payload.is_active
 

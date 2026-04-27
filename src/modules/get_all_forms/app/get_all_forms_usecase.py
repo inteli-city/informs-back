@@ -25,7 +25,7 @@ class GetAllFormsUsecase:
         search: Optional[str] = None,
     ) -> Tuple[List[Form], Optional[str]]:
         if system is not None and len(system) == 0:
-            raise EntityError("system")
+            raise EntityError("Lista de sistemas não pode ser vazia")
 
         systems_to_use = system if system is not None else requester.systems
         if not systems_to_use:

@@ -331,4 +331,4 @@ class Test_CreateFormController:
 
         response = controller(request)
         assert response.status_code == 400
-        assert "duplicated field key(s)" in response.body
+        assert "Chaves de campo duplicadas na seção" in response.body

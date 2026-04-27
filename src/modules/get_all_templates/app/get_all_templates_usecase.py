@@ -22,7 +22,7 @@ class GetAllTemplatesUsecase:
         is_active: Optional[bool] = True,
     ) -> Tuple[List[Template], Optional[str]]:
         if systems is not None and len(systems) == 0:
-            raise EntityError("system")
+            raise EntityError("Lista de sistemas não pode ser vazia")
 
         systems_to_use = systems if systems is not None else requester.systems
         if not systems_to_use:

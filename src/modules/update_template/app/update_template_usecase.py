@@ -16,9 +16,9 @@ class UpdateTemplateUsecase:
         if sections is None:
             return
         if not isinstance(sections, list) or not sections:
-            raise EntityError("sections")
+            raise EntityError("Seções devem ser uma lista não vazia")
         if any(len(section.fields) == 0 for section in sections):
-            raise EntityError("sections")
+            raise EntityError("Todas as seções devem ter ao menos um campo")
 
     def __call__(
         self,

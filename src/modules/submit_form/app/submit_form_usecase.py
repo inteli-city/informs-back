@@ -49,16 +49,16 @@ class SubmitFormUsecase:
 
             key = (section_id, field_key)
             if key in seen:
-                raise EntityError("field_key")
+                raise EntityError(f"Campo '{field_key}' duplicado na seção {section_id}")
             seen.add(key)
 
             section = sections_by_id.get(section_id)
             if section is None:
-                raise EntityError("section_id")
+                raise EntityError(f"Seção com ID {section_id} não encontrada no formulário")
 
             field_index = next((idx for idx, field in enumerate(section.fields) if field.key == field_key), None)
             if field_index is None:
-                raise EntityError("field_key")
+                raise EntityError(f"Campo '{field_key}' não encontrado na seção {section_id}")
 
             existing_field = section.fields[field_index]
             field_dict = FieldDTO(existing_field).to_dynamo()
@@ -68,17 +68,17 @@ class SubmitFormUsecase:
                 if isinstance(uploads_raw, dict):
                     uploads_raw = [uploads_raw]
                 if not isinstance(uploads_raw, list) or not uploads_raw:
-                    raise EntityError("mimetype")
+                    raise EntityError("Valor do campo de arquivo deve ser uma lista não vazia de objetos com 'filename' e 'mimetype'")
                 normalized_uploads = []
                 for upload in uploads_raw:
                     if not isinstance(upload, dict):
-                        raise EntityError("mimetype")
+                        raise EntityError("Cada arquivo deve ser um objeto com 'filename' e 'mimetype'")
                     filename = upload.get("filename")
                     mimetype = upload.get("mimetype")
                     if filename is None or mimetype is None:
-                        raise EntityError("mimetype")
+                        raise EntityError("Cada arquivo deve conter 'filename' e 'mimetype'")
                     if not isinstance(filename, str) or not isinstance(mimetype, str):
-                        raise EntityError("mimetype")
+                        raise EntityError("'filename' e 'mimetype' devem ser strings")
                     normalized_uploads.append(FileUploadRequest(filename=filename, mimetype=mimetype))
                 file_uploads[(section_id, field_key)] = normalized_uploads
                 field_dict["value"] = uploads_raw
@@ -106,11 +106,11 @@ class SubmitFormUsecase:
                 if isinstance(field, FileField) and field.value is not None and _needs_upload(field.value):
                     uploads = file_uploads.get((section.section_id, field.key))
                     if not uploads:
-                        raise EntityError("mimetype")
+                        raise EntityError("Uploads de arquivo não encontrados para o campo")
                     file_urls = []
                     for idx, upload in enumerate(uploads):
                         if not isinstance(upload, FileUploadRequest):
-                            raise EntityError("mimetype")
+                            raise EntityError("Objeto de upload inválido: deve ser um FileUploadRequest")
                         mimetype = upload.mimetype
                         filename = upload.filename
                         file_path = f'{datetime.now().year}/{form.system}/{form_id}/sections/{section.section_id}/{str(uuid.uuid4())}.{mimetype.split("/")[-1]}'
