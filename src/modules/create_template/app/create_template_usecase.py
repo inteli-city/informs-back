@@ -20,9 +20,9 @@ class CreateTemplateUsecase:
         sections: List[Section],
     ) -> Template:
         if not sections:
-            raise EntityError("sections")
+            raise EntityError("Template deve ter ao menos uma seção")
         if any(len(section.fields) == 0 for section in sections):
-            raise EntityError("sections")
+            raise EntityError("Todas as seções devem ter ao menos um campo")
 
         now_ts = int(datetime.now(timezone.utc).timestamp() * 1000)
 

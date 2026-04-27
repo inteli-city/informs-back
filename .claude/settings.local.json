@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pytest tests/ -x -q)",
+      "Bash(python -m pytest tests/ -q --ignore=tests/shared/infra/repositories/test_file_repository_s3.py)",
+      "Bash(python -m pytest tests/ -q --ignore=tests/shared/infra/repositories/)"
+    ]
+  }
+}

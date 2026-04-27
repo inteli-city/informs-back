@@ -78,103 +78,103 @@ class Form(abc.ABC):
     ):
 
         if not isinstance(form_title, str):
-            raise EntityError('form_title')
+            raise EntityError('Título do formulário deve ser uma string')
         self.form_title = form_title
 
         if not Form.validate_id(id):
-            raise EntityError('id')
+            raise EntityError('ID do formulário inválido ou ausente')
         self.id = id
 
         if not Form.validate_id(user_id):
-            raise EntityError('user_id')
+            raise EntityError('ID do usuário inválido ou ausente')
         self.user_id = user_id
 
         if not Form.validate_id(created_by):
-            raise EntityError('created_by')
+            raise EntityError('ID do criador inválido ou ausente')
         self.created_by = created_by
 
         if template is not None and not isinstance(template, str):
-            raise EntityError('template')
+            raise EntityError('ID do template deve ser uma string')
         self.template = template
 
         if area is not None and not isinstance(area, str):
-            raise EntityError('area')
+            raise EntityError('Área deve ser uma string')
         self.area = area
 
         if not isinstance(system, str):
-            raise EntityError('system')
+            raise EntityError('Sistema deve ser uma string')
         self.system = system
 
         if not isinstance(city, str):
-            raise EntityError('city')
+            raise EntityError('Cidade deve ser uma string')
         self.city = city
 
         if not isinstance(street, str):
-            raise EntityError('street')
+            raise EntityError('Rua deve ser uma string')
         self.street = street
 
         if number is not None and not isinstance(number, int):
-            raise EntityError('number')
+            raise EntityError('Número deve ser um inteiro')
         self.number = number
 
         if not isinstance(latitude, (float, int)):
-            raise EntityError('latitude')
+            raise EntityError('Latitude deve ser um número')
         self.latitude = float(latitude)
 
         if not isinstance(longitude, (float, int)):
-            raise EntityError('longitude')
+            raise EntityError('Longitude deve ser um número')
         self.longitude = float(longitude)
 
         if not isinstance(priority, PRIORITY):
-            raise EntityError('priority')
+            raise EntityError('Prioridade inválida')
         self.priority = priority
 
         if observation is not None and not isinstance(observation, str):
-            raise EntityError('observation')
+            raise EntityError('Observação deve ser uma string')
         self.observation = observation
 
         if expiration_date is not None and not isinstance(expiration_date, int):
-            raise EntityError('expiration_date')
+            raise EntityError('Data de expiração deve ser um timestamp inteiro')
         self.expiration_date = expiration_date
 
         if not isinstance(status, FORM_STATUS):
-            raise EntityError('status')
+            raise EntityError('Status do formulário inválido')
         self.status = status
 
         if in_progress_at is not None and not isinstance(in_progress_at, int):
-            raise EntityError('in_progress_at')
+            raise EntityError('Timestamp de início deve ser um inteiro')
         self.in_progress_at = in_progress_at
 
         if cancelled_at is not None and not isinstance(cancelled_at, int):
-            raise EntityError('cancelled_at')
+            raise EntityError('Timestamp de cancelamento deve ser um inteiro')
         self.cancelled_at = cancelled_at
 
         if completed_at is not None and not isinstance(completed_at, int):
-            raise EntityError('completed_at')
+            raise EntityError('Timestamp de conclusão deve ser um inteiro')
         self.completed_at = completed_at
 
         if not isinstance(created_at, int):
-            raise EntityError('created_at')
+            raise EntityError('Timestamp de criação deve ser um inteiro')
         self.created_at = created_at
 
         if not isinstance(updated_at, int):
-            raise EntityError('updated_at')
+            raise EntityError('Timestamp de atualização deve ser um inteiro')
         self.updated_at = updated_at
 
         if justification is None or not isinstance(justification, Justification):
-            raise EntityError('justification')
+            raise EntityError('Justificativa é obrigatória e deve ser válida')
         self.justification = justification
 
         template_is_uuid = Form._is_uuid_string(template) if template is not None else False
         if not isinstance(sections, list) or not all(isinstance(section, Section) for section in sections):
-            raise EntityError('sections')
+            raise EntityError('Seções devem ser uma lista de seções válidas')
         if not sections and not template_is_uuid:
-            raise EntityError('sections')
+            raise EntityError('Formulário sem template deve ter ao menos uma seção')
         self.sections = sections
 
         if information_fields is not None:
             if not isinstance(information_fields, list) or not all(isinstance(information_field, InformationField) for information_field in information_fields):
-                raise EntityError('information_fields')
+                raise EntityError('Campos informativos devem ser uma lista válida')
         self.information_fields = information_fields
 
     @staticmethod
@@ -187,9 +187,9 @@ class Form(abc.ABC):
 
     def start(self, in_progress_at: int, updated_at: int):
         if not isinstance(in_progress_at, int):
-            raise EntityError('in_progress_at')
+            raise EntityError('Timestamp de início deve ser um inteiro')
         if not isinstance(updated_at, int):
-            raise EntityError('updated_at')
+            raise EntityError('Timestamp de atualização deve ser um inteiro')
 
         if self.status != FORM_STATUS.PENDING:
             raise ForbiddenAction("Formulário não está aberto para início")
@@ -200,9 +200,9 @@ class Form(abc.ABC):
 
     def update_status(self, new_status: FORM_STATUS, updated_at: int):
         if not isinstance(new_status, FORM_STATUS):
-            raise EntityError('status')
+            raise EntityError('Novo status inválido')
         if not isinstance(updated_at, int):
-            raise EntityError('updated_at')
+            raise EntityError('Timestamp de atualização deve ser um inteiro')
 
         if new_status in [FORM_STATUS.CANCELLED, FORM_STATUS.COMPLETED]:
             raise ForbiddenAction("Não é possível alterar o status para cancelado ou concluído")
@@ -230,9 +230,9 @@ class Form(abc.ABC):
         updated_at: int,
     ):
         if not isinstance(cancelled_at, int):
-            raise EntityError('cancelled_at')
+            raise EntityError('Timestamp de cancelamento deve ser um inteiro')
         if not isinstance(updated_at, int):
-            raise EntityError('updated_at')
+            raise EntityError('Timestamp de atualização deve ser um inteiro')
 
         option = next((item for item in self.justification.options if item.option == selected_option), None)
         if option is None:

@@ -17,29 +17,29 @@ class Field(abc.ABC):
     @abc.abstractmethod
     def __init__(self, field_type: FIELD_TYPE, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, help_text: Optional[str] = None, placeholder: Optional[str] = None):
         if not isinstance(field_type, FIELD_TYPE):
-            raise EntityError('field_type')
+            raise EntityError('Tipo de campo inválido')
         self.field_type = field_type
 
         label_value = label if label is not None else placeholder
         if not isinstance(label_value, str):
-            raise EntityError('label')
+            raise EntityError('Rótulo do campo deve ser uma string não vazia')
         self.label = label_value
         self.placeholder = label_value  # compatibility alias
 
         if not isinstance(required, bool):
-            raise EntityError('required')
+            raise EntityError("Campo 'required' deve ser verdadeiro ou falso")
         self.required = required
 
         if not isinstance(key, str):
-            raise EntityError('key')
+            raise EntityError('Chave do campo deve ser uma string')
         self.key = key
 
         if not isinstance(order, int):
-            raise EntityError('order')
+            raise EntityError('Ordem do campo deve ser um número inteiro')
         self.order = order
 
         if help_text is not None and not isinstance(help_text, str):
-            raise EntityError('help_text')
+            raise EntityError('Texto de ajuda deve ser uma string')
         self.help_text = help_text
 
     def to_legacy_dict(self) -> dict:
@@ -60,19 +60,19 @@ class TextField(Field):
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, regex: Optional[str] = None, max_length: Optional[int] = None, value: Optional[str] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None, formatting: Optional[str] = None):
         super().__init__(FIELD_TYPE.TEXT_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if regex is not None and not isinstance(regex, str):
-            raise EntityError('regex')
+            raise EntityError('Expressão regular deve ser uma string')
         self.regex = regex
         self.formatting = formatting
 
         if max_length is not None and not isinstance(max_length, int):
-            raise EntityError('max_length')
+            raise EntityError('Comprimento máximo deve ser um número inteiro')
         self.max_length = max_length
 
         if value is not None:
             if not isinstance(value, str):
-                raise EntityError('value')
+                raise EntityError('Valor do campo de texto deve ser uma string')
             if max_length is not None and len(value) > max_length:
-                raise EntityError('value')
+                raise EntityError(f'Valor excede o comprimento máximo de {max_length} caracteres')
         self.value = value
 
     def to_legacy_dict(self) -> dict:
@@ -95,26 +95,26 @@ class NumberField(Field):
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, decimal: Optional[bool] = None, max_value: Optional[Union[int, float]] = None, min_value: Optional[Union[int, float]] = None, value: Optional[Union[int, float]] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
         super().__init__(FIELD_TYPE.NUMBER_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if decimal is not None and not isinstance(decimal, bool):
-            raise EntityError('decimal')
+            raise EntityError("Campo 'decimal' deve ser verdadeiro ou falso")
         self.decimal = decimal
 
         if max_value is not None and not isinstance(max_value, (int, float)):
-            raise EntityError('max_value')
+            raise EntityError('Valor máximo deve ser um número')
         self.max_value = max_value
 
         if min_value is not None and not isinstance(min_value, (int, float)):
-            raise EntityError('min_value')
+            raise EntityError('Valor mínimo deve ser um número')
         self.min_value = min_value
 
         if value is not None:
             if not isinstance(value, (int, float)):
-                raise EntityError('value')
+                raise EntityError('Valor numérico deve ser um número')
             if min_value is not None and value < min_value:
-                raise EntityError('value')
+                raise EntityError(f'Valor {value} é menor que o mínimo permitido ({min_value})')
             if max_value is not None and value > max_value:
-                raise EntityError('value')
+                raise EntityError(f'Valor {value} é maior que o máximo permitido ({max_value})')
             if decimal is False and isinstance(value, float) and not value.is_integer():
-                raise EntityError('value')
+                raise EntityError('Valor não pode ser decimal para este campo')
         self.value = value
 
     def to_legacy_dict(self) -> dict:
@@ -135,11 +135,11 @@ class DropDownField(Field):
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, options: List[str] = None, value: Optional[str] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
         super().__init__(FIELD_TYPE.DROPDOWN_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if not isinstance(options, list) or not options or not all(isinstance(option, str) for option in options):
-            raise EntityError('options')
+            raise EntityError('Opções devem ser uma lista não vazia de strings')
         self.options = options
 
         if value is not None and (not isinstance(value, str) or value not in options):
-            raise EntityError('value')
+            raise EntityError(f"Valor '{value}' não está entre as opções permitidas: {options}")
         self.value = value
 
     def to_legacy_dict(self) -> dict:
@@ -159,15 +159,15 @@ class TypeAheadField(Field):
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, options: List[str] = None, max_length: Optional[int] = None, value: Optional[str] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
         super().__init__(FIELD_TYPE.TYPEAHEAD_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if not isinstance(options, list) or not options or not all(isinstance(option, str) for option in options):
-            raise EntityError('options')
+            raise EntityError('Opções devem ser uma lista não vazia de strings')
         self.options = options
 
         if max_length is not None and not isinstance(max_length, int):
-            raise EntityError('max_length')
+            raise EntityError('Comprimento máximo deve ser um número inteiro')
         self.max_length = max_length
 
         if value is not None and not isinstance(value, str):
-            raise EntityError('value')
+            raise EntityError('Valor do campo deve ser uma string')
         self.value = value
 
     def to_legacy_dict(self) -> dict:
@@ -187,11 +187,11 @@ class RadioGroupField(Field):
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, options: List[str] = None, value: Optional[str] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
         super().__init__(FIELD_TYPE.RADIO_GROUP_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if not isinstance(options, list) or not options or not all(isinstance(option, str) for option in options):
-            raise EntityError('options')
+            raise EntityError('Opções devem ser uma lista não vazia de strings')
         self.options = options
 
         if value is not None and (not isinstance(value, str) or value not in options):
-            raise EntityError('value')
+            raise EntityError(f"Valor '{value}' não está entre as opções permitidas: {options}")
         self.value = value
 
     def to_legacy_dict(self) -> dict:
@@ -211,20 +211,20 @@ class DateField(Field):
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, min_date: Optional[int] = None, max_date: Optional[int] = None, value: Optional[int] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
         super().__init__(FIELD_TYPE.DATE_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if min_date is not None and not isinstance(min_date, int):
-            raise EntityError('min_date')
+            raise EntityError('Data mínima deve ser um timestamp inteiro')
         self.min_date = min_date
 
         if max_date is not None and not isinstance(max_date, int):
-            raise EntityError('max_date')
+            raise EntityError('Data máxima deve ser um timestamp inteiro')
         self.max_date = max_date
 
         if value is not None:
             if not isinstance(value, int):
-                raise EntityError('value')
+                raise EntityError('Data deve ser um timestamp inteiro')
             if min_date is not None and value < min_date:
-                raise EntityError('value')
+                raise EntityError(f'Data {value} é anterior à data mínima permitida ({min_date})')
             if max_date is not None and value > max_date:
-                raise EntityError('value')
+                raise EntityError(f'Data {value} é posterior à data máxima permitida ({max_date})')
         self.value = value
 
     def to_legacy_dict(self) -> dict:
@@ -243,7 +243,7 @@ class CheckboxField(Field):
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, value: Optional[bool] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
         super().__init__(FIELD_TYPE.CHECKBOX_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if value is not None and not isinstance(value, bool):
-            raise EntityError('value')
+            raise EntityError('Valor do checkbox deve ser verdadeiro ou falso')
         self.value = value
 
     def to_legacy_dict(self) -> dict:
@@ -260,21 +260,21 @@ class CheckBoxGroupField(Field):
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, options: List[str] = None, check_limit: Optional[int] = None, value: Optional[List[bool]] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
         super().__init__(FIELD_TYPE.CHECKBOX_GROUP_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if not isinstance(options, list) or not options or not all(isinstance(option, str) for option in options):
-            raise EntityError('options')
+            raise EntityError('Opções devem ser uma lista não vazia de strings')
         self.options = options
 
         if check_limit is not None:
             if not isinstance(check_limit, int):
-                raise EntityError('check_limit')
+                raise EntityError('Limite de seleção deve ser um número inteiro')
             if check_limit > len(options):
-                raise EntityError('check_limit')
+                raise EntityError(f'Limite de seleção ({check_limit}) não pode ser maior que o número de opções ({len(options)})')
         self.check_limit = check_limit
 
         if value is not None:
             if not isinstance(value, list) or len(value) != len(options) or not all(isinstance(val, bool) for val in value):
-                raise EntityError('value')
+                raise EntityError(f'Valor deve ser uma lista de booleanos com exatamente {len(options)} elemento(s)')
             if check_limit is not None and sum(value) > check_limit:
-                raise EntityError('value')
+                raise EntityError(f'Número de opções selecionadas excede o limite de {check_limit}')
         self.value = value
 
     def to_legacy_dict(self) -> dict:
@@ -293,7 +293,7 @@ class SwitchButtonField(Field):
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, value: Optional[bool] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
         super().__init__(FIELD_TYPE.SWITCH_BUTTON_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if value is not None and not isinstance(value, bool):
-            raise EntityError('value')
+            raise EntityError('Valor do switch deve ser verdadeiro ou falso')
         self.value = value
 
     def to_legacy_dict(self) -> dict:
@@ -311,30 +311,30 @@ class FileField(Field):
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, file_type: FILE_TYPE = None, min_quantity: Optional[int] = None, max_quantity: Optional[int] = None, value: Optional[Union[List[str], str, dict]] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
         super().__init__(FIELD_TYPE.FILE_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if not isinstance(file_type, FILE_TYPE):
-            raise EntityError('file_type')
+            raise EntityError('Tipo de arquivo inválido')
         self.file_type = file_type
 
         if min_quantity is not None and not isinstance(min_quantity, int):
-            raise EntityError('min_quantity')
+            raise EntityError('Quantidade mínima de arquivos deve ser um número inteiro')
         self.min_quantity = min_quantity
 
         if max_quantity is not None and not isinstance(max_quantity, int):
-            raise EntityError('max_quantity')
+            raise EntityError('Quantidade máxima de arquivos deve ser um número inteiro')
         self.max_quantity = max_quantity
 
         if self.min_quantity is not None and self.max_quantity is not None and self.min_quantity > self.max_quantity:
-            raise EntityError('min_quantity')
+            raise EntityError(f'Quantidade mínima ({min_quantity}) não pode ser maior que a máxima ({max_quantity})')
 
         if value is not None:
             if isinstance(value, list):
                 if not all(isinstance(item, (str, dict)) for item in value):
-                    raise EntityError('value')
+                    raise EntityError('Cada arquivo deve ser identificado por uma string ou objeto')
                 if self.min_quantity is not None and len(value) < self.min_quantity:
-                    raise EntityError('value')
+                    raise EntityError(f'Número de arquivos ({len(value)}) é menor que o mínimo exigido ({self.min_quantity})')
                 if self.max_quantity is not None and len(value) > self.max_quantity:
-                    raise EntityError('value')
+                    raise EntityError(f'Número de arquivos ({len(value)}) excede o máximo permitido ({self.max_quantity})')
             elif not isinstance(value, (str, dict)):
-                raise EntityError('value')
+                raise EntityError('Valor do campo de arquivo deve ser uma string, objeto ou lista')
         self.value = value
 
     def to_legacy_dict(self) -> dict:

@@ -20,7 +20,7 @@ class FieldDTO:
             raise MissingParameters('field_type')
         
         if field_dict.get('field_type') not in [field.value for field in FIELD_TYPE]:
-            raise EntityError('field_type')
+            raise EntityError(f"Tipo de campo '{field_dict.get('field_type')}' inválido")
         
         if field_dict.get('label') is None and field_dict.get('placeholder') is not None:
             field_dict['label'] = field_dict.get('placeholder')
@@ -43,7 +43,7 @@ class FieldDTO:
 
         spec = FieldDTO._FIELD_BUILDERS.get(field_type)
         if spec is None:
-            raise EntityError("field_type")
+            raise EntityError(f"Tipo de campo '{field_type}' não suportado")
 
         required_fields, builder = spec
         FieldDTO._ensure_required(field_dict, required_fields)
@@ -185,10 +185,10 @@ class FieldDTO:
         if value_raw is not None:
             if isinstance(value_raw, dict):
                 if not isinstance(options, list) or not options:
-                    raise EntityError("options")
+                    raise EntityError("Opções são obrigatórias para o tipo CheckboxGroup")
                 unknown_keys = [key for key in value_raw.keys() if key not in options]
                 if unknown_keys:
-                    raise EntityError("value")
+                    raise EntityError(f"Chaves desconhecidas no valor do checkbox: {unknown_keys}")
                 normalized_value = []
                 for option in options:
                     entry = value_raw.get(option)
@@ -197,7 +197,7 @@ class FieldDTO:
                     if isinstance(entry, (int, float)) and entry in (0, 1):
                         entry = bool(entry)
                     if not isinstance(entry, bool):
-                        raise EntityError("value")
+                        raise EntityError(f"Valor da opção '{option}' deve ser verdadeiro ou falso")
                     normalized_value.append(entry)
             elif isinstance(value_raw, list):
                 normalized_value = []
@@ -209,9 +209,9 @@ class FieldDTO:
                     elif isinstance(entry, bool):
                         normalized_value.append(entry)
                     else:
-                        raise EntityError("value")
+                        raise EntityError(f"Cada entrada do checkbox deve ser verdadeiro ou falso, recebido: {entry}")
             else:
-                raise EntityError("value")
+                raise EntityError("Valor do checkbox deve ser um objeto ou lista de booleanos")
 
         return CheckBoxGroupField(
             **base_args,
@@ -232,7 +232,7 @@ class FieldDTO:
     def _build_file_field(base_args: dict, field_dict: dict) -> FileField:
         file_type = field_dict.get("file_type")
         if file_type not in [file_type.value for file_type in FILE_TYPE]:
-            raise EntityError("file_type")
+            raise EntityError(f"Tipo de arquivo '{file_type}' inválido")
         return FileField(
             **base_args,
             file_type=FILE_TYPE[file_type],

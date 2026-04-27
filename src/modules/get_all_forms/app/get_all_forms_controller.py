@@ -28,7 +28,7 @@ class GetAllFormsController:
                 raise WrongTypeParameter("status", "str", type(status_item))
             status_str = status_item.upper()
             if status_str not in FORM_STATUS.__members__:
-                raise EntityError("status")
+                raise EntityError(f"Status '{status_str}' inválido. Valores aceitos: {list(FORM_STATUS.__members__.keys())}")
             parsed_statuses.append(FORM_STATUS[status_str])
         return parsed_statuses[0] if len(parsed_statuses) == 1 else parsed_statuses
 
@@ -46,7 +46,7 @@ class GetAllFormsController:
     def _validate_endpoint_parameters(self, payload: GetAllFormsControllerRequestSchema):
         limit = payload.limit
         if limit is not None and (limit < 1 or limit > 10000):
-            raise EntityError("limit")
+            raise EntityError(f"Parâmetro 'limit' deve ser um número entre 1 e 10000, recebido: {limit}")
 
         status = self._validate_status(payload.status)
         system = self._validate_system(payload.system)
