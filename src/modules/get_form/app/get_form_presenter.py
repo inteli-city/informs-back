@@ -1,6 +1,8 @@
 from .get_form_controller import GetFormController
 from .get_form_usecase import GetFormUsecase
 from src.shared.environments import Environments
+from src.shared.helpers.error_handler import lambda_error_handler
+from src.shared.helpers.logging_handler import lambda_logging_handler
 from src.shared.helpers.external_interfaces.http_lambda_requests import LambdaHttpRequest, LambdaHttpResponse
 
 
@@ -9,6 +11,8 @@ usecase = GetFormUsecase(repo)
 controller = GetFormController(usecase)
 
 
+@lambda_logging_handler
+@lambda_error_handler
 def lambda_handler(event, context):
     httpRequest = LambdaHttpRequest(data=event)
     httpRequest.data['requester_user'] = event.get('requestContext', {}).get('authorizer', {}).get('claims', None)

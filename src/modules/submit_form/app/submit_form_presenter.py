@@ -2,6 +2,7 @@ from .submit_form_controller import SubmitFormController
 from .submit_form_usecase import SubmitFormUsecase
 from src.shared.environments import Environments
 from src.shared.helpers.error_handler import lambda_error_handler
+from src.shared.helpers.logging_handler import lambda_logging_handler
 from src.shared.helpers.external_interfaces.http_lambda_requests import LambdaHttpRequest, LambdaHttpResponse
 
 
@@ -11,6 +12,7 @@ usecase = SubmitFormUsecase(repo, file_repo)
 controller = SubmitFormController(usecase)
 
 
+@lambda_logging_handler
 @lambda_error_handler
 def lambda_handler(event, context):
     
