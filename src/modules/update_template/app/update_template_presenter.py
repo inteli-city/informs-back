@@ -2,6 +2,7 @@ from src.modules.update_template.app.update_template_controller import UpdateTem
 from src.modules.update_template.app.update_template_usecase import UpdateTemplateUsecase
 from src.shared.environments import Environments
 from src.shared.helpers.error_handler import lambda_error_handler
+from src.shared.helpers.logging_handler import lambda_logging_handler
 from src.shared.helpers.external_interfaces.http_lambda_requests import LambdaHttpRequest, LambdaHttpResponse
 
 
@@ -10,6 +11,7 @@ usecase = UpdateTemplateUsecase(repo)
 controller = UpdateTemplateController(usecase)
 
 
+@lambda_logging_handler
 @lambda_error_handler
 def lambda_handler(event, context):
     http_request = LambdaHttpRequest(data=event)
