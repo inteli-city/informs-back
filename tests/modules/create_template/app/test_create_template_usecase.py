@@ -9,6 +9,7 @@ from src.modules.create_template.app.create_template_usecase import CreateTempla
 from src.shared.domain.entities.field import TextField
 from src.shared.domain.entities.section import Section
 from src.shared.helpers.errors.domain_errors import EntityError
+from src.shared.helpers.errors.usecase_errors import ForbiddenAction
 from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
 
 
@@ -47,6 +48,21 @@ class TestCreateTemplateUsecase:
                 description=None,
                 is_active=True,
                 sections=[],
+            )
+
+    def test_create_template_usecase_forbidden_system(self):
+        repo = TemplateRepositoryMock()
+        usecase = CreateTemplateUsecase(repo)
+
+        with pytest.raises(ForbiddenAction):
+            usecase(
+                created_by="user-123",
+                name="Template X",
+                system="JUNDIAI",
+                description=None,
+                is_active=True,
+                sections=[self._make_section()],
+                requester_systems=["GAIA"],
             )
 
     def test_create_template_usecase_section_without_fields(self):

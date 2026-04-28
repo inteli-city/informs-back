@@ -1,4 +1,6 @@
-# Setup Local (SAM + DynamoDB Local)
+# Setup Local do Informs Backend (SAM + DynamoDB Local)
+
+Este guia sobe localmente o backend do **Informs**, app da Intelicity para geração e preenchimento de formulários em campo.
 
 ## Pré-requisitos
 - Python 3.10+ com `venv`
@@ -44,6 +46,8 @@ USER_POOL_ARN=arn:aws:cognito-idp:sa-east-1:123456789012:userpool/sa-east-1_xxxx
 APP_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxx
 S3_ENDPOINT_URL=http://localstack:4566
 ```
+
+Os nomes `Formularios_Table`, `FormulariosStackdev` e `formularios-dev` são mantidos por compatibilidade com recursos já existentes.
 
 ## 3) Criar `iac/local/env.json` (env de runtime da Lambda no SAM)
 Exemplo:

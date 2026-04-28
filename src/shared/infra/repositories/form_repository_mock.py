@@ -8,7 +8,7 @@ from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.enums.priority_enum import PRIORITY
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
-from src.shared.helpers.errors.usecase_errors import DuplicatedItem
+from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction
 from src.shared.helpers.functions.pagination_token import encode_pagination_token
 
 
@@ -239,9 +239,13 @@ class FormRepositoryMock(IFormRepository):
         updated_at: Optional[int] = None,
         sections: Optional[List[Section]] = None,
         justification: Optional[Justification] = None,
+        expected_status: Optional[FORM_STATUS] = None,
     ) -> Form:
         for form in self.forms:
             if form.id == form_id:
+                if expected_status is not None and form.status != expected_status:
+                    if status is None or form.status != status:
+                        raise ForbiddenAction("Formulário foi atualizado por outra operação")
                 if status is not None:
                     form.status = status
                 if in_progress_at is not None:

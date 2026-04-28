@@ -120,6 +120,7 @@ class CreateFormController:
                 template=template,
                 information_fields=information_fields,
                 information_fields_uploads=information_fields_uploads,
+                requester_systems=requester_user.systems,
             )
 
             viewmodel = CreateFormViewmodel(form=form, files=files)

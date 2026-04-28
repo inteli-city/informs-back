@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import List, Optional, Tuple, Union
+from botocore.exceptions import ClientError
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import Section
@@ -12,6 +13,7 @@ from src.shared.infra.dtos.justification_dto import JustificationDTO
 from src.shared.infra.dtos.section_dto import SectionDTO
 from src.shared.infra.external.dynamo.datasources.dynamo_datasource import DynamoDatasource
 from src.shared.helpers.functions.pagination_token import encode_pagination_token
+from src.shared.helpers.errors.usecase_errors import ForbiddenAction
 from boto3.dynamodb.conditions import Key, Attr
 
 class FormRepositoryDynamo(IFormRepository):
@@ -122,36 +124,50 @@ class FormRepositoryDynamo(IFormRepository):
                 "IndexName": "UserPriorityIndex",
                 "Select": "ALL_ATTRIBUTES",
             }
-            if limit is not None:
-                query_kwargs["Limit"] = limit
             if filter_expression is not None:
                 query_kwargs["FilterExpression"] = filter_expression
             start_key = exclusive_start_key
             while True:
+                if limit is not None and search is None:
+                    remaining = limit - len(items)
+                    if remaining <= 0:
+                        break
+                    query_kwargs["Limit"] = remaining
+                else:
+                    query_kwargs.pop("Limit", None)
                 if start_key is not None:
                     query_kwargs["ExclusiveStartKey"] = start_key
+                else:
+                    query_kwargs.pop("ExclusiveStartKey", None)
                 resp = self.dynamo.query(**query_kwargs)
                 items.extend(resp.get("Items", []))
                 start_key = resp.get("LastEvaluatedKey")
-                if limit is not None or start_key is None:
+                if start_key is None:
                     break
         else:
             scan_kwargs = {
                 "Select": "ALL_ATTRIBUTES",
             }
-            if limit is not None:
-                scan_kwargs["Limit"] = limit
             start_key = exclusive_start_key
             while True:
+                if limit is not None and search is None:
+                    remaining = limit - len(items)
+                    if remaining <= 0:
+                        break
+                    scan_kwargs["Limit"] = remaining
+                else:
+                    scan_kwargs.pop("Limit", None)
                 if start_key is not None:
                     scan_kwargs["ExclusiveStartKey"] = start_key
+                else:
+                    scan_kwargs.pop("ExclusiveStartKey", None)
                 if filter_expression is not None:
                     resp = self.dynamo.scan_items(filter_expression=filter_expression, **scan_kwargs)
                 else:
                     resp = self.dynamo.dynamo_table.scan(**scan_kwargs)
                 items.extend(resp.get("Items", []))
                 start_key = resp.get("LastEvaluatedKey")
-                if limit is not None or start_key is None:
+                if start_key is None:
                     break
 
         for item in items:
@@ -169,8 +185,10 @@ class FormRepositoryDynamo(IFormRepository):
             return (is_open, int(f.priority.value), f.created_at)
 
         forms.sort(key=sort_key, reverse=True)
+        if limit is not None and search is not None:
+            forms = forms[:limit]
 
-        next_key = start_key if limit is not None else None
+        next_key = start_key if limit is not None and search is None else None
         return forms, encode_pagination_token(next_key)
 
     def create_form(self, form: Form) -> Form:
@@ -200,6 +218,7 @@ class FormRepositoryDynamo(IFormRepository):
         updated_at: Optional[int] = None,
         sections: Optional[List[Section]] = None,
         justification: Optional[Justification] = None,
+        expected_status: Optional[FORM_STATUS] = None,
     ) -> Form:
         update_dict = {}
         current_form = self.get_form_by_id(user_id=user_id, form_id=form_id)
@@ -230,11 +249,19 @@ class FormRepositoryDynamo(IFormRepository):
             if updated_at is not None:
                 update_dict["GSI2SK"] = self.form_gsi2_sort_key_format(updated_at=updated_at, form_id=form_id)
 
-        resp = self.dynamo.update_item(
-            partition_key=self.form_partition_key_format(form_id),
-            sort_key=self.form_sort_key_format(form_id),
-            update_dict=update_dict
-        )
+        condition_expression = Attr("status").eq(expected_status.value) if expected_status is not None else None
+        try:
+            resp = self.dynamo.update_item(
+                partition_key=self.form_partition_key_format(form_id),
+                sort_key=self.form_sort_key_format(form_id),
+                update_dict=update_dict,
+                condition_expression=condition_expression,
+            )
+        except ClientError as err:
+            error_code = err.response.get("Error", {}).get("Code")
+            if error_code == "ConditionalCheckFailedException":
+                raise ForbiddenAction("Formulário foi atualizado por outra operação")
+            raise
 
         if "Attributes" not in resp:
             return None

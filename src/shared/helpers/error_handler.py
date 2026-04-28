@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict
 
@@ -8,6 +9,8 @@ from src.shared.helpers.errors.controller_errors import MissingParameters, Wrong
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction, NoItemsFound
 from src.shared.helpers.external_interfaces.http_lambda_requests import LambdaHttpResponse
+
+_logger = logging.getLogger(__name__)
 
 
 def lambda_error_handler(fn: Callable[[Dict[str, Any], Any], Dict[str, Any]]):
@@ -30,7 +33,8 @@ def lambda_error_handler(fn: Callable[[Dict[str, Any], Any], Dict[str, Any]]):
         except BaseError as err:
             return _make_response(HttpStatusCodeEnum.BAD_REQUEST.value, err.message, err.__class__.__name__, event)
         except Exception as err:
-            return _make_response(HttpStatusCodeEnum.INTERNAL_SERVER_ERROR.value, str(err) or "Erro interno", err.__class__.__name__, event)
+            _logger.exception("Unhandled exception: %s", err)
+            return _make_response(HttpStatusCodeEnum.INTERNAL_SERVER_ERROR.value, "Erro interno do servidor", "InternalServerError", event)
 
     return wrapper
 

@@ -29,7 +29,7 @@ Prerequisites for local API: `.env` file at repo root (CDK config) and `iac/loca
 
 ## Architecture
 
-This is a **serverless Python backend** for a dynamic forms management system. It uses AWS Lambda + API Gateway + DynamoDB + S3, deployed via AWS CDK.
+This is the **Informs Backend**, a serverless Python backend for Intelicity's field form generation and completion app. It uses AWS Lambda + API Gateway + DynamoDB + S3, deployed via AWS CDK.
 
 ### Clean Architecture per module
 

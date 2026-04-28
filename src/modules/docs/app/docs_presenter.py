@@ -1,10 +1,12 @@
 import json
+import logging
 import os
 from pathlib import Path
 
 JSON_PATH_SUFFIXES = ("/docs/json", "/docs/swagger.json", "/docs/openapi.json")
 JSON_QUERY_KEYS = ("format", "output")
 DEFAULT_SWAGGER_FILES = ("swagger.json", "swagger.contracts.json")
+logger = logging.getLogger(__name__)
 
 def _get_request_path(event: dict) -> str:
     if not event:
@@ -69,8 +71,8 @@ def lambda_handler(event, context):
             "statusCode": 500,
             "body": "Swagger documentation not found."
         }
-    except Exception as e:
-        print(f"Erro ao ler swagger.json: {str(e)}")
+    except Exception:
+        logger.exception("Erro ao ler swagger.json")
         return {
             "statusCode": 500,
             "body": json.dumps({"message": "Erro interno: Arquivo de documentação não encontrado."})

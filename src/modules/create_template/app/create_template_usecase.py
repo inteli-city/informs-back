@@ -1,10 +1,12 @@
-from typing import List, Optional
 from datetime import datetime, timezone
+from typing import List, Optional
 
 from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.template import Template
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
 from src.shared.helpers.errors.domain_errors import EntityError
+from src.shared.helpers.errors.usecase_errors import ForbiddenAction
+
 
 class CreateTemplateUsecase:
     def __init__(self, template_repo: ITemplateRepository):
@@ -18,7 +20,10 @@ class CreateTemplateUsecase:
         description: Optional[str],
         is_active: bool,
         sections: List[Section],
+        requester_systems: Optional[List[str]] = None,
     ) -> Template:
+        if requester_systems is not None and system not in requester_systems:
+            raise ForbiddenAction("Usuário não tem permissão para acessar este sistema")
         if not sections:
             raise EntityError("Template deve ter ao menos uma seção")
         if any(len(section.fields) == 0 for section in sections):

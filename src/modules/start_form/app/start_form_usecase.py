@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
+
 from src.shared.domain.entities.form import Form
+from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
-from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
+from src.shared.helpers.errors.usecase_errors import NoItemsFound
 
 
 class StartFormUsecase:
@@ -13,8 +15,7 @@ class StartFormUsecase:
         if form is None:
             raise NoItemsFound("Formulário não encontrado")
 
-        if form.user_id != requester_user_id:
-            raise ForbiddenAction("Usuário não é o preenchedor deste formulário")
+        form.ensure_assigned_to(requester_user_id, "Usuário não é o preenchedor deste formulário")
 
         updated_at = int(datetime.now(timezone.utc).timestamp() * 1000)
 
@@ -26,5 +27,6 @@ class StartFormUsecase:
             status=form.status,
             in_progress_at=form.in_progress_at,
             updated_at=form.updated_at,
+            expected_status=FORM_STATUS.PENDING,
         )
         return updated_form

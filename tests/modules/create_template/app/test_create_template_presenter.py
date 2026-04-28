@@ -23,7 +23,7 @@ class TestCreateTemplatePresenter:
                         "sub": "user-123",
                         "name": "User",
                         "email": "user@test.com",
-                        "cognito:groups": "FORMULARIOS",
+                        "cognito:groups": "FORMULARIOS,GAIA",
                     }
                 }
             },

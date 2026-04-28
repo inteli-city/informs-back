@@ -8,7 +8,7 @@ from src.shared.helpers.errors.controller_errors import MissingParameters, Wrong
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, InvalidPaginationToken, NoItemsFound
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
-from src.shared.helpers.external_interfaces.http_codes import BadRequest, InternalServerError, NotFound, OK
+from src.shared.helpers.external_interfaces.http_codes import BadRequest, Forbidden, InternalServerError, NotFound, OK
 from src.shared.helpers.functions.pydantic_error_parser import get_validation_error_message
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 
@@ -98,7 +98,7 @@ class GetAllFormsController:
         except MissingParameters as err:
             return BadRequest(body=err.message)
         except ForbiddenAction as err:
-            return BadRequest(body=err.message)
+            return Forbidden(body=err.message)
         except WrongTypeParameter as err:
             return BadRequest(body=err.message)
         except InvalidPaginationToken as err:

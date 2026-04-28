@@ -65,13 +65,6 @@ class TemplateRepositoryDynamo(ITemplateRepository):
         name_contains: Optional[str] = None,
         is_active: Optional[bool] = True,
     ) -> Tuple[List[Template], Optional[str]]:
-        print("Fetching templates from DynamoDB with parameters:")
-        print(f"System: {system}")
-        print(f"Limit: {limit}")
-        print(f"Exclusive Start Key: {exclusive_start_key}")
-        print(f"Name Contains: {name_contains}")
-        print(f"Is Active: {is_active}")
-
         key_condition = Key("GSI1PK").eq(self.template_gsi_partition_key(system))
 
         if is_active is not None:
@@ -82,9 +75,6 @@ class TemplateRepositoryDynamo(ITemplateRepository):
             "IndexName": "UserPriorityIndex",
             "Select": "ALL_ATTRIBUTES",
         }
-        if limit is not None:
-            query_kwargs["Limit"] = limit
-
         start_key = exclusive_start_key
         if start_key is not None:
             query_kwargs["ExclusiveStartKey"] = start_key
@@ -95,17 +85,28 @@ class TemplateRepositoryDynamo(ITemplateRepository):
         items: List[dict] = []
         start_key = exclusive_start_key
         while True:
+            if limit is not None and name_contains is None:
+                remaining = limit - len(items)
+                if remaining <= 0:
+                    break
+                query_kwargs["Limit"] = remaining
+            else:
+                query_kwargs.pop("Limit", None)
             if start_key is not None:
                 query_kwargs["ExclusiveStartKey"] = start_key
+            else:
+                query_kwargs.pop("ExclusiveStartKey", None)
             resp = self.dynamo.query(**query_kwargs)
             items.extend(resp.get("Items", []))
             start_key = resp.get("LastEvaluatedKey")
-            if limit is not None or start_key is None:
+            if start_key is None:
                 break
 
         templates = [TemplateDynamoDTO.from_dynamo(item).to_entity() for item in items]
+        if limit is not None and name_contains is not None:
+            templates = templates[:limit]
 
-        next_key = start_key if limit is not None else None
+        next_key = start_key if limit is not None and name_contains is None else None
         return templates, encode_pagination_token(next_key)
 
     def update_template(self, template: Template) -> Template:

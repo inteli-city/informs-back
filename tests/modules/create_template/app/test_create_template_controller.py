@@ -16,7 +16,7 @@ class TestCreateTemplateController:
                 "sub": "user-123",
                 "name": "User",
                 "email": "user@test.com",
-                "cognito:groups": "FORMULARIOS",
+                "cognito:groups": "FORMULARIOS,GAIA",
             },
             "name": "Template X",
             "system": "GAIA",
@@ -97,3 +97,15 @@ class TestCreateTemplateController:
 
         response = controller(request)
         assert response.status_code == 201
+
+    def test_create_template_controller_forbidden_system(self):
+        repo = TemplateRepositoryMock()
+        controller = CreateTemplateController(CreateTemplateUsecase(repo))
+
+        body = self._make_base_body()
+        body["requester_user"]["cognito:groups"] = "FORMULARIOS,ORION"
+        request = HttpRequest(body=body)
+
+        response = controller(request)
+        assert response.status_code == 403
+        assert "permissão" in response.body

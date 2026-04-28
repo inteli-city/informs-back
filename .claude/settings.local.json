@@ -18,7 +18,11 @@
       "Bash(read d *)",
       "Bash(python3 -c 'import os; print\\('\\\\''__TRACKED_VAR__'\\\\''\\); files = [f for f in os.listdir\\('\\\\''__TRACKED_VAR__'\\\\''\\) if f.endswith\\('\\\\''.py'\\\\''\\)]; print\\(len\\(files\\), '\\\\''py files'\\\\'' if files else '\\\\''NO PY FILES'\\\\''\\)')",
       "Bash(python -m pytest --co -q)",
-      "Bash(python -m pytest tests/ -v)"
+      "Bash(python -m pytest tests/ -v)",
+      "Bash(python -m pytest tests/ --collect-only)",
+      "Bash(python -m pytest --tb=no --no-header -q)",
+      "Bash(python -m pytest tests/shared/infra/repositories/test_form_repository_dynamo.py -v)",
+      "Bash(python -m pytest --cov=src --cov-report=term-missing tests/)"
     ]
   }
 }

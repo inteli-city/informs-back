@@ -18,7 +18,9 @@ class FakeTemplateDynamo:
         self.put_calls = []
         self.get_item_response = {}
         self.query_kwargs = None
+        self.query_calls = []
         self.query_response = {"Items": [], "LastEvaluatedKey": None}
+        self.query_responses = None
         self.transact_items = None
 
     def put_item(self, item, partition_key, sort_key):
@@ -30,6 +32,9 @@ class FakeTemplateDynamo:
 
     def query(self, **kwargs):
         self.query_kwargs = kwargs
+        self.query_calls.append(kwargs)
+        if self.query_responses:
+            return self.query_responses.pop(0)
         return self.query_response
 
     def build_transaction_item_delete(self, partition_key, sort_key=None):
@@ -99,18 +104,47 @@ def test_template_repository_dynamo_get_all_and_update():
 
     results, next_key = repo.get_all_templates(
         system="GAIA",
-        limit=10,
+        limit=1,
         exclusive_start_key=start_key,
-        name_contains="Tem",
+        name_contains=None,
         is_active=True,
     )
 
     assert len(results) == 1
     assert next_key is not None
-    assert "FilterExpression" in repo.dynamo.query_kwargs
     assert "ExclusiveStartKey" in repo.dynamo.query_kwargs
 
     updated = repo.update_template(template)
     assert updated.id == template.id
     assert repo.dynamo.transact_items is not None
     assert len(repo.dynamo.transact_items) == 2
+
+
+def test_template_repository_dynamo_name_filter_reads_all_pages_and_omits_cursor():
+    repo = TemplateRepositoryDynamo.__new__(TemplateRepositoryDynamo)
+    repo.dynamo = FakeTemplateDynamo()
+    template = _make_template()
+
+    matched = TemplateDynamoDTO.from_entity(template).to_dynamo()
+    matched["PK"] = "template#12345678-1234-1234-1234-123456789099"
+    matched["SK"] = "METADATA"
+    matched["name"] = "Target Template"
+
+    repo.dynamo.query_responses = [
+        {"Items": [], "LastEvaluatedKey": {"PK": "template#page-2", "SK": "METADATA"}},
+        {"Items": [matched], "LastEvaluatedKey": None},
+    ]
+
+    results, next_key = repo.get_all_templates(
+        system="GAIA",
+        limit=1,
+        exclusive_start_key=None,
+        name_contains="Target",
+        is_active=True,
+    )
+
+    assert [template.name for template in results] == ["Target Template"]
+    assert next_key is None
+    assert len(repo.dynamo.query_calls) == 2
+    assert all("Limit" not in call for call in repo.dynamo.query_calls)
+    assert "FilterExpression" in repo.dynamo.query_calls[0]

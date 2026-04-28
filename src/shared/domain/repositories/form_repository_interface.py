@@ -58,5 +58,6 @@ class IFormRepository(ABC):
         updated_at: Optional[int] = None,
         sections: Optional[List[Section]] = None,
         justification: Optional[Justification] = None,
+        expected_status: Optional[FORM_STATUS] = None,
     ) -> Form:
         pass
