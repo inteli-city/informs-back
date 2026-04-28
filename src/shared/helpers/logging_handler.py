@@ -1,5 +1,8 @@
+import json
 import logging
 import traceback
+from functools import wraps
+from json import JSONDecodeError
 from typing import Any, Callable, Dict
 
 logger = logging.getLogger()
@@ -16,6 +19,7 @@ def lambda_logging_handler(fn: Callable[[Dict[str, Any], Any], Dict[str, Any]]):
     - ERROR:   respostas 5xx e exceções não tratadas (com traceback completo)
     """
 
+    @wraps(fn)
     def wrapper(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         path = ""
         method = ""
@@ -47,7 +51,7 @@ def lambda_logging_handler(fn: Callable[[Dict[str, Any], Any], Dict[str, Any]]):
         elif status_code < 500:
             error_name = _extract_error_name(response)
             logger.warning(
-                "Erro de cliente %s em %s %s — %s",
+                "Erro de cliente %s em %s %s - %s",
                 status_code,
                 method,
                 path,
@@ -56,7 +60,7 @@ def lambda_logging_handler(fn: Callable[[Dict[str, Any], Any], Dict[str, Any]]):
         else:
             error_name = _extract_error_name(response)
             logger.error(
-                "Erro interno %s em %s %s — %s",
+                "Erro interno %s em %s %s - %s",
                 status_code,
                 method,
                 path,
@@ -70,11 +74,10 @@ def lambda_logging_handler(fn: Callable[[Dict[str, Any], Any], Dict[str, Any]]):
 
 def _extract_error_name(response: dict) -> str:
     try:
-        import json
         raw_body = response.get("body", "")
         parsed = json.loads(raw_body) if isinstance(raw_body, str) else raw_body
         if isinstance(parsed, dict):
             return parsed.get("error") or parsed.get("message", "")[:120]
-    except Exception:
+    except (JSONDecodeError, TypeError):
         pass
     return ""

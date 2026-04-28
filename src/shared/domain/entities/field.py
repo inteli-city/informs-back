@@ -59,8 +59,6 @@ class Field(abc.ABC):
         return None
 
     def set_value(self, value):
-        if not hasattr(self, "value"):
-            raise EntityError("Campo nao aceita valor")
         self.value = self.normalize_value(value)
 
     def with_value(self, value):

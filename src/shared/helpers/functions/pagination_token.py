@@ -1,6 +1,8 @@
 import base64
+import binascii
 import json
 import logging
+from json import JSONDecodeError
 from typing import Optional
 
 _TOKEN_MAX_BYTES = 10_240  # 10 KB - prevents DoS via oversized tokens
@@ -29,7 +31,7 @@ def decode_pagination_token(token: Optional[str]) -> Optional[dict]:
     try:
         decoded_bytes = base64.urlsafe_b64decode(token.encode("ascii"))
         content = json.loads(decoded_bytes.decode("utf-8"))
-    except Exception as err:
+    except (binascii.Error, UnicodeDecodeError, JSONDecodeError) as err:
         raise ValueError("Invalid pagination token") from err
 
     if not isinstance(content, dict):

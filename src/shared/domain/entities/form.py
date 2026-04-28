@@ -324,7 +324,7 @@ class Form(abc.ABC):
         for section in self.sections:
             for field in section.fields:
                 if field.required and field.value is None:
-                    raise ForbiddenAction("Campo obrigatório não preenchido")
+                    raise EntityError("Campo obrigatório não preenchido")
 
     def complete(self, completed_at: int, updated_at: int):
         if not isinstance(completed_at, int):

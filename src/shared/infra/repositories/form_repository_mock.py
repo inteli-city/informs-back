@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import datetime, timedelta
 from typing import List, Optional, Union
 from src.shared.domain.entities.field import TextField
@@ -125,14 +126,14 @@ class FormRepositoryMock(IFormRepository):
     def get_form_by_id(self, user_id: str, form_id: str) -> Form:
         for form in self.forms:
             if form.id == form_id:
-                return form
+                return deepcopy(form)
         return None
     
     def get_form_by_user_id(self, user_id: str) -> List[Form]:
         filtered_forms = []
         for form in self.forms:
             if form.user_id == user_id:
-                filtered_forms.append(form)
+                filtered_forms.append(deepcopy(form))
 
         return filtered_forms
 
@@ -202,7 +203,7 @@ class FormRepositoryMock(IFormRepository):
         start_key_dict = exclusive_start_key
         start = self._parse_start_index(forms, start_key_dict)
         if limit is None:
-            return forms[start:], None
+            return deepcopy(forms[start:]), None
 
         end = start + limit
         page = forms[start:end]
@@ -219,13 +220,13 @@ class FormRepositoryMock(IFormRepository):
             }
             next_key = encode_pagination_token(next_key)
 
-        return page, next_key
+        return deepcopy(page), next_key
     
     def create_form(self, form: Form) -> Form:
         for item in self.forms:
             if form.id == item.id:
                 raise DuplicatedItem('Formulário já existe')
-        self.forms.append(form)
+        self.forms.append(deepcopy(form))
         return form
 
     def update_form(
@@ -244,8 +245,7 @@ class FormRepositoryMock(IFormRepository):
         for form in self.forms:
             if form.id == form_id:
                 if expected_status is not None and form.status != expected_status:
-                    if status is None or form.status != status:
-                        raise ForbiddenAction("Formulário foi atualizado por outra operação")
+                    raise ForbiddenAction("Formulário foi atualizado por outra operação")
                 if status is not None:
                     form.status = status
                 if in_progress_at is not None:
@@ -279,7 +279,7 @@ class FormRepositoryMock(IFormRepository):
 
         start = self._parse_start_index(forms, exclusive_start_key)
         if limit is None:
-            return forms[start:], None
+            return deepcopy(forms[start:]), None
 
         end = start + limit
         page = forms[start:end]
@@ -293,4 +293,4 @@ class FormRepositoryMock(IFormRepository):
             }
             next_key = encode_pagination_token(next_key)
 
-        return page, next_key
+        return deepcopy(page), next_key

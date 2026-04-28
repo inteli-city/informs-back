@@ -6,6 +6,7 @@ from src.shared.domain.entities.file_upload import FileUploadRequest
 from src.shared.domain.entities.information_field import FileInformationField
 from src.shared.domain.enums.file_type_enum import FILE_TYPE
 from src.shared.domain.enums.priority_enum import PRIORITY
+from src.shared.helpers.controller_error_handler import controller_error_handler
 from src.shared.helpers.contracts.runtime_requests import CreateFormControllerRequestSchema
 from src.shared.helpers.errors.controller_errors import MissingParameters, WrongTypeParameter
 from src.shared.helpers.errors.domain_errors import EntityError
@@ -16,7 +17,6 @@ from src.shared.helpers.external_interfaces.http_codes import (
     Conflict,
     Created,
     Forbidden,
-    InternalServerError,
     NotFound,
 )
 from src.shared.helpers.functions.pydantic_error_parser import get_validation_error_message
@@ -78,6 +78,7 @@ class CreateFormController:
             information_fields_uploads,
         )
 
+    @controller_error_handler
     def __call__(self, request: IRequest) -> IResponse:
         try:
             data = request.data if isinstance(request.data, dict) else {}
@@ -142,5 +143,3 @@ class CreateFormController:
             return BadRequest(body=err.message)
         except EntityError as err:
             return BadRequest(body=f"Parâmetro inválido: {err.message}")
-        except Exception as err:
-            return InternalServerError(body=err.args[0] if err.args else str(err))

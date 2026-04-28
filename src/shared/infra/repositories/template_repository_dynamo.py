@@ -1,10 +1,10 @@
 from typing import List, Optional, Tuple
-from boto3.dynamodb.conditions import Attr, Key
 
 from src.shared.domain.entities.template import Template
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
 from src.shared.environments import Environments
 from src.shared.infra.dtos.template_dynamo_dto import TemplateDynamoDTO
+from src.shared.infra.external.dynamo.conditions import Attr, Key
 from src.shared.infra.external.dynamo.datasources.dynamo_datasource import DynamoDatasource
 from src.shared.helpers.functions.pagination_token import encode_pagination_token
 

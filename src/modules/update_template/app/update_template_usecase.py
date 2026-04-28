@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from typing import List, Optional
 
 from src.shared.domain.entities.section import Section
@@ -6,6 +5,7 @@ from src.shared.domain.entities.template import Template
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
+from src.shared.helpers.functions.datetime_utils import now_timestamp_ms
 
 
 class UpdateTemplateUsecase:
@@ -53,7 +53,7 @@ class UpdateTemplateUsecase:
         if sections is not None:
             template.change_sections(sections)
 
-        now_ts = int(datetime.now(timezone.utc).timestamp() * 1000)
+        now_ts = now_timestamp_ms()
         template.change_updated_at(max(now_ts, template.updated_at + 1))
 
         return self.template_repo.update_template(template)

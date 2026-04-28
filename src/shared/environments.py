@@ -156,7 +156,15 @@ class Environments:
 
     @staticmethod
     def get_envs() -> "Environments":
-        if Environments._instance is None:
+        current_stage = os.environ.get("STAGE")
+        should_reload = (
+            Environments._instance is None
+            or (
+                current_stage is not None
+                and Environments._instance.stage.name != current_stage
+            )
+        )
+        if should_reload:
             envs = Environments()
             envs.load_envs()
             Environments._instance = envs

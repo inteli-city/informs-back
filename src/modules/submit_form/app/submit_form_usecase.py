@@ -57,9 +57,9 @@ class SubmitFormUsecase:
                     files.extend(self._upload_file_field(form, form_id, section.section_id, field, file_uploads))
         return files
 
-    @staticmethod
-    def _should_upload_file_field(field) -> bool:
-        return isinstance(field, FileField) and SubmitFormUsecase._needs_upload(field.value)
+    @classmethod
+    def _should_upload_file_field(cls, field) -> bool:
+        return isinstance(field, FileField) and cls._needs_upload(field.value)
 
     @staticmethod
     def _needs_upload(value) -> bool:

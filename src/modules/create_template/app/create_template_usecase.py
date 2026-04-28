@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from typing import List, Optional
 
 from src.shared.domain.entities.section import Section
@@ -6,6 +5,7 @@ from src.shared.domain.entities.template import Template
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction
+from src.shared.helpers.functions.datetime_utils import now_timestamp_ms
 
 
 class CreateTemplateUsecase:
@@ -29,7 +29,7 @@ class CreateTemplateUsecase:
         if any(len(section.fields) == 0 for section in sections):
             raise EntityError("Todas as seções devem ter ao menos um campo")
 
-        now_ts = int(datetime.now(timezone.utc).timestamp() * 1000)
+        now_ts = now_timestamp_ms()
 
         template = Template(
             name=name,

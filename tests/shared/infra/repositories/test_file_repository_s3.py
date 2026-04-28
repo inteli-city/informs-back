@@ -30,7 +30,7 @@ class FakeS3Client:
 def test_file_repository_s3_generate_presigned_url(monkeypatch):
     os.environ["STAGE"] = "TEST"
     client = FakeS3Client()
-    monkeypatch.setattr("boto3.client", lambda *args, **kwargs: client)
+    monkeypatch.setattr("src.shared.infra.repositories.file_repository_s3._create_s3_client", lambda *args, **kwargs: client)
 
     repo = FileRepositoryS3()
     url = repo.generate_presigned_url(file_path="path/file.jpg", mimetype="image/jpeg", expires_in=1200)
@@ -48,7 +48,7 @@ def test_file_repository_s3_generate_presigned_url(monkeypatch):
 def test_file_repository_s3_generate_presigned_url_error(monkeypatch):
     os.environ["STAGE"] = "TEST"
     client = FakeS3Client(should_fail=True)
-    monkeypatch.setattr("boto3.client", lambda *args, **kwargs: client)
+    monkeypatch.setattr("src.shared.infra.repositories.file_repository_s3._create_s3_client", lambda *args, **kwargs: client)
 
     repo = FileRepositoryS3()
 

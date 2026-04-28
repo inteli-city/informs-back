@@ -4,6 +4,7 @@ from src.shared.domain.entities.field import FileField
 from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.file_type_enum import FILE_TYPE
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
+from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
@@ -94,7 +95,7 @@ class Test_SubmitFormUsecase:
             {"section_id": 1, "field_key": "key", "value": None}
         ]
 
-        with pytest.raises(ForbiddenAction):
+        with pytest.raises(EntityError):
             usecase('d61dbf66-a10f-11ed-a8fc-0242ac120001', form.id, fields, completed_at=123)
 
     def test_submit_form_usecase_with_file_uploads(self):

@@ -1,6 +1,8 @@
 import json
 import logging
 from datetime import datetime, timezone
+from functools import wraps
+from json import JSONDecodeError
 from typing import Any, Callable, Dict
 
 from src.shared.helpers.enum.http_status_code_enum import HttpStatusCodeEnum
@@ -18,6 +20,7 @@ def lambda_error_handler(fn: Callable[[Dict[str, Any], Any], Dict[str, Any]]):
     Decorator to normalize errors raised inside Lambda presenters into a standard HTTP response payload.
     """
 
+    @wraps(fn)
     def wrapper(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         try:
             resp = fn(event, context)
@@ -34,7 +37,12 @@ def lambda_error_handler(fn: Callable[[Dict[str, Any], Any], Dict[str, Any]]):
             return _make_response(HttpStatusCodeEnum.BAD_REQUEST.value, err.message, err.__class__.__name__, event)
         except Exception as err:
             _logger.exception("Unhandled exception: %s", err)
-            return _make_response(HttpStatusCodeEnum.INTERNAL_SERVER_ERROR.value, "Erro interno do servidor", "InternalServerError", event)
+            return _make_response(
+                HttpStatusCodeEnum.INTERNAL_SERVER_ERROR.value,
+                "Erro interno do servidor",
+                "InternalServerError",
+                event,
+            )
 
     return wrapper
 
@@ -61,7 +69,7 @@ def _normalize_response(response: Dict[str, Any], event: Dict[str, Any]) -> Dict
             error_name = parsed.get("error") or error_name
         else:
             message = str(parsed)
-    except Exception:
+    except (JSONDecodeError, TypeError):
         message = str(raw_body)
 
     return _make_response(status_code, message, error_name, event)
@@ -83,5 +91,5 @@ def _make_response(status: int, message: str, error_name: str, event: Dict[str, 
     return LambdaHttpResponse(
         status_code=status,
         body=body,
-        headers={"Content-Type": "application/json"}
+        headers={"Content-Type": "application/json"},
     ).toDict()

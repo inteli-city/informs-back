@@ -4,8 +4,9 @@ from abc import ABC, abstractmethod
 class IRequest(ABC):
 
     @property
+    @abstractmethod
     def data(self) -> dict:
-        pass
+        raise NotImplementedError
 
 
 class IResponse(ABC):
@@ -13,9 +14,9 @@ class IResponse(ABC):
     @property
     @abstractmethod
     def status_code(self) -> int:
-        pass
+        raise NotImplementedError
 
     @property
     @abstractmethod
     def data(self) -> dict:
-        pass
+        raise NotImplementedError

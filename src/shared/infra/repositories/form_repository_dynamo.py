@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import List, Optional, Tuple, Union
 from botocore.exceptions import ClientError
+
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import Section
@@ -11,10 +12,10 @@ from src.shared.environments import Environments
 from src.shared.infra.dtos.form_dynamo_dto import FormDynamoDTO
 from src.shared.infra.dtos.justification_dto import JustificationDTO
 from src.shared.infra.dtos.section_dto import SectionDTO
+from src.shared.infra.external.dynamo.conditions import Attr, Key
 from src.shared.infra.external.dynamo.datasources.dynamo_datasource import DynamoDatasource
-from src.shared.helpers.functions.pagination_token import encode_pagination_token
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction
-from boto3.dynamodb.conditions import Key, Attr
+from src.shared.helpers.functions.pagination_token import encode_pagination_token
 
 class FormRepositoryDynamo(IFormRepository):
 
@@ -23,7 +24,7 @@ class FormRepositoryDynamo(IFormRepository):
         return f'form#{form_id}'
     
     @staticmethod
-    def form_sort_key_format(form_id: str = None) -> str:
+    def form_sort_key_format() -> str:
         return 'METADATA'
 
     @staticmethod 
@@ -53,7 +54,7 @@ class FormRepositoryDynamo(IFormRepository):
         )
     
     def get_form_by_id(self, user_id: str, form_id: str) -> Form:
-        form = self.dynamo.get_item(partition_key=self.form_partition_key_format(form_id), sort_key=self.form_sort_key_format(form_id))
+        form = self.dynamo.get_item(partition_key=self.form_partition_key_format(form_id), sort_key=self.form_sort_key_format())
         if "Item" not in form:
             return None
 
@@ -177,7 +178,7 @@ class FormRepositoryDynamo(IFormRepository):
             search_lower = search.lower()
             forms = [
                 form for form in forms
-                if search_lower in form.form_title.lower() or (form.observation or "").lower().find(search_lower) != -1
+                if search_lower in form.form_title.lower() or search_lower in (form.observation or "").lower()
             ]
 
         def sort_key(f: Form):
@@ -253,7 +254,7 @@ class FormRepositoryDynamo(IFormRepository):
         try:
             resp = self.dynamo.update_item(
                 partition_key=self.form_partition_key_format(form_id),
-                sort_key=self.form_sort_key_format(form_id),
+                sort_key=self.form_sort_key_format(),
                 update_dict=update_dict,
                 condition_expression=condition_expression,
             )
