@@ -318,7 +318,7 @@ class Form(abc.ABC):
         field = section.fields[field_index]
         if not isinstance(field, FileField):
             raise EntityError("Campo não é do tipo arquivo")
-        field.set_value(file_urls[0] if len(file_urls) == 1 else file_urls)
+        field.set_value(file_urls)
 
     def ensure_required_fields_filled(self):
         for section in self.sections:
