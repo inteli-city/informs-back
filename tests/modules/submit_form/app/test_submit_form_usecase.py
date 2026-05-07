@@ -4,6 +4,7 @@ from src.shared.domain.entities.field import FileField
 from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.file_type_enum import FILE_TYPE
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
+from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
@@ -94,7 +95,7 @@ class Test_SubmitFormUsecase:
             {"section_id": 1, "field_key": "key", "value": None}
         ]
 
-        with pytest.raises(ForbiddenAction):
+        with pytest.raises(EntityError):
             usecase('d61dbf66-a10f-11ed-a8fc-0242ac120001', form.id, fields, completed_at=123)
 
     def test_submit_form_usecase_with_file_uploads(self):
@@ -125,4 +126,52 @@ class Test_SubmitFormUsecase:
         assert len(files) == 1
         assert files[0].filename == "a.jpg"
         assert files[0].mimetype == "image/jpeg"
-        assert form.sections[0].fields[0].value.startswith("https://")
+        # value sempre lista após o upload, mesmo com 1 único arquivo
+        # (consistência com o caso multi-arquivos para o consumidor downstream — Apex)
+        value = form.sections[0].fields[0].value
+        assert isinstance(value, list)
+        assert len(value) == 1
+        assert value[0].startswith("https://")
+
+    def test_submit_form_usecase_with_multiple_file_uploads(self):
+        repo = FormRepositoryMock()
+        file_repo = FileRepositoryMock()
+        usecase = SubmitFormUsecase(repo, file_repo)
+
+        form = repo.forms[0]
+
+        file_field = FileField(
+            placeholder='file',
+            required=True,
+            key='file_key',
+            file_type=FILE_TYPE.IMAGE,
+            min_quantity=1,
+            max_quantity=3,
+            value=[
+                {"filename": "a.jpg", "mimetype": "image/jpeg"},
+                {"filename": "b.jpg", "mimetype": "image/jpeg"},
+                {"filename": "c.jpg", "mimetype": "image/jpeg"},
+            ],
+        )
+        form.sections = [Section(section_id=1, fields=[file_field])]
+
+        files = usecase(
+            user_id=form.user_id,
+            form_id=form.id,
+            fields=[{
+                "section_id": 1,
+                "field_key": "file_key",
+                "value": [
+                    {"filename": "a.jpg", "mimetype": "image/jpeg"},
+                    {"filename": "b.jpg", "mimetype": "image/jpeg"},
+                    {"filename": "c.jpg", "mimetype": "image/jpeg"},
+                ],
+            }],
+            completed_at=123,
+        )
+
+        assert len(files) == 3
+        value = form.sections[0].fields[0].value
+        assert isinstance(value, list)
+        assert len(value) == 3
+        assert all(url.startswith("https://") for url in value)

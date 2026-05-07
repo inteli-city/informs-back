@@ -1,11 +1,10 @@
 from typing import List
 
-from boto3.dynamodb.conditions import Key
-
 from src.shared.domain.entities.sync_error_form import SyncErrorForm
 from src.shared.domain.repositories.sync_error_form_repository_interface import ISyncErrorFormRepository
 from src.shared.environments import Environments
 from src.shared.infra.dtos.sync_error_form_dynamo_dto import SyncErrorFormDynamoDTO
+from src.shared.infra.external.dynamo.conditions import Key
 from src.shared.infra.external.dynamo.datasources.dynamo_datasource import DynamoDatasource
 
 

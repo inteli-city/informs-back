@@ -6,7 +6,7 @@ from src.shared.domain.entities.justification import Justification, Justificatio
 from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.enums.priority_enum import PRIORITY
-from src.shared.helpers.errors.usecase_errors import DuplicatedItem
+from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 
 justification_option = JustificationOption(option='option', required_image=True, required_text=True)
@@ -22,6 +22,14 @@ class Test_FormRepositoryMock:
         form = repo.get_form_by_id(user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001', form_id=repo.forms[0].id)
 
         assert form.id == repo.forms[0].id
+
+    def test_form_repository_mock_get_form_by_id_returns_detached_copy(self):
+        repo = FormRepositoryMock()
+        form = repo.get_form_by_id(user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001', form_id=repo.forms[0].id)
+
+        form.status = FORM_STATUS.COMPLETED
+
+        assert repo.forms[0].status == FORM_STATUS.IN_PROGRESS
     
     def test_form_repository_mock_get_form_by_id_not_found(self):
         repo = FormRepositoryMock()
@@ -125,3 +133,15 @@ class Test_FormRepositoryMock:
         forms, next_key = repo.get_forms_updated_since(system="GAIA", updated_at_start=0, updated_at_end=946407600000)
         assert len(forms) >= 1
         assert next_key is None
+
+    def test_form_repository_mock_update_form_raises_when_expected_status_does_not_match(self):
+        repo = FormRepositoryMock()
+
+        with pytest.raises(ForbiddenAction):
+            repo.update_form(
+                user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
+                form_id=repo.forms[0].id,
+                status=FORM_STATUS.IN_PROGRESS,
+                updated_at=1,
+                expected_status=FORM_STATUS.COMPLETED,
+            )

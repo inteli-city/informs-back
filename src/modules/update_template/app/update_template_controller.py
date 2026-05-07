@@ -1,13 +1,14 @@
 from pydantic import ValidationError
 
-from src.modules.update_template.app.update_template_viewmodel import TemplateViewmodel
 from src.modules.update_template.app.update_template_usecase import UpdateTemplateUsecase
+from src.modules.update_template.app.update_template_viewmodel import TemplateViewmodel
+from src.shared.helpers.controller_error_handler import controller_error_handler
 from src.shared.helpers.contracts.runtime_requests import UpdateTemplateControllerRequestSchema
 from src.shared.helpers.errors.controller_errors import MissingParameters, WrongTypeParameter
 from src.shared.helpers.errors.domain_errors import EntityError
-from src.shared.helpers.errors.usecase_errors import DuplicatedItem, NoItemsFound
+from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction, NoItemsFound
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
-from src.shared.helpers.external_interfaces.http_codes import BadRequest, Conflict, InternalServerError, NotFound, OK
+from src.shared.helpers.external_interfaces.http_codes import BadRequest, Conflict, Forbidden, NotFound, OK
 from src.shared.helpers.functions.pydantic_error_parser import get_validation_error_message
 from src.shared.infra.dtos.section_dto import SectionDTO
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
@@ -17,6 +18,7 @@ class UpdateTemplateController:
     def __init__(self, usecase: UpdateTemplateUsecase):
         self.usecase = usecase
 
+    @controller_error_handler
     def __call__(self, request: IRequest) -> IResponse:
         try:
             data = request.data if isinstance(request.data, dict) else {}
@@ -31,6 +33,7 @@ class UpdateTemplateController:
             updated_template = self.usecase(
                 template_id=payload.template_id,
                 requester_user_id=requester.user_id,
+                requester_systems=requester.systems,
                 name=payload.name,
                 system=payload.system,
                 description=payload.description,
@@ -51,7 +54,7 @@ class UpdateTemplateController:
             return BadRequest(f"Parâmetro inválido: {err.message}")
         except NoItemsFound as err:
             return NotFound(err.message)
+        except ForbiddenAction as err:
+            return Forbidden(err.message)
         except DuplicatedItem as err:
             return Conflict(err.message)
-        except Exception as err:
-            return InternalServerError(err.args[0] if err.args else str(err))

@@ -17,7 +17,7 @@ class TestUpdateTemplatePresenter:
             "rawPath": "/templates/{template_id}",
             "rawQueryString": "",
             "requestContext": {
-                "authorizer": {"claims": {"sub": "user-1", "name": "Tester", "email": "t@example.com", "cognito:groups": "FORMULARIOS"}},
+                "authorizer": {"claims": {"sub": "user-1", "name": "Tester", "email": "t@example.com", "cognito:groups": "FORMULARIOS,GAIA"}},
             },
             "pathParameters": {"template_id": template.id},
             "body": json.dumps({

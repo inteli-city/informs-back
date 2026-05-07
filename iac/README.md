@@ -1,58 +1,39 @@
 
-# Welcome to your CDK Python project!
+# Infraestrutura do Informs Backend
 
-This is a blank project for CDK development with Python.
+Este diretório contém a infraestrutura como código do **Informs Backend**, o backend da Intelicity para geração e preenchimento de formulários em campo.
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+O projeto usa AWS CDK em Python para definir API Gateway, Lambdas, DynamoDB, S3, Cognito, permissões IAM e recursos auxiliares usados pelo serviço.
 
-This project is set up like a standard Python project.  The initialization
-process also creates a virtualenv within this project, stored under the `.venv`
-directory.  To create the virtualenv it assumes that there is a `python3`
-(or `python` for Windows) executable in your path with access to the `venv`
-package. If for any reason the automatic creation of the virtualenv fails,
-you can create the virtualenv manually.
+## Estrutura
 
-To manually create a virtualenv on MacOS and Linux:
+- `app.py`: entrada da aplicação CDK.
+- `iac/iac_stack.py`: stack principal com API Gateway, Cognito, S3 e permissões.
+- `iac/lambda_stack.py`: definição das Lambdas e rotas HTTP.
+- `iac/dynamo_stack.py`: tabela DynamoDB single-table e índices.
+- `local/`: apoio para execução local com SAM, DynamoDB Local e LocalStack.
 
-```
-$ python -m venv .venv
-```
+## Instalação
 
-After the init process completes and the virtualenv is created, you can use the following
-step to activate your virtualenv.
+No root do repositório:
 
-```
-$ source .venv/bin/activate
+```bash
+python -m venv venv
+venv\Scripts\python.exe -m pip install -r requirements.txt
+venv\Scripts\python.exe -m pip install -r iac\requirements.txt
 ```
 
-If you are a Windows platform, you would activate the virtualenv like this:
+Em Linux/macOS, troque `venv\Scripts\python.exe` por `./venv/bin/python`.
 
-```
-% .venv\Scripts\activate.bat
-```
+## Comandos úteis
 
-Once the virtualenv is activated, you can install the required dependencies.
+- `cdk ls`: lista stacks.
+- `cdk synth`: gera o template CloudFormation.
+- `cdk diff`: compara o template local com o deploy atual.
+- `cdk deploy`: faz deploy da stack.
 
-```
-$ pip install -r requirements.txt
-```
+## Desenvolvimento local
 
-At this point you can now synthesize the CloudFormation template for this code.
+Para rodar API local com SAM e serviços locais, veja `LOCAL_SETUP.md`.
 
-```
-$ cdk synth
-```
-
-To add additional dependencies, for example other CDK libraries, just add
-them to your `setup.py` file and rerun the `pip install -r requirements.txt`
-command.
-
-## Useful commands
-
- * `cdk ls`          list all stacks in the app
- * `cdk synth`       emits the synthesized CloudFormation template
- * `cdk deploy`      deploy this stack to your default AWS account/region
- * `cdk diff`        compare deployed stack with current state
- * `cdk docs`        open CDK documentation
-
-Enjoy!
+Alguns nomes de recursos ainda usam `formularios` por compatibilidade com ambientes e stacks existentes.

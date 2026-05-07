@@ -2,6 +2,8 @@ import os
 import sys
 from copy import deepcopy
 
+import pytest
+
 sys.path.append(os.getcwd())
 
 from src.modules.create_form.app.create_form_usecase import CreateFormUsecase
@@ -13,7 +15,7 @@ from src.shared.domain.entities.file_upload import FileUploadRequest
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.enums.priority_enum import PRIORITY
 from src.shared.helpers.errors.domain_errors import EntityError
-from src.shared.helpers.errors.usecase_errors import NoItemsFound
+from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
 from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
@@ -121,6 +123,26 @@ class Test_CreateFormUsecase:
             assert False, "Expected NoItemsFound"
         except NoItemsFound as err:
             assert err.message == "Template não encontrado"
+
+    def test_create_form_usecase_with_template_from_another_system(self):
+        usecase, payload, template_repo = _make_usecase_and_payload()
+        payload = deepcopy(payload)
+        payload["template"] = template_repo.templates[0].id
+        payload["sections"] = []
+        payload["system"] = "JUNDIAI"
+
+        with pytest.raises(ForbiddenAction):
+            usecase(**payload)
+
+    def test_create_form_usecase_with_inactive_template(self):
+        usecase, payload, template_repo = _make_usecase_and_payload()
+        payload = deepcopy(payload)
+        payload["template"] = template_repo.templates[0].id
+        payload["sections"] = []
+        template_repo.templates[0].is_active = False
+
+        with pytest.raises(ForbiddenAction):
+            usecase(**payload)
 
     def test_create_form_usecase_duplicate_field_key(self):
         usecase, payload, _ = _make_usecase_and_payload()

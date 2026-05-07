@@ -1,7 +1,9 @@
 import abc
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 from uuid import UUID
 
+from src.shared.domain.entities.field import FileField
+from src.shared.domain.entities.file_upload import FileUploadRequest
 from src.shared.domain.entities.information_field import InformationField
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import Section
@@ -119,10 +121,14 @@ class Form(abc.ABC):
 
         if not isinstance(latitude, (float, int)):
             raise EntityError('Latitude deve ser um número')
+        if not -90 <= float(latitude) <= 90:
+            raise EntityError('Latitude deve estar entre -90 e 90')
         self.latitude = float(latitude)
 
         if not isinstance(longitude, (float, int)):
             raise EntityError('Longitude deve ser um número')
+        if not -180 <= float(longitude) <= 180:
+            raise EntityError('Longitude deve estar entre -180 e 180')
         self.longitude = float(longitude)
 
         if not isinstance(priority, PRIORITY):
@@ -221,6 +227,118 @@ class Form(abc.ABC):
         self.status = new_status
         self.updated_at = updated_at
 
+    def ensure_assigned_to(self, user_id: str, message: str):
+        if self.user_id != user_id:
+            raise ForbiddenAction(message)
+
+    def is_finished(self) -> bool:
+        return self.status in [FORM_STATUS.CANCELLED, FORM_STATUS.COMPLETED]
+
+    def ensure_in_progress(self):
+        if self.status is not FORM_STATUS.IN_PROGRESS:
+            raise ForbiddenAction("Formulário não está em andamento")
+
+    def _find_section(self, section_id: int) -> Section:
+        section = next((item for item in self.sections if item.section_id == section_id), None)
+        if section is None:
+            raise EntityError(f"Seção com ID {section_id} não encontrada no formulário")
+        return section
+
+    @staticmethod
+    def _find_field_index(section: Section, field_key: str) -> int:
+        field_index = next((idx for idx, field in enumerate(section.fields) if field.key == field_key), None)
+        if field_index is None:
+            raise EntityError(f"Campo '{field_key}' não encontrado na seção {section.section_id}")
+        return field_index
+
+    @staticmethod
+    def _normalize_file_uploads(value) -> Tuple[List[FileUploadRequest], List[dict]]:
+        uploads_raw = value
+        if isinstance(uploads_raw, dict):
+            uploads_raw = [uploads_raw]
+        if not isinstance(uploads_raw, list) or not uploads_raw:
+            raise EntityError("Valor do campo de arquivo deve ser uma lista não vazia de objetos com 'filename' e 'mimetype'")
+
+        normalized_uploads = []
+        normalized_value = []
+        for upload in uploads_raw:
+            if isinstance(upload, FileUploadRequest):
+                normalized_uploads.append(upload)
+                normalized_value.append(upload.to_dict())
+                continue
+            if not isinstance(upload, dict):
+                raise EntityError("Cada arquivo deve ser um objeto com 'filename' e 'mimetype'")
+            filename = upload.get("filename")
+            mimetype = upload.get("mimetype")
+            if filename is None or mimetype is None:
+                raise EntityError("Cada arquivo deve conter 'filename' e 'mimetype'")
+            if not isinstance(filename, str) or not isinstance(mimetype, str):
+                raise EntityError("'filename' e 'mimetype' devem ser strings")
+            file_upload = FileUploadRequest(filename=filename, mimetype=mimetype)
+            normalized_uploads.append(file_upload)
+            normalized_value.append(file_upload.to_dict())
+        return normalized_uploads, normalized_value
+
+    def apply_field_values(self, fields: List[dict]) -> Dict[Tuple[int, str], List[FileUploadRequest]]:
+        if not isinstance(fields, list):
+            raise EntityError("Campos devem ser uma lista")
+
+        seen = set()
+        file_uploads = {}
+        for item in fields:
+            if not isinstance(item, dict):
+                raise EntityError("Campo deve ser um objeto")
+            section_id = item.get("section_id")
+            field_key = item.get("field_key")
+            value = item.get("value")
+
+            key = (section_id, field_key)
+            if key in seen:
+                raise EntityError(f"Campo '{field_key}' duplicado na seção {section_id}")
+            seen.add(key)
+
+            section = self._find_section(section_id)
+            field_index = self._find_field_index(section, field_key)
+            existing_field = section.fields[field_index]
+
+            if isinstance(existing_field, FileField) and value is not None:
+                uploads, value = self._normalize_file_uploads(value)
+                file_uploads[key] = uploads
+
+            section.fields[field_index] = existing_field.with_value(value)
+
+        self.ensure_required_fields_filled()
+        return file_uploads
+
+    def set_file_field_urls(self, section_id: int, field_key: str, file_urls: List[str]):
+        if not isinstance(file_urls, list) or not file_urls or not all(isinstance(url, str) for url in file_urls):
+            raise EntityError("URLs de arquivo devem ser uma lista não vazia")
+        section = self._find_section(section_id)
+        field_index = self._find_field_index(section, field_key)
+        field = section.fields[field_index]
+        if not isinstance(field, FileField):
+            raise EntityError("Campo não é do tipo arquivo")
+        field.set_value(file_urls)
+
+    def ensure_required_fields_filled(self):
+        for section in self.sections:
+            for field in section.fields:
+                if field.required and field.value is None:
+                    raise EntityError("Campo obrigatório não preenchido")
+
+    def complete(self, completed_at: int, updated_at: int):
+        if not isinstance(completed_at, int):
+            raise EntityError('Timestamp de conclusão deve ser um inteiro')
+        if not isinstance(updated_at, int):
+            raise EntityError('Timestamp de atualização deve ser um inteiro')
+        if self.status is not FORM_STATUS.IN_PROGRESS:
+            raise ForbiddenAction("Formulário não está em andamento")
+
+        self.ensure_required_fields_filled()
+        self.status = FORM_STATUS.COMPLETED
+        self.completed_at = completed_at
+        self.updated_at = updated_at
+
     def cancel(
         self,
         selected_option: str,
@@ -233,6 +351,9 @@ class Form(abc.ABC):
             raise EntityError('Timestamp de cancelamento deve ser um inteiro')
         if not isinstance(updated_at, int):
             raise EntityError('Timestamp de atualização deve ser um inteiro')
+
+        if self.is_finished():
+            raise ForbiddenAction("Formulário já está finalizado e não pode ser cancelado")
 
         option = next((item for item in self.justification.options if item.option == selected_option), None)
         if option is None:

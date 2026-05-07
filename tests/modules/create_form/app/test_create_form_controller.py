@@ -18,7 +18,7 @@ class Test_CreateFormController:
                 "sub": "d61dbf66-a10f-11ed-a8fc-0242ac120001",
                 "name": "Gabriel Godoy",
                 "email": "gabriel@gmail.com",
-                "cognito:groups": "FORMULARIOS"
+                "cognito:groups": "FORMULARIOS,GAIA"
             },
             "form_title": "FORM TITLE",
             "user_id": "d61dbf66-a10f-11ed-a8fc-0242ac120001",
@@ -332,3 +332,16 @@ class Test_CreateFormController:
         response = controller(request)
         assert response.status_code == 400
         assert "Chaves de campo duplicadas na seção" in response.body
+
+    def test_create_form_controller_forbidden_system(self):
+        repo = FormRepositoryMock()
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
+
+        body = self._make_base_body()
+        body["requester_user"]["cognito:groups"] = "FORMULARIOS,ORION"
+        request = HttpRequest(body=body)
+
+        response = controller(request)
+        assert response.status_code == 403
+        assert "permissão" in response.body

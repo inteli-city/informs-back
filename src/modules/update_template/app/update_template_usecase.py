@@ -1,11 +1,11 @@
-from datetime import datetime, timezone
 from typing import List, Optional
 
 from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.template import Template
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
 from src.shared.helpers.errors.domain_errors import EntityError
-from src.shared.helpers.errors.usecase_errors import DuplicatedItem, NoItemsFound
+from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
+from src.shared.helpers.functions.datetime_utils import now_timestamp_ms
 
 
 class UpdateTemplateUsecase:
@@ -24,6 +24,7 @@ class UpdateTemplateUsecase:
         self,
         template_id: str,
         requester_user_id: str,
+        requester_systems: Optional[List[str]] = None,
         name: Optional[str] = None,
         system: Optional[str] = None,
         description: Optional[str] = None,
@@ -33,27 +34,26 @@ class UpdateTemplateUsecase:
         template = self.template_repo.get_template(template_id)
         if template is None:
             raise NoItemsFound("Template não encontrado")
-
-        new_name = name if name is not None else template.name
-        new_system = system if system is not None else template.system
-        new_description = description if description is not None else template.description
-        new_is_active = is_active if is_active is not None else template.is_active
-        new_sections = sections if sections is not None else template.sections
+        if requester_systems is not None:
+            if template.system not in requester_systems:
+                raise ForbiddenAction("Usuário não tem permissão para acessar este template")
+            if system is not None and system not in requester_systems:
+                raise ForbiddenAction("Usuário não tem permissão para acessar este sistema")
 
         self._validate_sections(sections)
-        
-        now_ts = int(datetime.now(timezone.utc).timestamp() * 1000)
-        updated_at = max(now_ts, template.updated_at + 1)
-        updated_template = Template(
-            id=template.id,
-            name=new_name,
-            system=new_system,
-            description=new_description,
-            is_active=new_is_active,
-            created_by=template.created_by,
-            sections=new_sections,
-            created_at=template.created_at,
-            updated_at=updated_at,
-        )
 
-        return self.template_repo.update_template(updated_template)
+        if name is not None:
+            template.change_name(name)
+        if system is not None:
+            template.change_system(system)
+        if description is not None:
+            template.change_description(description)
+        if is_active is not None:
+            template.change_is_active(is_active)
+        if sections is not None:
+            template.change_sections(sections)
+
+        now_ts = now_timestamp_ms()
+        template.change_updated_at(max(now_ts, template.updated_at + 1))
+
+        return self.template_repo.update_template(template)

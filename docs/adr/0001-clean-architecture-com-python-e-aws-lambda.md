@@ -10,7 +10,7 @@
 
 ## Contexto
 
-O MSS Formulários é um microserviço serverless responsável por gerenciar formulários dinâmicos.
+O Informs Backend é o serviço serverless responsável pela geração e pelo preenchimento de formulários em campo na plataforma Intelicity.
 
 A decisão arquitetural foi guiada principalmente por:
 

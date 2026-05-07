@@ -1,10 +1,13 @@
 import json
+import logging
 import os
 from pathlib import Path
 
 JSON_PATH_SUFFIXES = ("/docs/json", "/docs/swagger.json", "/docs/openapi.json")
 JSON_QUERY_KEYS = ("format", "output")
 DEFAULT_SWAGGER_FILES = ("swagger.json", "swagger.contracts.json")
+logger = logging.getLogger(__name__)
+
 
 def _get_request_path(event: dict) -> str:
     if not event:
@@ -55,11 +58,12 @@ def _load_swagger_content() -> str:
         if not file_path.exists():
             continue
 
-        raw_content = file_path.read_text()
+        raw_content = file_path.read_text(encoding="utf-8")
         parsed = json.loads(raw_content)
         return json.dumps(parsed, ensure_ascii=True)
 
     raise FileNotFoundError(f"Swagger documentation not found. Tried: {', '.join(tried_files)}")
+
 
 def lambda_handler(event, context):
     try:
@@ -67,15 +71,15 @@ def lambda_handler(event, context):
     except FileNotFoundError:
         return {
             "statusCode": 500,
-            "body": "Swagger documentation not found."
+            "body": "Swagger documentation not found.",
         }
-    except Exception as e:
-        print(f"Erro ao ler swagger.json: {str(e)}")
+    except (OSError, json.JSONDecodeError):
+        logger.exception("Erro ao ler swagger.json")
         return {
             "statusCode": 500,
-            "body": json.dumps({"message": "Erro interno: Arquivo de documentação não encontrado."})
+            "body": json.dumps({"message": "Erro interno: Arquivo de documentação não encontrado."}),
         }
-    
+
     request_path = _get_request_path(event)
     query_params = _get_query_params(event)
     if _should_return_json_by_query(query_params) or _should_return_json(request_path):
@@ -83,12 +87,10 @@ def lambda_handler(event, context):
             "statusCode": 200,
             "headers": {
                 "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*"
+                "Access-Control-Allow-Origin": "*",
             },
-            "body": swagger_content
+            "body": swagger_content,
         }
-
-    
 
     html = f"""
         <!DOCTYPE html>
@@ -100,7 +102,7 @@ def lambda_handler(event, context):
         <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css" />
         <style>
             body {{ margin: 0; padding: 0; }}
-            .swagger-ui .topbar {{ display: none; }} 
+            .swagger-ui .topbar {{ display: none; }}
         </style>
         </head>
         <body>
@@ -109,7 +111,7 @@ def lambda_handler(event, context):
         <script>
             window.onload = () => {{
             window.ui = SwaggerUIBundle({{
-                spec: {swagger_content}, 
+                spec: {swagger_content},
                 dom_id: '#swagger-ui',
                 deepLinking: true,
                 presets: [
@@ -128,7 +130,7 @@ def lambda_handler(event, context):
         "statusCode": 200,
         "headers": {
             "Content-Type": "text/html",
-            "Access-Control-Allow-Origin": "*"
+            "Access-Control-Allow-Origin": "*",
         },
-        "body": html
+        "body": html,
     }

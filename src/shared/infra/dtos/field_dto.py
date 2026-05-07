@@ -233,12 +233,18 @@ class FieldDTO:
         file_type = field_dict.get("file_type")
         if file_type not in [file_type.value for file_type in FILE_TYPE]:
             raise EntityError(f"Tipo de arquivo '{file_type}' inválido")
+        # Normaliza valores legacy gravados como string única para lista,
+        # garantindo que consumidores (Apex sync, API) sempre vejam list[str].
+        # Mantém dict / list[dict] intactos pois são entradas de upload em curso.
+        raw_value = field_dict.get("value")
+        if isinstance(raw_value, str):
+            raw_value = [raw_value]
         return FileField(
             **base_args,
             file_type=FILE_TYPE[file_type],
             min_quantity=FieldDTO._to_int(field_dict.get("min_quantity")),
             max_quantity=FieldDTO._to_int(field_dict.get("max_quantity")),
-            value=field_dict.get("value"),
+            value=raw_value,
         )
 
 

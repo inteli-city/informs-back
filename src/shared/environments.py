@@ -38,6 +38,14 @@ class Environments:
     sync_forms_window_minutes: int
     sync_forms_first_run_full_sync: bool
 
+    @staticmethod
+    def _parse_bool(value) -> bool:
+        if isinstance(value, bool):
+            return value
+        if value is None:
+            return False
+        return str(value).strip().lower() in {"1", "true", "t", "yes", "y", "on"}
+
 
     def _configure_local(self):
         from dotenv import load_dotenv
@@ -76,7 +84,7 @@ class Environments:
             self.s3_endpoint_url = os.environ.get("S3_ENDPOINT_URL")
             self.sync_forms_page_limit = int(os.environ.get("SYNC_FORMS_PAGE_LIMIT", "100"))
             self.sync_forms_window_minutes = int(os.environ.get("SYNC_FORMS_WINDOW_MINUTES", "10"))
-            self.sync_forms_first_run_full_sync = os.environ.get("SYNC_FORMS_FIRST_RUN_FULL_SYNC", False)
+            self.sync_forms_first_run_full_sync = self._parse_bool(os.environ.get("SYNC_FORMS_FIRST_RUN_FULL_SYNC"))
 
     @staticmethod
     def get_form_repo() -> IFormRepository:
@@ -144,11 +152,28 @@ class Environments:
         else:
             raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
 
+    _instance: Optional["Environments"] = None
+
     @staticmethod
     def get_envs() -> "Environments":
-        envs = Environments()
-        envs.load_envs()
-        return envs
+        current_stage = os.environ.get("STAGE")
+        should_reload = (
+            Environments._instance is None
+            or (
+                current_stage is not None
+                and Environments._instance.stage.name != current_stage
+            )
+        )
+        if should_reload:
+            envs = Environments()
+            envs.load_envs()
+            Environments._instance = envs
+        return Environments._instance
+
+    @staticmethod
+    def _reset_instance():
+        """Reset cached instance. For use in tests only."""
+        Environments._instance = None
 
     def __repr__(self):
         return self.__dict__

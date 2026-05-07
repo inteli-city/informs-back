@@ -1,5 +1,8 @@
+import json
 import logging
 import traceback
+from functools import wraps
+from json import JSONDecodeError
 from typing import Any, Callable, Dict
 
 logger = logging.getLogger()
@@ -16,6 +19,7 @@ def lambda_logging_handler(fn: Callable[[Dict[str, Any], Any], Dict[str, Any]]):
     - ERROR:   respostas 5xx e exceções não tratadas (com traceback completo)
     """
 
+    @wraps(fn)
     def wrapper(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         path = ""
         method = ""
@@ -45,24 +49,35 @@ def lambda_logging_handler(fn: Callable[[Dict[str, Any], Any], Dict[str, Any]]):
         if status_code is None or status_code < 400:
             logger.info("Resposta %s para %s %s", status_code, method, path)
         elif status_code < 500:
-            body = response.get("body", "") if isinstance(response, dict) else ""
+            error_name = _extract_error_name(response)
             logger.warning(
-                "Erro de cliente %s em %s %s — %s",
+                "Erro de cliente %s em %s %s - %s",
                 status_code,
                 method,
                 path,
-                body,
+                error_name,
             )
         else:
-            body = response.get("body", "") if isinstance(response, dict) else ""
+            error_name = _extract_error_name(response)
             logger.error(
-                "Erro interno %s em %s %s — %s",
+                "Erro interno %s em %s %s - %s",
                 status_code,
                 method,
                 path,
-                body,
+                error_name,
             )
 
         return response
 
     return wrapper
+
+
+def _extract_error_name(response: dict) -> str:
+    try:
+        raw_body = response.get("body", "")
+        parsed = json.loads(raw_body) if isinstance(raw_body, str) else raw_body
+        if isinstance(parsed, dict):
+            return parsed.get("error") or parsed.get("message", "")[:120]
+    except (JSONDecodeError, TypeError):
+        pass
+    return ""

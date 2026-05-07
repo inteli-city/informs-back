@@ -208,6 +208,25 @@ class Test_FieldDTO:
         assert field_dto.field.file_type == FILE_TYPE.IMAGE
         assert field_dto.field.min_quantity == 1
         assert field_dto.field.max_quantity == 2
+
+    def test_field_dto_from_dynamo_file_field_legacy_single_string_value(self):
+        # Forms antigos foram persistidos com value como string única (1 arquivo).
+        # A camada de DTO agora normaliza para lista para garantir formato consistente
+        # ao consumidor downstream (Apex sync), independente de quantos arquivos.
+        field_dict = {
+            "field_type": "FILE_FIELD",
+            "placeholder": "placeholder",
+            "required": True,
+            "key": "key",
+            "value": "https://bucket.s3.amazonaws.com/file.jpg",
+            "file_type": "IMAGE",
+            "min_quantity": 1,
+            "max_quantity": 1
+        }
+
+        field_dto = FieldDTO.from_dynamo(field_dict)
+
+        assert field_dto.field.value == ["https://bucket.s3.amazonaws.com/file.jpg"]
     
 
     def test_field_dto_to_dynamo_text_field(self):

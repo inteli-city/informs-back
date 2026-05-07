@@ -237,3 +237,85 @@ class Test_Field:
     def test_file_field_value_is_not_max_quantity(self):
         with pytest.raises(EntityError):
             FileField(label='label', required=True, key='key', order=1, file_type=FILE_TYPE.IMAGE, min_quantity=1, max_quantity=2, value=['file1', 'file2', 'file3'])
+
+    def test_text_field_with_value_validates_and_keeps_original(self):
+        text_field = TextField(label='label', required=True, key='key', order=1, max_length=5, value='old')
+
+        updated = text_field.with_value('new')
+
+        assert text_field.value == 'old'
+        assert updated.value == 'new'
+
+        with pytest.raises(EntityError):
+            text_field.with_value('too-long')
+
+    def test_number_field_set_value_normalizes(self):
+        number_field = NumberField(label='label', required=True, key='key', order=1, max_value=10, min_value=1, decimal=True)
+
+        number_field.set_value('2')
+
+        assert number_field.value == 2.0
+
+        with pytest.raises(EntityError):
+            number_field.set_value('invalid')
+
+    def test_date_field_set_value_normalizes(self):
+        date_field = DateField(label='label', required=True, key='key', order=1, min_date=10, max_date=20)
+
+        date_field.set_value('15')
+
+        assert date_field.value == 15
+
+        with pytest.raises(EntityError):
+            date_field.set_value(21)
+
+    def test_checkbox_and_switch_set_value_normalize(self):
+        checkbox_field = CheckboxField(label='label', required=True, key='checkbox', order=1)
+        switch_field = SwitchButtonField(label='label', required=True, key='switch', order=1)
+
+        checkbox_field.set_value(1)
+        switch_field.set_value(0)
+
+        assert checkbox_field.value is True
+        assert switch_field.value is False
+
+    def test_checkbox_group_set_value_accepts_dict(self):
+        checkbox_group_field = CheckBoxGroupField(
+            label='label',
+            required=True,
+            key='key',
+            order=1,
+            options=['option1', 'option2'],
+            check_limit=1,
+        )
+
+        checkbox_group_field.set_value({'option1': True})
+
+        assert checkbox_group_field.value == [True, False]
+
+        with pytest.raises(EntityError):
+            checkbox_group_field.set_value({'unknown': True})
+
+        with pytest.raises(EntityError):
+            checkbox_group_field.set_value({'option1': True, 'option2': True})
+
+    def test_file_field_set_value_validates_quantities(self):
+        file_field = FileField(
+            label='label',
+            required=True,
+            key='key',
+            order=1,
+            file_type=FILE_TYPE.IMAGE,
+            min_quantity=1,
+            max_quantity=2,
+        )
+
+        file_field.set_value([{'filename': 'a.jpg'}])
+
+        assert file_field.value == [{'filename': 'a.jpg'}]
+
+        with pytest.raises(EntityError):
+            file_field.set_value([])
+
+        with pytest.raises(EntityError):
+            file_field.set_value(['a.jpg', 'b.jpg', 'c.jpg'])

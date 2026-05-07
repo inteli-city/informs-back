@@ -27,7 +27,7 @@ class TestUpdateTemplateController:
                 "sub": "user-1",
                 "name": "Tester",
                 "email": "tester@example.com",
-                "cognito:groups": "FORMULARIOS",
+                "cognito:groups": "FORMULARIOS,GAIA",
             },
             "template_id": self.template.id,
             "name": "Controller Update",
@@ -59,7 +59,7 @@ class TestUpdateTemplateController:
             ]
         }
         request = HttpRequest(body={
-            "requester_user": {"sub": "user-1", "name": "Tester", "email": "t@example.com", "cognito:groups": "FORMULARIOS"},
+            "requester_user": {"sub": "user-1", "name": "Tester", "email": "t@example.com", "cognito:groups": "FORMULARIOS,GAIA"},
             "template_id": self.template.id,
             "sections": [section],
         })
@@ -70,7 +70,7 @@ class TestUpdateTemplateController:
 
     def test_update_template_controller_missing_template_id(self):
         request = HttpRequest(body={
-            "requester_user": {"sub": "user-1", "name": "Tester", "email": "t@example.com", "cognito:groups": "FORMULARIOS"},
+            "requester_user": {"sub": "user-1", "name": "Tester", "email": "t@example.com", "cognito:groups": "FORMULARIOS,GAIA"},
         })
 
         response = self.controller(request)
@@ -78,7 +78,7 @@ class TestUpdateTemplateController:
 
     def test_update_template_controller_wrong_type(self):
         request = HttpRequest(body={
-            "requester_user": {"sub": "user-1", "name": "Tester", "email": "t@example.com", "cognito:groups": "FORMULARIOS"},
+            "requester_user": {"sub": "user-1", "name": "Tester", "email": "t@example.com", "cognito:groups": "FORMULARIOS,GAIA"},
             "template_id": self.template.id,
             "is_active": "yes",
         })
@@ -88,7 +88,7 @@ class TestUpdateTemplateController:
 
     def test_update_template_controller_accepts_legacy_isActive(self):
         request = HttpRequest(body={
-            "requester_user": {"sub": "user-1", "name": "Tester", "email": "t@example.com", "cognito:groups": "FORMULARIOS"},
+            "requester_user": {"sub": "user-1", "name": "Tester", "email": "t@example.com", "cognito:groups": "FORMULARIOS,GAIA"},
             "template_id": self.template.id,
             "isActive": False,
         })
@@ -96,3 +96,25 @@ class TestUpdateTemplateController:
         response = self.controller(request)
         assert response.status_code == 200
         assert response.body["is_active"] is False
+
+    def test_update_template_controller_forbidden_existing_system(self):
+        request = HttpRequest(body={
+            "requester_user": {"sub": "user-1", "name": "Tester", "email": "t@example.com", "cognito:groups": "FORMULARIOS,ORION"},
+            "template_id": self.template.id,
+            "name": "Blocked",
+        })
+
+        response = self.controller(request)
+        assert response.status_code == 403
+        assert "permissão" in response.body
+
+    def test_update_template_controller_forbidden_target_system(self):
+        request = HttpRequest(body={
+            "requester_user": {"sub": "user-1", "name": "Tester", "email": "t@example.com", "cognito:groups": "FORMULARIOS,GAIA"},
+            "template_id": self.template.id,
+            "system": "ORION",
+        })
+
+        response = self.controller(request)
+        assert response.status_code == 403
+        assert "permissão" in response.body

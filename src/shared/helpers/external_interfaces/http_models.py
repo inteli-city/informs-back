@@ -1,38 +1,42 @@
-from typing import Any
+from typing import Any, Optional
 from warnings import warn
 
-from src.shared.helpers.enum.http_status_code_enum import HttpStatusCodeEnum
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
 
 
 class HttpRequest(IRequest):
-    body: dict
+    body: Any
     headers: dict
     query_params: dict
     path_params: dict
-
     data: dict
 
-    def __init__(self, body: dict = None, headers: dict = None, query_params: dict = None, path_params: dict = None):
+    def __init__(
+        self,
+        body: Optional[Any] = None,
+        headers: Optional[dict] = None,
+        query_params: Optional[dict] = None,
+        path_params: Optional[dict] = None,
+    ):
         self.body = body or {}
         self.headers = headers or {}
         self.query_params = query_params or {}
         self.path_params = path_params or {}
         data_dict = {}
 
-        # check overlapping keys
-        if type(body) is dict:
+        if isinstance(body, dict):
             data_dict.update(body)
-            if [key for key in self.body.keys() if key in self.query_params.keys()] or [key for key in self.body.keys()
-                                                                                        if key in self.headers.keys()]:
-                warn(
-                    f"body, query_params and/or headers have overlapping keys → {[key for key in self.body.keys() if key in self.query_params.keys()] or [key for key in self.body.keys() if key in self.headers.keys()]}")
+            overlaps = sorted(
+                set(self.body).intersection(self.query_params).union(set(self.body).intersection(self.headers))
+            )
+            if overlaps:
+                warn(f"body, query_params and/or headers have overlapping keys -> {overlaps}")
         else:
-            if [key for key in self.query_params.keys() if key in self.headers.keys()]:
-                warn(
-                    f"query_params and headers have overlapping keys → {[key for key in self.query_params.keys() if key in self.headers.keys()]}")
+            overlaps = sorted(set(self.query_params).intersection(self.headers))
+            if overlaps:
+                warn(f"query_params and headers have overlapping keys -> {overlaps}")
 
-        if type(body) is str:
+        if isinstance(body, str):
             data_dict.update({"body": body})
 
         data_dict.update(self.headers)
@@ -56,23 +60,30 @@ class HttpRequest(IRequest):
 
 class HttpResponse(IResponse):
     status_code: int
-    body: dict
+    body: Any
     headers: dict
-
     data: dict
 
-    def __init__(self, status_code: int, body: dict = {}, headers: dict = {}, data: dict = {}):
+    def __init__(
+        self,
+        status_code: int,
+        body: Optional[Any] = None,
+        headers: Optional[dict] = None,
+        data: Optional[dict] = None,
+    ):
+        resolved_data = data or {}
+
         self.status_code = status_code
-        self.body = body or data
-        self.headers = headers
+        self.body = body if body is not None else resolved_data
+        self.headers = dict(headers or {})
 
         data_dict = {}
-        if type(body) is dict:
-            data_dict.update(body)
-        if type(body) is str:
-            data_dict.update({"body": body})
+        if isinstance(self.body, dict):
+            data_dict.update(self.body)
+        elif isinstance(self.body, str):
+            data_dict.update({"body": self.body})
 
-        data_dict.update(headers)
+        data_dict.update(self.headers)
         self.data = data_dict
 
     @property
@@ -84,26 +95,14 @@ class HttpResponse(IResponse):
         self._data = value
 
     @property
-    def status_code(self) -> dict:
+    def status_code(self) -> int:
         return self._status_code
 
     @status_code.setter
-    def status_code(self, value: dict):
+    def status_code(self, value: int):
         self._status_code = value
 
     def __repr__(self):
         return (
             f"HttpResponse (status_code={self.status_code}, body={self.body}, headers={self.headers})"
         )
-
-
-if __name__ == '__main__':
-    # test
-    body = {"body": "body"}
-    headers = {"headers": "headers", "body": "body"}
-    query_params = {"query_params": "query_params"}
-    data = {"data": "data"}
-    request = HttpRequest(body, headers, query_params)
-    response = HttpResponse(200, body, headers)
-    print(request)
-    print(response)

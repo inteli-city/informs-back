@@ -1,21 +1,22 @@
-from datetime import datetime, timezone
+from copy import deepcopy
 from typing import List, Optional
 import uuid
-from copy import deepcopy
-from src.shared.domain.entities.form import Form
+
 from src.shared.domain.entities.file_upload import FileUpload, FileUploadRequest
+from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.information_field import FileInformationField, InformationField
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.file_type_enum import FILE_TYPE
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.enums.priority_enum import PRIORITY
-from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.file_repository_interface import IFileRepository
+from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
-from src.shared.helpers.functions.s3_url import build_s3_url
 from src.shared.helpers.errors.domain_errors import EntityError
-from src.shared.helpers.errors.usecase_errors import NoItemsFound
+from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
+from src.shared.helpers.functions.datetime_utils import now_timestamp_ms, utc_year
+from src.shared.helpers.functions.s3_url import build_s3_url
 
 
 class CreateFormUsecase:
@@ -23,7 +24,7 @@ class CreateFormUsecase:
         self,
         form_repo: IFormRepository,
         file_repo: IFileRepository,
-        template_repo: Optional[ITemplateRepository] = None
+        template_repo: Optional[ITemplateRepository] = None,
     ):
         self.form_repo = form_repo
         self.file_repo = file_repo
@@ -48,10 +49,13 @@ class CreateFormUsecase:
         expiration_date: Optional[int] = None,
         information_fields: Optional[List[InformationField]] = None,
         information_fields_uploads: Optional[List[Optional[FileUploadRequest]]] = None,
+        requester_systems: Optional[List[str]] = None,
     ) -> tuple[Form, list[FileUpload]]:
-        
+        if requester_systems is not None and system not in requester_systems:
+            raise ForbiddenAction("Usuário não tem permissão para acessar este sistema")
+
         form_id = str(uuid.uuid4())
-        now_timestamp = int(datetime.now(timezone.utc).timestamp() * 1000)
+        now_timestamp = now_timestamp_ms()
         files: list[FileUpload] = []
         resolved_sections = sections
 
@@ -61,6 +65,10 @@ class CreateFormUsecase:
             resolved_template = self.template_repo.get_template(template)
             if resolved_template is None:
                 raise NoItemsFound("Template não encontrado")
+            if resolved_template.system != system:
+                raise ForbiddenAction("Template não pertence ao sistema informado")
+            if not resolved_template.is_active:
+                raise ForbiddenAction("Template não está ativo")
             resolved_sections = deepcopy(resolved_template.sections)
 
         if information_fields:
@@ -74,7 +82,7 @@ class CreateFormUsecase:
                         raise EntityError("mimetype")
                     mimetype = upload.mimetype
                     filename = upload.filename
-                    file_path = f'{datetime.now(timezone.utc).year}/{system}/{form_id}/information_field/{str(uuid.uuid4())}.{mimetype.split("/")[-1]}'
+                    file_path = f'{utc_year()}/{system}/{form_id}/information_field/{str(uuid.uuid4())}.{mimetype.split("/")[-1]}'
                     presigned_url = self.file_repo.generate_presigned_url(
                         file_path=file_path,
                         mimetype=mimetype,
@@ -119,7 +127,7 @@ class CreateFormUsecase:
             observation=observation,
             expiration_date=expiration_date,
             justification=justification,
-            information_fields=information_fields
+            information_fields=information_fields,
         )
 
         created_form = self.form_repo.create_form(form)

@@ -39,4 +39,6 @@ class UserGatewayDTO:
         )
     
     def __eq__(self, other):
+        if not isinstance(other, UserGatewayDTO):
+            return False
         return self.user_id == other.user_id

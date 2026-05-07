@@ -1,4 +1,5 @@
 import abc
+from copy import deepcopy
 from typing import List, Optional, Union
 
 from src.shared.domain.enums.fields_enum import FIELD_TYPE
@@ -50,6 +51,21 @@ class Field(abc.ABC):
             "key": self.key,
         }
 
+    def normalize_value(self, value):
+        self._validate_value(value)
+        return value
+
+    def _validate_value(self, value):
+        return None
+
+    def set_value(self, value):
+        self.value = self.normalize_value(value)
+
+    def with_value(self, value):
+        field = deepcopy(self)
+        field.set_value(value)
+        return field
+
 
 class TextField(Field):
     max_length: Optional[int]
@@ -74,6 +90,13 @@ class TextField(Field):
             if max_length is not None and len(value) > max_length:
                 raise EntityError(f'Valor excede o comprimento máximo de {max_length} caracteres')
         self.value = value
+
+    def _validate_value(self, value):
+        if value is not None:
+            if not isinstance(value, str):
+                raise EntityError('Valor do campo de texto deve ser uma string')
+            if self.max_length is not None and len(value) > self.max_length:
+                raise EntityError(f'Valor excede o comprimento máximo de {self.max_length} caracteres')
 
     def to_legacy_dict(self) -> dict:
         base = super().to_legacy_dict()
@@ -117,6 +140,27 @@ class NumberField(Field):
                 raise EntityError('Valor não pode ser decimal para este campo')
         self.value = value
 
+    def normalize_value(self, value):
+        if value is None:
+            return None
+        try:
+            normalized_value = float(value)
+        except (TypeError, ValueError):
+            raise EntityError('Valor numérico deve ser um número')
+        self._validate_value(normalized_value)
+        return normalized_value
+
+    def _validate_value(self, value):
+        if value is not None:
+            if not isinstance(value, (int, float)):
+                raise EntityError('Valor numérico deve ser um número')
+            if self.min_value is not None and value < self.min_value:
+                raise EntityError(f'Valor {value} é menor que o mínimo permitido ({self.min_value})')
+            if self.max_value is not None and value > self.max_value:
+                raise EntityError(f'Valor {value} é maior que o máximo permitido ({self.max_value})')
+            if self.decimal is False and isinstance(value, float) and not value.is_integer():
+                raise EntityError('Valor não pode ser decimal para este campo')
+
     def to_legacy_dict(self) -> dict:
         base = super().to_legacy_dict()
         base.update({
@@ -141,6 +185,10 @@ class DropDownField(Field):
         if value is not None and (not isinstance(value, str) or value not in options):
             raise EntityError(f"Valor '{value}' não está entre as opções permitidas: {options}")
         self.value = value
+
+    def _validate_value(self, value):
+        if value is not None and (not isinstance(value, str) or value not in self.options):
+            raise EntityError(f"Valor '{value}' não está entre as opções permitidas: {self.options}")
 
     def to_legacy_dict(self) -> dict:
         base = super().to_legacy_dict()
@@ -170,6 +218,10 @@ class TypeAheadField(Field):
             raise EntityError('Valor do campo deve ser uma string')
         self.value = value
 
+    def _validate_value(self, value):
+        if value is not None and not isinstance(value, str):
+            raise EntityError('Valor do campo deve ser uma string')
+
     def to_legacy_dict(self) -> dict:
         base = super().to_legacy_dict()
         base.update({
@@ -193,6 +245,10 @@ class RadioGroupField(Field):
         if value is not None and (not isinstance(value, str) or value not in options):
             raise EntityError(f"Valor '{value}' não está entre as opções permitidas: {options}")
         self.value = value
+
+    def _validate_value(self, value):
+        if value is not None and (not isinstance(value, str) or value not in self.options):
+            raise EntityError(f"Valor '{value}' não está entre as opções permitidas: {self.options}")
 
     def to_legacy_dict(self) -> dict:
         base = super().to_legacy_dict()
@@ -227,6 +283,25 @@ class DateField(Field):
                 raise EntityError(f'Data {value} é posterior à data máxima permitida ({max_date})')
         self.value = value
 
+    def normalize_value(self, value):
+        if value is None:
+            return None
+        try:
+            normalized_value = int(value)
+        except (TypeError, ValueError):
+            raise EntityError('Data deve ser um timestamp inteiro')
+        self._validate_value(normalized_value)
+        return normalized_value
+
+    def _validate_value(self, value):
+        if value is not None:
+            if not isinstance(value, int):
+                raise EntityError('Data deve ser um timestamp inteiro')
+            if self.min_date is not None and value < self.min_date:
+                raise EntityError(f'Data {value} é anterior à data mínima permitida ({self.min_date})')
+            if self.max_date is not None and value > self.max_date:
+                raise EntityError(f'Data {value} é posterior à data máxima permitida ({self.max_date})')
+
     def to_legacy_dict(self) -> dict:
         base = super().to_legacy_dict()
         base.update({
@@ -245,6 +320,13 @@ class CheckboxField(Field):
         if value is not None and not isinstance(value, bool):
             raise EntityError('Valor do checkbox deve ser verdadeiro ou falso')
         self.value = value
+
+    def normalize_value(self, value):
+        return bool(value) if value is not None else None
+
+    def _validate_value(self, value):
+        if value is not None and not isinstance(value, bool):
+            raise EntityError('Valor do checkbox deve ser verdadeiro ou falso')
 
     def to_legacy_dict(self) -> dict:
         base = super().to_legacy_dict()
@@ -277,6 +359,46 @@ class CheckBoxGroupField(Field):
                 raise EntityError(f'Número de opções selecionadas excede o limite de {check_limit}')
         self.value = value
 
+    def normalize_value(self, value):
+        normalized_value = None
+        if value is not None:
+            if isinstance(value, dict):
+                unknown_keys = [key for key in value.keys() if key not in self.options]
+                if unknown_keys:
+                    raise EntityError(f"Chaves desconhecidas no valor do checkbox: {unknown_keys}")
+                normalized_value = []
+                for option in self.options:
+                    entry = value.get(option)
+                    if entry is None:
+                        entry = False
+                    if isinstance(entry, (int, float)) and entry in (0, 1):
+                        entry = bool(entry)
+                    if not isinstance(entry, bool):
+                        raise EntityError(f"Valor da opção '{option}' deve ser verdadeiro ou falso")
+                    normalized_value.append(entry)
+            elif isinstance(value, list):
+                normalized_value = []
+                for entry in value:
+                    if entry is None:
+                        normalized_value.append(False)
+                    elif isinstance(entry, (int, float)) and entry in (0, 1):
+                        normalized_value.append(bool(entry))
+                    elif isinstance(entry, bool):
+                        normalized_value.append(entry)
+                    else:
+                        raise EntityError(f"Cada entrada do checkbox deve ser verdadeiro ou falso, recebido: {entry}")
+            else:
+                raise EntityError("Valor do checkbox deve ser um objeto ou lista de booleanos")
+        self._validate_value(normalized_value)
+        return normalized_value
+
+    def _validate_value(self, value):
+        if value is not None:
+            if not isinstance(value, list) or len(value) != len(self.options) or not all(isinstance(val, bool) for val in value):
+                raise EntityError(f'Valor deve ser uma lista de booleanos com exatamente {len(self.options)} elemento(s)')
+            if self.check_limit is not None and sum(value) > self.check_limit:
+                raise EntityError(f'Número de opções selecionadas excede o limite de {self.check_limit}')
+
     def to_legacy_dict(self) -> dict:
         base = super().to_legacy_dict()
         base.update({
@@ -295,6 +417,13 @@ class SwitchButtonField(Field):
         if value is not None and not isinstance(value, bool):
             raise EntityError('Valor do switch deve ser verdadeiro ou falso')
         self.value = value
+
+    def normalize_value(self, value):
+        return bool(value) if value is not None else None
+
+    def _validate_value(self, value):
+        if value is not None and not isinstance(value, bool):
+            raise EntityError('Valor do switch deve ser verdadeiro ou falso')
 
     def to_legacy_dict(self) -> dict:
         base = super().to_legacy_dict()
@@ -336,6 +465,18 @@ class FileField(Field):
             elif not isinstance(value, (str, dict)):
                 raise EntityError('Valor do campo de arquivo deve ser uma string, objeto ou lista')
         self.value = value
+
+    def _validate_value(self, value):
+        if value is not None:
+            if isinstance(value, list):
+                if not all(isinstance(item, (str, dict)) for item in value):
+                    raise EntityError('Cada arquivo deve ser identificado por uma string ou objeto')
+                if self.min_quantity is not None and len(value) < self.min_quantity:
+                    raise EntityError(f'Número de arquivos ({len(value)}) é menor que o mínimo exigido ({self.min_quantity})')
+                if self.max_quantity is not None and len(value) > self.max_quantity:
+                    raise EntityError(f'Número de arquivos ({len(value)}) excede o máximo permitido ({self.max_quantity})')
+            elif not isinstance(value, (str, dict)):
+                raise EntityError('Valor do campo de arquivo deve ser uma string, objeto ou lista')
 
     def to_legacy_dict(self) -> dict:
         base = super().to_legacy_dict()

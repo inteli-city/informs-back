@@ -10,7 +10,7 @@
 
 ## Contexto
 
-Formulários criados e preenchidos no MSS Formulários precisam ser enviados ao sistema de origem (Oracle Apex) para processamento downstream. A sincronização precisa:
+Formulários criados e preenchidos no Informs precisam ser enviados ao sistema de origem (Oracle Apex) para processamento downstream. A sincronização precisa:
 
 - Executar periodicamente sem intervenção manual
 - Lidar com falhas parciais (alguns formulários falham, outros succedem)
