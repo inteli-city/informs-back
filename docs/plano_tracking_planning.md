@@ -12,7 +12,7 @@
 
 Adicionar duas capacidades novas ao Informs:
 
-1. **Tracking de motoverificadores em tempo real** — app mobile envia GPS via WebSocket; gestor vê todos os motocas online no mapa, com última posição dos offline e rota percorrida no dia.
+1. **Tracking de motoverificadores em tempo real** — app mobile envia GPS via WebSocket; gestor vê todos os motoverificadores online no mapa, com última posição dos offline e rota percorrida no dia.
 2. **Route Planner on-demand** — endpoint puro: dado uma lista de form_ids + ponto inicial + ponto final opcional, devolve a sequência ordenada (nearest-neighbor + Haversine).
 
 Tudo dentro do Informs, seguindo a Clean Architecture já estabelecida.
@@ -24,16 +24,16 @@ Tudo dentro do Informs, seguindo a Clean Architecture já estabelecida.
 | # | Item | Decisão |
 |---|------|---------|
 | 1 | Auth do app & web | Cognito (grupo `FORMULARIOS`) + RBAC em DynamoDB (Profile.role) |
-| 2 | Frequência de captura | 60s — ~15 motocas, 8h/dia |
+| 2 | Frequência de captura | 60s — ~15 motoverificadores, 8h/dia |
 | 3 | Rota percorrida | Default desde 00:00 BRT do dia atual; gestor escolhe data |
 | 4 | TTL de location | **Sem TTL** — guardar histórico indefinido |
 | 5 | Detecção de offline | TTL 5min na tabela Connection + ping/heartbeat 60s |
 | 6 | Snapshot inicial gestor | REST `GET /tracking/snapshot` antes de assinar WS |
 | 7 | Idempotência batch | `PutItem` com `attribute_not_exists(SK)` — duplicado dropa |
-| 8 | Multi-device motoca | Aceita; cada conexão é independente |
+| 8 | Multi-device motoverificador | Aceita; cada conexão é independente |
 | 9 | Profile bootstrap | Gestor pré-cadastra (`POST /tracking/profiles`) |
 | 10 | `active=false` | Bloqueia login; gestor não vê no mapa |
-| 11 | Cache no Connection | Sim — guarda role/system/name no $connect |
+| 11 | Cache no Connection | Sim — guarda role no $connect (system/name ficam pra v2) |
 | 12 | Route planner | `form_ids` explícito no body; `end` opcional (default termina no último); Haversine + nearest-neighbor |
 
 ---
@@ -47,7 +47,7 @@ Tudo dentro do Informs, seguindo a Clean Architecture já estabelecida.
 | PK | `user#{user_id}` |
 | SK | `METADATA` |
 | user_id | string (Cognito sub) |
-| role | enum `MOTOCA` \| `GESTOR` |
+| role | enum `MOTOVERIFICADOR` \| `GESTOR` |
 | name | string |
 | email | string |
 | system | string (`GAIA`, `SGC`, `GEOVISTA`, `INTELIFLEETS`) |
@@ -59,28 +59,26 @@ Tudo dentro do Informs, seguindo a Clean Architecture já estabelecida.
 **GSI ByRole**:
 - PK: `role#{role}`
 - SK: `system#{system}#user#{user_id}`
-- Uso: listar todos os MOTOCAs de um sistema; listar GESTORes ativos
+- Uso: listar todos os MOTOVERIFICADOR de um sistema; listar GESTORes ativos
 
 ### 2.2 Tabela nova `informs-tracking-connection`
 
-| Campo | Tipo |
-|-------|------|
-| PK | `connection#{connection_id}` |
-| SK | `METADATA` |
-| connection_id | string |
-| user_id | string |
-| role | enum |
-| system | string |
-| name | string (cache do Profile) |
-| connected_at | int (epoch ms) |
-| last_seen_at | int (epoch ms) |
-| ttl | int (epoch s) — **DynamoDB TTL ativo** |
-| source_ip | string |
+#### Campos do v1 (mínimo necessário pra ser resiliente e idempotente)
+
+| Campo | Tipo | Por que existe |
+|-------|------|----------------|
+| PK | `connection#{connection_id}` | — |
+| SK | `METADATA` | — |
+| connection_id | string | ID gerado pelo API Gateway. **Sem ele não existe fan-out** (`apigatewaymanagementapi.post_to_connection` exige) |
+| user_id | string | Pra saber DE QUEM é a conexão e poder buscar o Profile |
+| role | enum `MOTOVERIFICADOR` \| `GESTOR` | Cache pra fan-out eficiente. Sem isso o broadcast viraria N+1 query (uma busca de Profile pra cada conexão) |
+| last_seen_at | int (epoch ms) | Última atividade da conexão (qualquer mensagem do cliente atualiza). **Necessário pro mecanismo de auto-cleanup** |
+| ttl | int (epoch s) | Atributo especial do DynamoDB — quando passar do `now()`, o item é apagado automaticamente. Setado como `last_seen_at + 5min`. **Garante limpeza de conexões zumbis sem código de cleanup** |
 
 **GSI ByUser**:
 - PK: `user#{user_id}`
 - SK: `connection#{connection_id}`
-- Uso: descobrir se um motoca tem conexão ativa
+- Uso: descobrir se um motoverificador tem conexão ativa
 
 **GSI ByRole**:
 - PK: `role#{role}`
@@ -89,31 +87,53 @@ Tudo dentro do Informs, seguindo a Clean Architecture já estabelecida.
 
 **TTL**: `last_seen_at + 5min`. Renovado a cada `ping` ou `location` recebido. Após o TTL, item é apagado automaticamente pelo DynamoDB → conexão considerada zumbi.
 
+> **Por que o mecanismo TTL + last_seen_at é necessário:** o evento `$disconnect` do WebSocket é **best-effort** — se o app for encerrado abruptamente, perder rede em túnel ou ficar sem bateria, o evento simplesmente não chega no backend. Sem o TTL, conexões "fantasmas" ficariam acumuladas na tabela e o gestor enxergaria motoverificadores online que já largaram o turno. Com TTL, é a infra do DynamoDB que faz o cleanup — zero código adicional.
+
+#### Campos planejados para evolução futura (NÃO entram no v1)
+
+Se virem necessários depois, adicionar como atributos novos sem migração (DynamoDB é schemaless):
+
+| Campo | Para que serviria |
+|-------|-------------------|
+| `system` (cache) | Filtrar fan-out por sistema (ex: gestor GAIA só recebe broadcast de motoverificador GAIA). No v1 o front filtra. |
+| `name` (cache do Profile) | Incluir nome no payload do broadcast sem ter que buscar Profile. Otimização de leitura. |
+| `connected_at` | Saber há quanto tempo a conexão está aberta. Útil pra observabilidade ("conexão de 4h, sessão longa"). |
+| `source_ip` | Auditoria e debug ("conexão veio de onde?"). |
+
 ### 2.3 Tabela nova `informs-tracking-location`
 
-| Campo | Tipo |
-|-------|------|
-| PK | `user#{user_id}` |
-| SK | `ts#{epoch_ms_zero_padded_13}` |
-| user_id | string |
-| latitude | number |
-| longitude | number |
-| accuracy | number \| null (metros) |
-| speed | number \| null (m/s) |
-| heading | number \| null (graus) |
-| ts_device | int (epoch ms — timestamp do device, fonte da verdade) |
-| server_received_at | int (epoch ms) |
-| source | enum `REALTIME` \| `BUFFER_FLUSH` |
-| connection_id | string \| null (apenas para REALTIME) |
+#### Campos do v1 (mínimo necessário pra ser idempotente e útil no mapa)
+
+| Campo | Tipo | Por que existe |
+|-------|------|----------------|
+| PK | `user#{user_id}` | — |
+| SK | `ts#{ts_device_zero_padded_13}` | — |
+| user_id | string | Dono da posição |
+| latitude | number | Coordenada |
+| longitude | number | Coordenada |
+| ts_device | int (epoch ms) | **Crítico**: (1) é a chave de idempotência — `(user_id, ts_device)` dedupa o reenvio do buffer offline; (2) é a fonte da verdade temporal — o servidor pode receber muito depois (buffer pode demorar horas), e usar `now()` quebraria a ordem real dos pontos quando o app sincroniza |
+| accuracy | number \| null (metros) | Precisão do GPS reportada pelo device. Vem grátis na captura (toda lib de GPS retorna). Útil pro frontend desenhar a "bolha de incerteza" e descartar pontos ruins (ex: ignorar accuracy > 100m que é spike) |
 
 **GSI ByDate**:
-- PK: `user#{user_id}#date#{YYYY-MM-DD}` (data calculada de ts_device em BRT)
-- SK: `ts#{epoch_ms}`
-- Uso: query "rota do user X no dia Y" (eficiente)
+- PK: `user#{user_id}#date#{YYYY-MM-DD}` (data calculada de `ts_device` em BRT)
+- SK: `ts#{ts_device_padded}`
+- Uso: query "rota do user X no dia Y" (eficiente, sem scan)
 
 **Idempotência**: PK `user#{user_id}` + SK `ts#{ts_device}` é a chave de dedup. Se o batch reenviar uma posição com o mesmo `ts_device`, `PutItem` com `ConditionExpression: attribute_not_exists(SK)` rejeita silenciosamente.
 
 **Sem TTL** — histórico mantido indefinido.
+
+#### Campos planejados para evolução futura (NÃO entram no v1)
+
+Adicionáveis depois sem migração:
+
+| Campo | Para que serviria |
+|-------|-------------------|
+| `speed` (m/s) | Saber se o motoverificador está parado (vistoriando) ou em movimento. Filtrar GPS spikes (velocidades absurdas). |
+| `heading` (graus 0-360°) | Direção de deslocamento. Permite o front desenhar uma "seta" no ícone do motoverificador apontando pra onde ele está indo. |
+| `server_received_at` (epoch ms) | Quando o backend recebeu (vs quando o device capturou). Calcula a latência real e ajuda a diferenciar realtime de buffer flush. |
+| `source` enum `REALTIME` \| `BUFFER_FLUSH` | Estatística de conectividade ("X% das posições chegaram via buffer"). Pode pintar pontos diferentes no mapa. |
+| `connection_id` (string \| null) | Auditoria: qual conexão WebSocket originou aquela posição (só faz sentido pra `source=REALTIME`). |
 
 ---
 
@@ -125,7 +145,7 @@ Sob a API REST atual do Informs (`/mss-formularios`), adicionando o prefixo `/tr
 
 | Método | Path | Descrição |
 |--------|------|-----------|
-| POST | `/tracking/profiles` | Cria profile (gestor pré-cadastra motoca) |
+| POST | `/tracking/profiles` | Cria profile (gestor pré-cadastra motoverificador) |
 | GET | `/tracking/profiles` | Lista profiles com filtros `?role=&system=&active=` |
 | GET | `/tracking/profiles/{user_id}` | Busca 1 profile |
 | PUT | `/tracking/profiles/{user_id}` | Atualiza (nome, placa, sistema, active) |
@@ -134,10 +154,10 @@ Sob a API REST atual do Informs (`/mss-formularios`), adicionando o prefixo `/tr
 
 | Método | Path | Descrição |
 |--------|------|-----------|
-| GET | `/tracking/snapshot` | Lista todos os MOTOCAs com {última posição, online/offline, profile resumido}. Usado quando abre o mapa. |
+| GET | `/tracking/snapshot` | Lista todos os MOTOVERIFICADOR com {última posição, online/offline, profile resumido}. Usado quando abre o mapa. |
 | GET | `/tracking/users/{user_id}/route?date=YYYY-MM-DD` | Rota percorrida no dia (default = hoje BRT) |
 
-### 3.3 Tracking — motoca
+### 3.3 Tracking — motoverificador
 
 | Método | Path | Descrição |
 |--------|------|-----------|
@@ -173,13 +193,13 @@ No `$connect`:
 3. Verifica grupo `FORMULARIOS`
 4. Busca Profile do `sub` na tabela `informs-tracking-profile`
 5. Rejeita se: profile não existe OU `active=false`
-6. Retorna policy ALLOW + context `{user_id, role, system, name}` para o `tracking_ws_connect` consumir e cachear
+6. Retorna policy ALLOW + context `{user_id, role}` para o `tracking_ws_connect` consumir e cachear na tabela Connection (v1 cacheia só role; system/name vão pra v2)
 
 ### 4.3 Fan-out (broadcast realtime)
 
-Quando `tracking_ws_location` recebe posição de um motoca:
+Quando `tracking_ws_location` recebe posição de um motoverificador:
 1. Persiste em `informs-tracking-location` (idempotente)
-2. Atualiza `last_seen_at` da Connection do motoca
+2. Atualiza `last_seen_at` da Connection do motoverificador
 3. Query GSI `ByRole` na tabela Connection com `role=GESTOR` → lista de connection_ids
 4. Para cada gestor conectado, faz `apigatewaymanagementapi.post_to_connection(...)` com payload:
    ```json
@@ -228,7 +248,7 @@ src/shared/
 │   │   ├── connection.py           # Connection entity
 │   │   └── location.py             # Location entity
 │   ├── enums/
-│   │   ├── profile_role_enum.py    # MOTOCA, GESTOR
+│   │   ├── profile_role_enum.py    # MOTOVERIFICADOR, GESTOR
 │   │   └── location_source_enum.py # REALTIME, BUFFER_FLUSH
 │   └── repositories/
 │       ├── profile_repository_interface.py
@@ -359,10 +379,10 @@ A ideia é não juntar tudo num PR gigante — cada PR deve ser revisável/deplo
 | `PUT /tracking/profiles/{id}` | GESTOR |
 | `GET /tracking/snapshot` | GESTOR |
 | `GET /tracking/users/{id}/route` | GESTOR |
-| `POST /tracking/locations/batch` | MOTOCA dono (próprio user_id no token) |
+| `POST /tracking/locations/batch` | MOTOVERIFICADOR dono (próprio user_id no token) |
 | `POST /tracking/route-plan` | GESTOR |
 | WebSocket `$connect` | qualquer profile ativo |
-| WebSocket route `location` | apenas se a connection foi cacheada com role=MOTOCA |
+| WebSocket route `location` | apenas se a connection foi cacheada com role=MOTOVERIFICADOR |
 | WebSocket fan-out destino | apenas connections com role=GESTOR |
 
 A validação acontece em 2 camadas:
@@ -374,8 +394,8 @@ A validação acontece em 2 camadas:
 ## 10. Considerações de custo
 
 Volume estimado:
-- **15 motocas × 60 records/h × 8h × 22 dias úteis/mês = 158 400 location writes/mês**
-- WebSocket messages = ~2× isso (envio do motoca + fan-out p/ N gestores). Para 5 gestores conectados: ~950 mensagens/mês.
+- **15 motoverificadores × 60 records/h × 8h × 22 dias úteis/mês = 158 400 location writes/mês**
+- WebSocket messages = ~2× isso (envio do motoverificador + fan-out p/ N gestores). Para 5 gestores conectados: ~950 mensagens/mês.
 
 Custo aproximado (sa-east-1, on-demand):
 - DynamoDB writes: 158k × $1.25/1M = **~$0.20/mês**
@@ -406,7 +426,7 @@ Total estimado: **<$5/mês** em homolog/prod (sem contar storage acumulado, que 
 | `$disconnect` não chega → connection zumbi | TTL 5min na tabela Connection |
 | Fan-out lento se muitos gestores | Aceitar como limitação inicial; futuro: SQS fila intermediária |
 | Idempotência depende de ts_device confiável | Documentar no contrato com app mobile; rejeitar ts_device > now+5min como sanity check |
-| Volume de location explode (motoca esquece app aberto) | Adicionar rate-limit no batch endpoint (ex: máx 1000 positions/batch) |
+| Volume de location explode (motoverificador esquece app aberto) | Adicionar rate-limit no batch endpoint (ex: máx 1000 positions/batch) |
 | Crescimento da tabela Location (sem TTL) | Monitorar; se virar problema, mover para S3 + Athena pra arquivo |
 
 ---
@@ -414,7 +434,7 @@ Total estimado: **<$5/mês** em homolog/prod (sem contar storage acumulado, que 
 ## 13. Não está no escopo deste plano
 
 - Notificações push (FCM) pra alertar gestor de eventos
-- Geofencing / alertas se motoca sair de área
+- Geofencing / alertas se motoverificador sair de área
 - Replay de rota com timeline scrubbing avançada
 - Integração Google Maps Distance Matrix (rota real com trânsito)
 - Multi-tenant — segregar gestores entre empresas
