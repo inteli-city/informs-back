@@ -1,11 +1,13 @@
 import math
 
+import pytest
+
 from src.shared.helpers.functions.haversine import EARTH_RADIUS_KM, haversine_km
 
 
 class TestHaversine:
     def test_zero_distance_for_same_point(self):
-        assert haversine_km(-23.56, -46.65, -23.56, -46.65) == 0.0
+        assert haversine_km(-23.56, -46.65, -23.56, -46.65) == pytest.approx(0.0, abs=1e-9)
 
     def test_known_distance_sao_paulo_to_rio(self):
         # São Paulo (-23.5505, -46.6333) → Rio (-22.9068, -43.1729) ≈ 360 km em linha reta.

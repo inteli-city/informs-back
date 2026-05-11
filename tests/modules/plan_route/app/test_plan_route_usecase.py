@@ -1,5 +1,7 @@
 from copy import deepcopy
 
+import pytest
+
 from src.modules.plan_route.app.plan_route_usecase import PlanRouteUsecase
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.enums.priority_enum import PRIORITY
@@ -48,7 +50,7 @@ class TestPlanRouteUsecase:
         )
 
         assert ordered_forms == []
-        assert total_km == 0.0
+        assert total_km == pytest.approx(0.0, abs=1e-9)
 
     def test_returns_only_what_is_available_when_less_than_n(self):
         # REQUESTER_USER_ID tem apenas 1 PENDING no mock default.

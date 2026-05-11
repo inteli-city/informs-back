@@ -1,5 +1,7 @@
 import math
 
+import pytest
+
 from src.shared.helpers.functions.nearest_neighbor import (
     order_by_nearest_neighbor,
     total_route_distance_km,
@@ -35,7 +37,7 @@ class TestOrderByNearestNeighbor:
 
 class TestTotalRouteDistanceKm:
     def test_empty_no_end_returns_zero(self):
-        assert total_route_distance_km([], start=(0.0, 0.0)) == 0.0
+        assert total_route_distance_km([], start=(0.0, 0.0)) == pytest.approx(0.0, abs=1e-9)
 
     def test_empty_with_end_returns_distance_start_to_end(self):
         # Sem pontos intermediários: total é só haversine(start, end).

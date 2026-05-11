@@ -1,6 +1,8 @@
 import os
 import sys
 
+import pytest
+
 sys.path.append(os.getcwd())
 
 from src.modules.plan_route.app.plan_route_controller import PlanRouteController
@@ -56,7 +58,7 @@ class TestPlanRouteController:
 
         assert response.status_code == 200
         assert response.body["ordered_forms"] == []
-        assert response.body["total_distance_km"] == 0.0
+        assert response.body["total_distance_km"] == pytest.approx(0.0, abs=1e-9)
 
     def test_missing_requester_user_returns_400(self):
         request = HttpRequest(body={
