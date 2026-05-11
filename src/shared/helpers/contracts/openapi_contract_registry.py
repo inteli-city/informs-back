@@ -13,6 +13,10 @@ from src.shared.helpers.contracts.endpoints.get_all_forms_contract import GetAll
 from src.shared.helpers.contracts.endpoints.get_all_templates_contract import GetAllTemplatesResponseSchema
 from src.shared.helpers.contracts.endpoints.get_form_contract import GetFormResponseSchema
 from src.shared.helpers.contracts.endpoints.get_template_contract import GetTemplateResponseSchema
+from src.shared.helpers.contracts.endpoints.plan_route_contract import (
+    PlanRouteRequestSchema,
+    PlanRouteResponseSchema,
+)
 from src.shared.helpers.contracts.endpoints.start_form_contract import StartFormRequestSchema
 from src.shared.helpers.contracts.endpoints.submit_form_contract import SubmitFormRequestSchema, SubmitFormResponseSchema
 from src.shared.helpers.contracts.endpoints.sync_origin_callback_contract import (
@@ -87,6 +91,15 @@ _CONTRACTS = [
         success_status_code=200,
         request_model=CancelFormRequestSchema,
         response_model=CancelFormResponseSchema,
+    ),
+    EndpointContract(
+        path="/forms/route-plan",
+        method="post",
+        tag="Forms",
+        summary="Planeja sequência de visita dos formulários PENDING do requester",
+        success_status_code=200,
+        request_model=PlanRouteRequestSchema,
+        response_model=PlanRouteResponseSchema,
     ),
     EndpointContract(
         path="/templates",
