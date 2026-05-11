@@ -1,8 +1,11 @@
 from copy import deepcopy
 
+import pytest
+
 from src.modules.plan_route.app.plan_route_usecase import PlanRouteUsecase
 from src.shared.domain.enums.form_status_enum import FORM_STATUS
 from src.shared.domain.enums.priority_enum import PRIORITY
+from src.shared.helpers.errors.usecase_errors import FormsNotFound
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 
 
@@ -185,3 +188,108 @@ class TestPlanRouteUsecase:
         )
 
         assert 110.0 < total_km < 112.0
+
+
+class TestPlanRouteUsecaseModoFormIds:
+    """
+    Modo `form_ids`: cliente passa lista explícita. Backend valida que cada
+    form pertence ao requester (independente de status), aplica nearest-neighbor,
+    e retorna 404 com missing_form_ids se algum não bater.
+    """
+
+    def test_orders_supplied_form_ids_via_nearest_neighbor(self):
+        repo = FormRepositoryMock()
+        # 3 forms do requester com longitudes 10, 0.1, 5 (qualquer status).
+        repo.forms = [
+            _build_pending_form(repo, suffix="600", user_id=REQUESTER_USER_ID,
+                                latitude=0.0, longitude=10.0,
+                                priority=PRIORITY.LOW, created_at=100),
+            _build_pending_form(repo, suffix="601", user_id=REQUESTER_USER_ID,
+                                latitude=0.0, longitude=0.1,
+                                priority=PRIORITY.LOW, created_at=100),
+            _build_pending_form(repo, suffix="602", user_id=REQUESTER_USER_ID,
+                                latitude=0.0, longitude=5.0,
+                                priority=PRIORITY.LOW, created_at=100),
+        ]
+        # Coloca status diferentes só pra provar que o modo form_ids ignora status.
+        repo.forms[0].status = FORM_STATUS.COMPLETED
+        repo.forms[1].status = FORM_STATUS.IN_PROGRESS
+        repo.forms[2].status = FORM_STATUS.CANCELLED
+        usecase = PlanRouteUsecase(repo)
+
+        ordered_forms, _ = usecase(
+            requester_user_id=REQUESTER_USER_ID,
+            start_latitude=0.0, start_longitude=0.0,
+            form_ids=[repo.forms[0].id, repo.forms[1].id, repo.forms[2].id],
+        )
+
+        # Mesmo com IDs vindos em ordem (10, 0.1, 5), deve ordenar por proximidade.
+        longitudes = [f.longitude for f in ordered_forms]
+        assert longitudes == [0.1, 5.0, 10.0]
+
+    def test_form_ids_mode_accepts_any_status(self):
+        # COMPLETED também deve ser aceito; o modo n filtraria, este não.
+        repo = FormRepositoryMock()
+        completed_form_id = repo.forms[1].id  # form 1 do mock é COMPLETED do user 002
+        # Troca dono pra ser do requester.
+        repo.forms[1].user_id = REQUESTER_USER_ID
+        usecase = PlanRouteUsecase(repo)
+
+        ordered_forms, _ = usecase(
+            requester_user_id=REQUESTER_USER_ID,
+            start_latitude=0.0, start_longitude=0.0,
+            form_ids=[completed_form_id],
+        )
+
+        assert len(ordered_forms) == 1
+        assert ordered_forms[0].id == completed_form_id
+
+    def test_raises_forms_not_found_when_any_id_missing(self):
+        repo = FormRepositoryMock()
+        usecase = PlanRouteUsecase(repo)
+
+        valid_id = repo.forms[2].id  # PENDING do REQUESTER_USER_ID
+        invalid_id = "00000000-0000-0000-0000-000000000000"
+
+        with pytest.raises(FormsNotFound) as exc_info:
+            usecase(
+                requester_user_id=REQUESTER_USER_ID,
+                start_latitude=0.0, start_longitude=0.0,
+                form_ids=[valid_id, invalid_id],
+            )
+
+        assert exc_info.value.missing_form_ids == [invalid_id]
+
+    def test_raises_forms_not_found_when_id_belongs_to_other_user(self):
+        # Form do user 002 — passar como requester 001 deve resultar em 404.
+        repo = FormRepositoryMock()
+        other_user_form_id = repo.forms[1].id  # user 002
+        usecase = PlanRouteUsecase(repo)
+
+        with pytest.raises(FormsNotFound) as exc_info:
+            usecase(
+                requester_user_id=REQUESTER_USER_ID,
+                start_latitude=0.0, start_longitude=0.0,
+                form_ids=[other_user_form_id],
+            )
+
+        assert exc_info.value.missing_form_ids == [other_user_form_id]
+
+    def test_total_distance_with_end_in_form_ids_mode(self):
+        repo = FormRepositoryMock()
+        repo.forms = [
+            _build_pending_form(repo, suffix="700", user_id=REQUESTER_USER_ID,
+                                latitude=0.0, longitude=1.0,
+                                priority=PRIORITY.MEDIUM, created_at=100),
+        ]
+        usecase = PlanRouteUsecase(repo)
+
+        _, total_km = usecase(
+            requester_user_id=REQUESTER_USER_ID,
+            start_latitude=0.0, start_longitude=0.0,
+            form_ids=[repo.forms[0].id],
+            end_latitude=0.0, end_longitude=2.0,
+        )
+
+        # Mesmo cálculo do teste anterior do modo n: ~222 km
+        assert 220.0 < total_km < 224.0

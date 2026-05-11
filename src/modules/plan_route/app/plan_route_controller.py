@@ -6,7 +6,7 @@ from src.shared.helpers.contracts.runtime_requests import PlanRouteControllerReq
 from src.shared.helpers.controller_error_handler import controller_error_handler
 from src.shared.helpers.errors.controller_errors import MissingParameters, WrongTypeParameter
 from src.shared.helpers.errors.domain_errors import EntityError
-from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
+from src.shared.helpers.errors.usecase_errors import ForbiddenAction, FormsNotFound, NoItemsFound
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
 from src.shared.helpers.external_interfaces.http_codes import BadRequest, Forbidden, NotFound, OK
 from src.shared.helpers.functions.pydantic_error_parser import get_validation_error_message
@@ -29,6 +29,7 @@ class PlanRouteController:
                 start_latitude=payload.start.latitude,
                 start_longitude=payload.start.longitude,
                 n=payload.n,
+                form_ids=payload.form_ids,
                 end_latitude=payload.end.latitude if payload.end else None,
                 end_longitude=payload.end.longitude if payload.end else None,
             )
@@ -38,6 +39,10 @@ class PlanRouteController:
 
         except ValidationError as err:
             return BadRequest(body=get_validation_error_message(err))
+        except FormsNotFound as err:
+            # 404 com lista de IDs faltantes — frontend mostra ao usuário
+            # "esses formulários não foram encontrados/acessíveis".
+            return NotFound(body={"message": err.message, "missing_form_ids": err.missing_form_ids})
         except NoItemsFound as err:
             return NotFound(body=err.message)
         except MissingParameters as err:
