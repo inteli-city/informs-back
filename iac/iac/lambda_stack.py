@@ -103,6 +103,15 @@ class LambdaStack(Construct):
             authorizer=authorizer,
         )
 
+        self.plan_route = self.create_lambda_api_gateway_integration(
+            module_name="plan_route",
+            method="POST",
+            api_resource=forms_resource,
+            path="route-plan",
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
         self.create_template = self.create_lambda_api_gateway_integration(
             module_name="create_template",
             method="POST",
@@ -203,6 +212,7 @@ class LambdaStack(Construct):
             self.update_template,
             self.get_template,
             self.get_all_templates,
+            self.plan_route,
             self.sync_forms_origin,
             self.sync_forms_origin_callback,
         ]
@@ -217,5 +227,6 @@ class LambdaStack(Construct):
             self.create_template,
             self.update_template,
             self.get_template,
-            self.get_all_templates
+            self.get_all_templates,
+            self.plan_route,
         ]
