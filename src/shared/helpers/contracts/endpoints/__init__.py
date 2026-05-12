@@ -9,6 +9,13 @@ from .update_template_contract import UpdateTemplateRequestSchema, UpdateTemplat
 from .get_template_contract import GetTemplateResponseSchema
 from .get_all_templates_contract import GetAllTemplatesResponseSchema
 from .plan_route_contract import PlanRouteRequestSchema, PlanRouteResponseSchema
+from .profile_contract import (
+    CreateProfileRequestSchema,
+    CreateProfileResponseSchema,
+    DeleteProfileResponseSchema,
+    LoginProfileResponseSchema,
+    ProfileResponseSchema,
+)
 from .sync_origin_callback_contract import SyncCallbackRequestSchema, SyncCallbackResponseSchema
 
 __all__ = [
@@ -29,6 +36,11 @@ __all__ = [
     "GetAllTemplatesResponseSchema",
     "PlanRouteRequestSchema",
     "PlanRouteResponseSchema",
+    "CreateProfileRequestSchema",
+    "CreateProfileResponseSchema",
+    "DeleteProfileResponseSchema",
+    "LoginProfileResponseSchema",
+    "ProfileResponseSchema",
     "SyncCallbackRequestSchema",
     "SyncCallbackResponseSchema",
 ]

@@ -12,6 +12,7 @@ from aws_cdk.aws_apigateway import IAuthorizer, Resource, LambdaIntegration, Cog
 
 class LambdaStack(Construct):
     functions_that_need_dynamo_forms_permissions = []
+    functions_that_need_dynamo_profiles_permissions = []
     functions_that_need_cognito_permissions = []
 
     def create_lambda_api_gateway_integration(self, module_name: str, method: str, api_resource: Resource,
@@ -50,6 +51,8 @@ class LambdaStack(Construct):
         form_id_resource = forms_resource.add_resource("{form_id}")
         templates_resource = api_gateway_resource.add_resource("templates")
         template_id_resource = templates_resource.add_resource("{template_id}")
+        profiles_resource = api_gateway_resource.add_resource("profiles")
+        profile_user_id_resource = profiles_resource.add_resource("{user_id}")
         docs_resource = api_gateway_resource.add_resource("docs")
 
         self.create_form = self.create_lambda_api_gateway_integration(
@@ -108,6 +111,31 @@ class LambdaStack(Construct):
             method="POST",
             api_resource=forms_resource,
             path="route-plan",
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.create_profile = self.create_lambda_api_gateway_integration(
+            module_name="create_profile",
+            method="POST",
+            api_resource=profiles_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.login_profile = self.create_lambda_api_gateway_integration(
+            module_name="login_profile",
+            method="POST",
+            api_resource=profiles_resource,
+            path="login",
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.delete_profile = self.create_lambda_api_gateway_integration(
+            module_name="delete_profile",
+            method="DELETE",
+            api_resource=profile_user_id_resource,
             environment_variables=environment_variables,
             authorizer=authorizer,
         )
@@ -229,4 +257,10 @@ class LambdaStack(Construct):
             self.get_template,
             self.get_all_templates,
             self.plan_route,
+        ]
+
+        self.functions_that_need_dynamo_profiles_permissions = [
+            self.create_profile,
+            self.login_profile,
+            self.delete_profile,
         ]
