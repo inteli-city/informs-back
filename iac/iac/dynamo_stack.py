@@ -62,3 +62,42 @@ class DynamoStack(Construct):
             CfnOutput(self, 'DynamoFormulariosRemovalPolicy',
                         value=REMOVAL_POLICY.value,
                         export_name=f'Formularios{self.github_ref_name}DynamoRemovalPolicyValue')
+
+            # Tabela de Profiles (RBAC interno: ADMIN / INSPECTOR).
+            # Cognito autentica; esta tabela controla a role aplicacional.
+            # PK: user#{user_id} | SK: METADATA
+            # GSI ByRole: PK role#{role}, SK system#{system}#user#{user_id}
+            #   Uso atual: contar admins ativos antes de DELETE (impede
+            #   remoção do último admin). Permite no futuro listar perfis.
+            self.dynamo_table_profiles = aws_dynamodb.Table(
+                self, "Profiles_Table",
+                table_name=f"informs-tracking-profile-{self.github_ref_name}",
+                partition_key=aws_dynamodb.Attribute(
+                    name="PK",
+                    type=aws_dynamodb.AttributeType.STRING
+                ),
+                sort_key=aws_dynamodb.Attribute(
+                    name="SK",
+                    type=aws_dynamodb.AttributeType.STRING
+                ),
+                point_in_time_recovery=True,
+                billing_mode=aws_dynamodb.BillingMode.PAY_PER_REQUEST,
+                removal_policy=REMOVAL_POLICY,
+            )
+
+            self.gsi_profiles_by_role = self.dynamo_table_profiles.add_global_secondary_index(
+                index_name="ByRole",
+                partition_key=aws_dynamodb.Attribute(
+                    name="GSI1PK",
+                    type=aws_dynamodb.AttributeType.STRING
+                ),
+                sort_key=aws_dynamodb.Attribute(
+                    name="GSI1SK",
+                    type=aws_dynamodb.AttributeType.STRING
+                ),
+                projection_type=aws_dynamodb.ProjectionType.ALL
+            )
+
+            CfnOutput(self, 'DynamoProfilesRemovalPolicy',
+                        value=REMOVAL_POLICY.value,
+                        export_name=f'Profiles{self.github_ref_name}DynamoRemovalPolicyValue')

@@ -17,6 +17,12 @@ from src.shared.helpers.contracts.endpoints.plan_route_contract import (
     PlanRouteRequestSchema,
     PlanRouteResponseSchema,
 )
+from src.shared.helpers.contracts.endpoints.profile_contract import (
+    CreateProfileRequestSchema,
+    CreateProfileResponseSchema,
+    DeleteProfileResponseSchema,
+    LoginProfileResponseSchema,
+)
 from src.shared.helpers.contracts.endpoints.start_form_contract import StartFormRequestSchema
 from src.shared.helpers.contracts.endpoints.submit_form_contract import SubmitFormRequestSchema, SubmitFormResponseSchema
 from src.shared.helpers.contracts.endpoints.sync_origin_callback_contract import (
@@ -100,6 +106,31 @@ _CONTRACTS = [
         success_status_code=200,
         request_model=PlanRouteRequestSchema,
         response_model=PlanRouteResponseSchema,
+    ),
+    EndpointContract(
+        path="/profiles",
+        method="post",
+        tag="Profiles",
+        summary="Admin cria perfil (ADMIN ou INSPECTOR)",
+        success_status_code=201,
+        request_model=CreateProfileRequestSchema,
+        response_model=CreateProfileResponseSchema,
+    ),
+    EndpointContract(
+        path="/profiles/login",
+        method="post",
+        tag="Profiles",
+        summary="Login: retorna perfil do requester (auto-cria como INSPECTOR se não existir)",
+        success_status_code=200,
+        response_model=LoginProfileResponseSchema,
+    ),
+    EndpointContract(
+        path="/profiles/{user_id}",
+        method="delete",
+        tag="Profiles",
+        summary="Soft delete de perfil (admin)",
+        success_status_code=200,
+        response_model=DeleteProfileResponseSchema,
     ),
     EndpointContract(
         path="/templates",
