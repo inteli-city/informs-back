@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class PROFILE_ROLE(Enum):
+class ProfileRole(Enum):
     """
     RBAC do Informs (independente do Cognito).
 

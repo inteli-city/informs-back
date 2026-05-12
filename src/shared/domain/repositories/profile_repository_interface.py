@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 from src.shared.domain.entities.profile import Profile
-from src.shared.domain.enums.profile_role_enum import PROFILE_ROLE
+from src.shared.domain.enums.profile_role_enum import ProfileRole
 
 
 class IProfileRepository(ABC):
@@ -28,5 +28,5 @@ class IProfileRepository(ABC):
         pass
 
     @abstractmethod
-    def count_active_by_role(self, role: PROFILE_ROLE) -> int:
+    def count_active_by_role(self, role: ProfileRole) -> int:
         pass

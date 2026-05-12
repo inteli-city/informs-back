@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import List, Tuple
 
 from src.shared.domain.entities.profile import Profile
-from src.shared.domain.enums.profile_role_enum import PROFILE_ROLE
+from src.shared.domain.enums.profile_role_enum import ProfileRole
 from src.shared.domain.repositories.profile_repository_interface import IProfileRepository
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction
 
@@ -64,7 +64,7 @@ class LoginProfileUsecase:
         now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
         profile = Profile(
             user_id=user_id,
-            role=PROFILE_ROLE.INSPECTOR,
+            role=ProfileRole.INSPECTOR,
             name=name,
             email=email,
             system=chosen_system,

@@ -8,7 +8,7 @@ sys.path.append(os.getcwd())
 from src.modules.delete_profile.app.delete_profile_controller import DeleteProfileController
 from src.modules.delete_profile.app.delete_profile_usecase import DeleteProfileUsecase
 from src.shared.domain.entities.profile import Profile
-from src.shared.domain.enums.profile_role_enum import PROFILE_ROLE
+from src.shared.domain.enums.profile_role_enum import ProfileRole
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction
 from src.shared.helpers.external_interfaces.http_models import HttpRequest
 from src.shared.infra.repositories.profile_repository_mock import ProfileRepositoryMock
@@ -50,7 +50,7 @@ class TestDeleteProfileController:
     def test_admin_soft_deletes_other_admin_when_more_than_one_admin_returns_200(self):
         second_admin = Profile(
             user_id="d61dbf66-a10f-11ed-a8fc-0242ac120020",
-            role=PROFILE_ROLE.ADMIN,
+            role=ProfileRole.ADMIN,
             name="Second Admin",
             email="admin2@example.com",
             system="GAIA",
@@ -104,7 +104,7 @@ class TestDeleteProfileLastAdminGuard:
         # de borda.
         second_admin = Profile(
             user_id="d61dbf66-a10f-11ed-a8fc-0242ac120020",
-            role=PROFILE_ROLE.ADMIN,
+            role=ProfileRole.ADMIN,
             name="Second Admin",
             email="admin2@example.com",
             system="GAIA",
@@ -114,7 +114,7 @@ class TestDeleteProfileLastAdminGuard:
         repo.create(second_admin)
 
         original_count = repo.count_active_by_role
-        repo.count_active_by_role = lambda role: 1 if role == PROFILE_ROLE.ADMIN else original_count(role)
+        repo.count_active_by_role = lambda role: 1 if role == ProfileRole.ADMIN else original_count(role)
 
         usecase = DeleteProfileUsecase(repo)
         with pytest.raises(ForbiddenAction):

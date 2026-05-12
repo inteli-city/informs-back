@@ -1,14 +1,16 @@
+from typing import cast
+
 import pytest
 
 from src.shared.domain.entities.profile import Profile
-from src.shared.domain.enums.profile_role_enum import PROFILE_ROLE
+from src.shared.domain.enums.profile_role_enum import ProfileRole
 from src.shared.helpers.errors.domain_errors import EntityError
 
 
 def _kwargs(**overrides):
     base = {
         "user_id": "d61dbf66-a10f-11ed-a8fc-0242ac120010",
-        "role": PROFILE_ROLE.INSPECTOR,
+        "role": ProfileRole.INSPECTOR,
         "name": "Inspector One",
         "email": "inspector@example.com",
         "system": "GAIA",
@@ -23,7 +25,7 @@ def _kwargs(**overrides):
 class TestProfile:
     def test_valid_profile(self):
         profile = Profile(**_kwargs())
-        assert profile.role == PROFILE_ROLE.INSPECTOR
+        assert profile.role == ProfileRole.INSPECTOR
         assert profile.active is True
         assert profile.vehicle_plate is None
 
@@ -33,7 +35,9 @@ class TestProfile:
 
     def test_invalid_role(self):
         with pytest.raises(EntityError):
-            Profile(**_kwargs(role="ADMIN"))  # string, não enum
+            # cast esquiva o type checker: passamos string de propósito
+            # para validar a checagem em runtime.
+            Profile(**_kwargs(role=cast(ProfileRole, "ADMIN")))
 
     def test_empty_name(self):
         with pytest.raises(EntityError):
@@ -49,7 +53,7 @@ class TestProfile:
 
     def test_active_must_be_bool(self):
         with pytest.raises(EntityError):
-            Profile(**_kwargs(active="yes"))
+            Profile(**_kwargs(active=cast(bool, "yes")))
 
     def test_vehicle_plate_optional(self):
         profile = Profile(**_kwargs(vehicle_plate="ABC1D23"))
@@ -67,5 +71,8 @@ class TestProfile:
 
     def test_deactivate_rejects_non_int_timestamp(self):
         profile = Profile(**_kwargs())
+        # cast esquiva o type checker: passamos string de propósito para
+        # validar a checagem em runtime (rule python:S5655 falso-positiva).
+        bad_timestamp = cast(int, "now")
         with pytest.raises(EntityError):
-            profile.deactivate(updated_at="now")
+            profile.deactivate(updated_at=bad_timestamp)

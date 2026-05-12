@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from src.shared.domain.entities.profile import Profile
-from src.shared.domain.enums.profile_role_enum import PROFILE_ROLE
+from src.shared.domain.enums.profile_role_enum import ProfileRole
 from src.shared.domain.repositories.profile_repository_interface import IProfileRepository
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction
 
@@ -22,7 +22,7 @@ class CreateProfileUsecase:
         self,
         requester_user_id: str,
         target_user_id: str,
-        role: PROFILE_ROLE,
+        role: ProfileRole,
         name: str,
         email: str,
         system: str,
@@ -50,5 +50,5 @@ class CreateProfileUsecase:
 
     def _ensure_requester_is_active_admin(self, requester_user_id: str) -> None:
         requester_profile = self.profile_repo.get_by_user_id(requester_user_id)
-        if requester_profile is None or not requester_profile.active or requester_profile.role != PROFILE_ROLE.ADMIN:
+        if requester_profile is None or not requester_profile.active or requester_profile.role != ProfileRole.ADMIN:
             raise ForbiddenAction("Apenas administradores ativos podem criar perfis")

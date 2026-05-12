@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from src.shared.domain.entities.profile import Profile
-from src.shared.domain.enums.profile_role_enum import PROFILE_ROLE
+from src.shared.domain.enums.profile_role_enum import ProfileRole
 from src.shared.domain.repositories.profile_repository_interface import IProfileRepository
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction, NoItemsFound
 
@@ -35,8 +35,8 @@ class DeleteProfileUsecase:
         if not target.active:
             raise DuplicatedItem(f"Perfil já está desativado para user_id={target_user_id}")
 
-        if target.role == PROFILE_ROLE.ADMIN:
-            active_admins = self.profile_repo.count_active_by_role(PROFILE_ROLE.ADMIN)
+        if target.role == ProfileRole.ADMIN:
+            active_admins = self.profile_repo.count_active_by_role(ProfileRole.ADMIN)
             if active_admins <= 1:
                 raise ForbiddenAction("Não é possível desativar o último administrador ativo")
 
@@ -45,5 +45,5 @@ class DeleteProfileUsecase:
 
     def _ensure_requester_is_active_admin(self, requester_user_id: str) -> None:
         requester_profile = self.profile_repo.get_by_user_id(requester_user_id)
-        if requester_profile is None or not requester_profile.active or requester_profile.role != PROFILE_ROLE.ADMIN:
+        if requester_profile is None or not requester_profile.active or requester_profile.role != ProfileRole.ADMIN:
             raise ForbiddenAction("Apenas administradores ativos podem desativar perfis")

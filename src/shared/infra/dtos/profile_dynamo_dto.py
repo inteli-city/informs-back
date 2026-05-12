@@ -1,7 +1,7 @@
 from typing import Optional
 
 from src.shared.domain.entities.profile import Profile
-from src.shared.domain.enums.profile_role_enum import PROFILE_ROLE
+from src.shared.domain.enums.profile_role_enum import ProfileRole
 
 
 class ProfileDynamoDTO:
@@ -23,7 +23,7 @@ class ProfileDynamoDTO:
     def __init__(
         self,
         user_id: str,
-        role: PROFILE_ROLE,
+        role: ProfileRole,
         name: str,
         email: str,
         system: str,
@@ -79,7 +79,7 @@ class ProfileDynamoDTO:
         user_id = pk.split("user#", 1)[1]
         return ProfileDynamoDTO(
             user_id=user_id,
-            role=PROFILE_ROLE(data["role"]),
+            role=ProfileRole(data["role"]),
             name=data["name"],
             email=data["email"],
             system=data["system"],
@@ -111,7 +111,7 @@ class ProfileDynamoDTO:
         return "METADATA"
 
     @staticmethod
-    def build_gsi1_pk(role: PROFILE_ROLE) -> str:
+    def build_gsi1_pk(role: ProfileRole) -> str:
         return f"role#{role.value}"
 
     @staticmethod

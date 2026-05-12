@@ -2,7 +2,7 @@ from copy import deepcopy
 from typing import List, Optional
 
 from src.shared.domain.entities.profile import Profile
-from src.shared.domain.enums.profile_role_enum import PROFILE_ROLE
+from src.shared.domain.enums.profile_role_enum import ProfileRole
 from src.shared.domain.repositories.profile_repository_interface import IProfileRepository
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem, NoItemsFound
 
@@ -21,7 +21,7 @@ class ProfileRepositoryMock(IProfileRepository):
         self.profiles = [
             Profile(
                 user_id="d61dbf66-a10f-11ed-a8fc-0242ac120001",
-                role=PROFILE_ROLE.ADMIN,
+                role=ProfileRole.ADMIN,
                 name="Admin Mock",
                 email="admin@example.com",
                 system="GAIA",
@@ -32,7 +32,7 @@ class ProfileRepositoryMock(IProfileRepository):
             ),
             Profile(
                 user_id="d61dbf66-a10f-11ed-a8fc-0242ac120002",
-                role=PROFILE_ROLE.INSPECTOR,
+                role=ProfileRole.INSPECTOR,
                 name="Inspector Mock",
                 email="inspector@example.com",
                 system="GAIA",
@@ -62,5 +62,5 @@ class ProfileRepositoryMock(IProfileRepository):
                 return deepcopy(profile)
         raise NoItemsFound(f"Perfil não encontrado para user_id={user_id}")
 
-    def count_active_by_role(self, role: PROFILE_ROLE) -> int:
+    def count_active_by_role(self, role: ProfileRole) -> int:
         return sum(1 for p in self.profiles if p.role == role and p.active)

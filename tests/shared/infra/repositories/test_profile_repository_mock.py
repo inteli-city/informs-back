@@ -1,7 +1,7 @@
 import pytest
 
 from src.shared.domain.entities.profile import Profile
-from src.shared.domain.enums.profile_role_enum import PROFILE_ROLE
+from src.shared.domain.enums.profile_role_enum import ProfileRole
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem, NoItemsFound
 from src.shared.infra.repositories.profile_repository_mock import ProfileRepositoryMock
 
@@ -10,8 +10,8 @@ class TestProfileRepositoryMock:
     def test_seeded_with_admin_and_inspector(self):
         repo = ProfileRepositoryMock()
         roles = {p.role for p in repo.profiles}
-        assert PROFILE_ROLE.ADMIN in roles
-        assert PROFILE_ROLE.INSPECTOR in roles
+        assert ProfileRole.ADMIN in roles
+        assert ProfileRole.INSPECTOR in roles
 
     def test_get_by_user_id_returns_deepcopy(self):
         repo = ProfileRepositoryMock()
@@ -30,7 +30,7 @@ class TestProfileRepositoryMock:
         repo = ProfileRepositoryMock()
         new_profile = Profile(
             user_id="d61dbf66-a10f-11ed-a8fc-0242ac120099",
-            role=PROFILE_ROLE.INSPECTOR,
+            role=ProfileRole.INSPECTOR,
             name="New Inspector",
             email="new@example.com",
             system="SGC",
@@ -63,8 +63,8 @@ class TestProfileRepositoryMock:
 
     def test_count_active_by_role(self):
         repo = ProfileRepositoryMock()
-        assert repo.count_active_by_role(PROFILE_ROLE.ADMIN) == 1
-        assert repo.count_active_by_role(PROFILE_ROLE.INSPECTOR) == 1
+        assert repo.count_active_by_role(ProfileRole.ADMIN) == 1
+        assert repo.count_active_by_role(ProfileRole.INSPECTOR) == 1
 
         repo.soft_delete(user_id=repo.profiles[1].user_id, updated_at=1)
-        assert repo.count_active_by_role(PROFILE_ROLE.INSPECTOR) == 0
+        assert repo.count_active_by_role(ProfileRole.INSPECTOR) == 0

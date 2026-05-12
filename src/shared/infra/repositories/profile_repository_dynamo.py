@@ -1,7 +1,7 @@
 from typing import Optional
 
 from src.shared.domain.entities.profile import Profile
-from src.shared.domain.enums.profile_role_enum import PROFILE_ROLE
+from src.shared.domain.enums.profile_role_enum import ProfileRole
 from src.shared.domain.repositories.profile_repository_interface import IProfileRepository
 from src.shared.environments import Environments
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem, NoItemsFound
@@ -71,7 +71,7 @@ class ProfileRepositoryDynamo(IProfileRepository):
             raise NoItemsFound(f"Perfil não encontrado para user_id={user_id}")
         return ProfileDynamoDTO.from_dynamo(item).to_entity()
 
-    def count_active_by_role(self, role: PROFILE_ROLE) -> int:
+    def count_active_by_role(self, role: ProfileRole) -> int:
         # Usa GSI `ByRole` com Select=COUNT — não trafega items, só o número.
         # FilterExpression filtra por active=True após o key match.
         total = 0
