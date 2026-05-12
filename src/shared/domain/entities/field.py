@@ -2,13 +2,13 @@ import abc
 from copy import deepcopy
 from typing import List, Optional, Union
 
-from src.shared.domain.enums.fields_enum import FIELD_TYPE
-from src.shared.domain.enums.file_type_enum import FILE_TYPE
+from src.shared.domain.enums.fields_enum import FieldType
+from src.shared.domain.enums.file_type_enum import FileType
 from src.shared.helpers.errors.domain_errors import EntityError
 
 
 class Field(abc.ABC):
-    field_type: FIELD_TYPE
+    field_type: FieldType
     label: str
     required: bool
     key: str
@@ -16,8 +16,8 @@ class Field(abc.ABC):
     help_text: Optional[str]
 
     @abc.abstractmethod
-    def __init__(self, field_type: FIELD_TYPE, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, help_text: Optional[str] = None, placeholder: Optional[str] = None):
-        if not isinstance(field_type, FIELD_TYPE):
+    def __init__(self, field_type: FieldType, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, help_text: Optional[str] = None, placeholder: Optional[str] = None):
+        if not isinstance(field_type, FieldType):
             raise EntityError('Tipo de campo inválido')
         self.field_type = field_type
 
@@ -74,7 +74,7 @@ class TextField(Field):
     formatting: Optional[str]
 
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, regex: Optional[str] = None, max_length: Optional[int] = None, value: Optional[str] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None, formatting: Optional[str] = None):
-        super().__init__(FIELD_TYPE.TEXT_FIELD, label, required, key, order, help_text, placeholder=placeholder)
+        super().__init__(FieldType.TEXT_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if regex is not None and not isinstance(regex, str):
             raise EntityError('Expressão regular deve ser uma string')
         self.regex = regex
@@ -116,7 +116,7 @@ class NumberField(Field):
     value: Optional[Union[int, float]]
 
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, decimal: Optional[bool] = None, max_value: Optional[Union[int, float]] = None, min_value: Optional[Union[int, float]] = None, value: Optional[Union[int, float]] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
-        super().__init__(FIELD_TYPE.NUMBER_FIELD, label, required, key, order, help_text, placeholder=placeholder)
+        super().__init__(FieldType.NUMBER_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if decimal is not None and not isinstance(decimal, bool):
             raise EntityError("Campo 'decimal' deve ser verdadeiro ou falso")
         self.decimal = decimal
@@ -177,7 +177,7 @@ class DropDownField(Field):
     value: Optional[str]
 
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, options: List[str] = None, value: Optional[str] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
-        super().__init__(FIELD_TYPE.DROPDOWN_FIELD, label, required, key, order, help_text, placeholder=placeholder)
+        super().__init__(FieldType.DROPDOWN_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if not isinstance(options, list) or not options or not all(isinstance(option, str) for option in options):
             raise EntityError('Opções devem ser uma lista não vazia de strings')
         self.options = options
@@ -205,7 +205,7 @@ class TypeAheadField(Field):
     value: Optional[str]
 
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, options: List[str] = None, max_length: Optional[int] = None, value: Optional[str] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
-        super().__init__(FIELD_TYPE.TYPEAHEAD_FIELD, label, required, key, order, help_text, placeholder=placeholder)
+        super().__init__(FieldType.TYPEAHEAD_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if not isinstance(options, list) or not options or not all(isinstance(option, str) for option in options):
             raise EntityError('Opções devem ser uma lista não vazia de strings')
         self.options = options
@@ -237,7 +237,7 @@ class RadioGroupField(Field):
     value: Optional[str]
 
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, options: List[str] = None, value: Optional[str] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
-        super().__init__(FIELD_TYPE.RADIO_GROUP_FIELD, label, required, key, order, help_text, placeholder=placeholder)
+        super().__init__(FieldType.RADIO_GROUP_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if not isinstance(options, list) or not options or not all(isinstance(option, str) for option in options):
             raise EntityError('Opções devem ser uma lista não vazia de strings')
         self.options = options
@@ -265,7 +265,7 @@ class DateField(Field):
     value: Optional[int]  # timestamp
 
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, min_date: Optional[int] = None, max_date: Optional[int] = None, value: Optional[int] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
-        super().__init__(FIELD_TYPE.DATE_FIELD, label, required, key, order, help_text, placeholder=placeholder)
+        super().__init__(FieldType.DATE_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if min_date is not None and not isinstance(min_date, int):
             raise EntityError('Data mínima deve ser um timestamp inteiro')
         self.min_date = min_date
@@ -316,7 +316,7 @@ class CheckboxField(Field):
     value: Optional[bool]
 
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, value: Optional[bool] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
-        super().__init__(FIELD_TYPE.CHECKBOX_FIELD, label, required, key, order, help_text, placeholder=placeholder)
+        super().__init__(FieldType.CHECKBOX_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if value is not None and not isinstance(value, bool):
             raise EntityError('Valor do checkbox deve ser verdadeiro ou falso')
         self.value = value
@@ -340,7 +340,7 @@ class CheckBoxGroupField(Field):
     value: Optional[List[bool]]
 
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, options: List[str] = None, check_limit: Optional[int] = None, value: Optional[List[bool]] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
-        super().__init__(FIELD_TYPE.CHECKBOX_GROUP_FIELD, label, required, key, order, help_text, placeholder=placeholder)
+        super().__init__(FieldType.CHECKBOX_GROUP_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if not isinstance(options, list) or not options or not all(isinstance(option, str) for option in options):
             raise EntityError('Opções devem ser uma lista não vazia de strings')
         self.options = options
@@ -413,7 +413,7 @@ class SwitchButtonField(Field):
     value: Optional[bool]
 
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, value: Optional[bool] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
-        super().__init__(FIELD_TYPE.SWITCH_BUTTON_FIELD, label, required, key, order, help_text, placeholder=placeholder)
+        super().__init__(FieldType.SWITCH_BUTTON_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if value is not None and not isinstance(value, bool):
             raise EntityError('Valor do switch deve ser verdadeiro ou falso')
         self.value = value
@@ -432,14 +432,14 @@ class SwitchButtonField(Field):
 
 
 class FileField(Field):
-    file_type: FILE_TYPE
+    file_type: FileType
     min_quantity: Optional[int]
     max_quantity: Optional[int]
     value: Optional[Union[List[str], str, dict]]
 
-    def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, file_type: FILE_TYPE = None, min_quantity: Optional[int] = None, max_quantity: Optional[int] = None, value: Optional[Union[List[str], str, dict]] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
-        super().__init__(FIELD_TYPE.FILE_FIELD, label, required, key, order, help_text, placeholder=placeholder)
-        if not isinstance(file_type, FILE_TYPE):
+    def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, file_type: FileType = None, min_quantity: Optional[int] = None, max_quantity: Optional[int] = None, value: Optional[Union[List[str], str, dict]] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
+        super().__init__(FieldType.FILE_FIELD, label, required, key, order, help_text, placeholder=placeholder)
+        if not isinstance(file_type, FileType):
             raise EntityError('Tipo de arquivo inválido')
         self.file_type = file_type
 

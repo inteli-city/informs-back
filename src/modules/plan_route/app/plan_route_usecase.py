@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple
 
 from src.shared.domain.entities.form import Form
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
+from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.helpers.functions.nearest_neighbor import (
     order_by_nearest_neighbor,
@@ -63,7 +63,7 @@ class PlanRouteUsecase:
             page, next_key = self.form_repo.get_all_forms(
                 limit=None,
                 exclusive_start_key=exclusive_start_key,
-                status=FORM_STATUS.PENDING,
+                status=FormStatus.PENDING,
                 user_id=requester_user_id,
             )
             all_forms.extend(page)

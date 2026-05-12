@@ -2,8 +2,8 @@ from enum import Enum
 from typing import Dict, Any, Union
 
 from src.shared.domain.entities.field import CheckBoxGroupField, CheckboxField, DateField, DropDownField, Field, FileField, NumberField, RadioGroupField, SwitchButtonField, TextField, TypeAheadField
-from src.shared.domain.enums.fields_enum import FIELD_TYPE
-from src.shared.domain.enums.file_type_enum import FILE_TYPE
+from src.shared.domain.enums.fields_enum import FieldType
+from src.shared.domain.enums.file_type_enum import FileType
 from src.shared.helpers.errors.controller_errors import MissingParameters
 from src.shared.helpers.errors.domain_errors import EntityError
 
@@ -19,7 +19,7 @@ class FieldDTO:
         if field_dict.get('field_type') is None:
             raise MissingParameters('field_type')
         
-        if field_dict.get('field_type') not in [field.value for field in FIELD_TYPE]:
+        if field_dict.get('field_type') not in [field.value for field in FieldType]:
             raise EntityError(f"Tipo de campo '{field_dict.get('field_type')}' inválido")
         
         if field_dict.get('label') is None and field_dict.get('placeholder') is not None:
@@ -32,7 +32,7 @@ class FieldDTO:
         if field_dict.get('order') is None:
             field_dict['order'] = 0
 
-        field_type = FIELD_TYPE[field_dict.get('field_type')]
+        field_type = FieldType[field_dict.get('field_type')]
         base_args = {
             "label": field_dict.get("label"),
             "required": bool(field_dict.get("required")),
@@ -72,16 +72,16 @@ class FieldDTO:
         }
 
         type_specific_fields = {
-            FIELD_TYPE.TEXT_FIELD: {"regex", "formatting", "max_length", "value"},
-            FIELD_TYPE.NUMBER_FIELD: {"max_value", "min_value", "decimal", "value"},
-            FIELD_TYPE.DROPDOWN_FIELD: {"options", "value"},
-            FIELD_TYPE.TYPEAHEAD_FIELD: {"options", "max_length", "value"},
-            FIELD_TYPE.RADIO_GROUP_FIELD: {"options", "value"},
-            FIELD_TYPE.DATE_FIELD: {"min_date", "max_date", "value"},
-            FIELD_TYPE.CHECKBOX_FIELD: {"value"},
-            FIELD_TYPE.CHECKBOX_GROUP_FIELD: {"options", "check_limit", "value"},
-            FIELD_TYPE.SWITCH_BUTTON_FIELD: {"value"},
-            FIELD_TYPE.FILE_FIELD: {"file_type", "min_quantity", "max_quantity", "value"},
+            FieldType.TEXT_FIELD: {"regex", "formatting", "max_length", "value"},
+            FieldType.NUMBER_FIELD: {"max_value", "min_value", "decimal", "value"},
+            FieldType.DROPDOWN_FIELD: {"options", "value"},
+            FieldType.TYPEAHEAD_FIELD: {"options", "max_length", "value"},
+            FieldType.RADIO_GROUP_FIELD: {"options", "value"},
+            FieldType.DATE_FIELD: {"min_date", "max_date", "value"},
+            FieldType.CHECKBOX_FIELD: {"value"},
+            FieldType.CHECKBOX_GROUP_FIELD: {"options", "check_limit", "value"},
+            FieldType.SWITCH_BUTTON_FIELD: {"value"},
+            FieldType.FILE_FIELD: {"file_type", "min_quantity", "max_quantity", "value"},
         }
 
         field_type = self.field.field_type
@@ -231,7 +231,7 @@ class FieldDTO:
     @staticmethod
     def _build_file_field(base_args: dict, field_dict: dict) -> FileField:
         file_type = field_dict.get("file_type")
-        if file_type not in [file_type.value for file_type in FILE_TYPE]:
+        if file_type not in [file_type.value for file_type in FileType]:
             raise EntityError(f"Tipo de arquivo '{file_type}' inválido")
         # Normaliza valores legacy gravados como string única para lista,
         # garantindo que consumidores (Apex sync, API) sempre vejam list[str].
@@ -241,7 +241,7 @@ class FieldDTO:
             raw_value = [raw_value]
         return FileField(
             **base_args,
-            file_type=FILE_TYPE[file_type],
+            file_type=FileType[file_type],
             min_quantity=FieldDTO._to_int(field_dict.get("min_quantity")),
             max_quantity=FieldDTO._to_int(field_dict.get("max_quantity")),
             value=raw_value,
@@ -249,14 +249,14 @@ class FieldDTO:
 
 
 FieldDTO._FIELD_BUILDERS = {
-    FIELD_TYPE.TEXT_FIELD: (set(), FieldDTO._build_text_field),
-    FIELD_TYPE.NUMBER_FIELD: ({"decimal"}, FieldDTO._build_number_field),
-    FIELD_TYPE.DROPDOWN_FIELD: ({"options"}, FieldDTO._build_dropdown_field),
-    FIELD_TYPE.TYPEAHEAD_FIELD: ({"options"}, FieldDTO._build_typeahead_field),
-    FIELD_TYPE.RADIO_GROUP_FIELD: ({"options"}, FieldDTO._build_radio_group_field),
-    FIELD_TYPE.DATE_FIELD: (set(), FieldDTO._build_date_field),
-    FIELD_TYPE.CHECKBOX_FIELD: (set(), FieldDTO._build_checkbox_field),
-    FIELD_TYPE.CHECKBOX_GROUP_FIELD: ({"options"}, FieldDTO._build_checkbox_group_field),
-    FIELD_TYPE.SWITCH_BUTTON_FIELD: (set(), FieldDTO._build_switch_button_field),
-    FIELD_TYPE.FILE_FIELD: ({"file_type", "min_quantity", "max_quantity"}, FieldDTO._build_file_field),
+    FieldType.TEXT_FIELD: (set(), FieldDTO._build_text_field),
+    FieldType.NUMBER_FIELD: ({"decimal"}, FieldDTO._build_number_field),
+    FieldType.DROPDOWN_FIELD: ({"options"}, FieldDTO._build_dropdown_field),
+    FieldType.TYPEAHEAD_FIELD: ({"options"}, FieldDTO._build_typeahead_field),
+    FieldType.RADIO_GROUP_FIELD: ({"options"}, FieldDTO._build_radio_group_field),
+    FieldType.DATE_FIELD: (set(), FieldDTO._build_date_field),
+    FieldType.CHECKBOX_FIELD: (set(), FieldDTO._build_checkbox_field),
+    FieldType.CHECKBOX_GROUP_FIELD: ({"options"}, FieldDTO._build_checkbox_group_field),
+    FieldType.SWITCH_BUTTON_FIELD: (set(), FieldDTO._build_switch_button_field),
+    FieldType.FILE_FIELD: ({"file_type", "min_quantity", "max_quantity"}, FieldDTO._build_file_field),
 }

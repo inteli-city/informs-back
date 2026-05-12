@@ -5,8 +5,8 @@ from src.shared.domain.entities.field import Field
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.justification import Justification, JustificationOption, SelectedJustification
 from src.shared.domain.entities.section import Section
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
-from src.shared.domain.enums.priority_enum import PRIORITY
+from src.shared.domain.enums.form_status_enum import FormStatus
+from src.shared.domain.enums.priority_enum import Priority
 from src.shared.helpers.contracts.endpoints.get_form_contract import GetFormResponseSchema
 
 
@@ -103,7 +103,7 @@ class GetFormViewmodel:
     def to_dict(self):
         payload = {
             "id": self.id,
-            "status": self.status.value if isinstance(self.status, FORM_STATUS) else self.status,
+            "status": self.status.value if isinstance(self.status, FormStatus) else self.status,
             "form_title": self.form_title,
             "user_id": self.user_id,
             "area": self.area,
@@ -112,7 +112,7 @@ class GetFormViewmodel:
             "street": self.street,
             "latitude": self.latitude,
             "longitude": self.longitude,
-            "priority": self.priority.value if isinstance(self.priority, PRIORITY) else self.priority,
+            "priority": self.priority.value if isinstance(self.priority, Priority) else self.priority,
             "observation": self.observation,
             "expiration_date": self.expiration_date,
             "justification": JustificationViewmodel(self.justification).to_dict(),
@@ -125,5 +125,5 @@ class GetFormViewmodel:
             "updated_at": self.updated_at,
         }
         validated = GetFormResponseSchema.model_validate(payload).model_dump()
-        validated["priority"] = self.priority.value if isinstance(self.priority, PRIORITY) else self.priority
+        validated["priority"] = self.priority.value if isinstance(self.priority, Priority) else self.priority
         return validated

@@ -6,8 +6,8 @@ from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.information_field import FileInformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption, SelectedJustification
 from src.shared.domain.entities.section import Section
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
-from src.shared.domain.enums.priority_enum import PRIORITY
+from src.shared.domain.enums.form_status_enum import FormStatus
+from src.shared.domain.enums.priority_enum import Priority
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction
 from src.shared.helpers.functions.pagination_token import encode_pagination_token
@@ -56,8 +56,8 @@ class FormRepositoryMock(IFormRepository):
                 number=1,
                 latitude=1.0,
                 longitude=1.0,
-                priority=PRIORITY.EMERGENCY,
-                status=FORM_STATUS.IN_PROGRESS,
+                priority=Priority.EMERGENCY,
+                status=FormStatus.IN_PROGRESS,
                 expiration_date=946407600000,
                 observation=None,
                 created_at=946407600000,
@@ -82,8 +82,8 @@ class FormRepositoryMock(IFormRepository):
                 number=1,
                 latitude=1.0,
                 longitude=1.0,
-                priority=PRIORITY.EMERGENCY,
-                status=FORM_STATUS.COMPLETED,
+                priority=Priority.EMERGENCY,
+                status=FormStatus.COMPLETED,
                 expiration_date=946407600000,
                 observation=None,
                 created_at=946407600000,
@@ -108,8 +108,8 @@ class FormRepositoryMock(IFormRepository):
                 number=1,
                 latitude=1.0,
                 longitude=1.0,
-                priority=PRIORITY.LOW,
-                status=FORM_STATUS.PENDING,
+                priority=Priority.LOW,
+                status=FormStatus.PENDING,
                 expiration_date=946407600000,
                 observation=None,
                 created_at=946407600000,
@@ -158,7 +158,7 @@ class FormRepositoryMock(IFormRepository):
         self,
         limit: Optional[int],
         exclusive_start_key: Optional[dict] = None,
-        status: Optional[Union[FORM_STATUS, List[FORM_STATUS]]] = None,
+        status: Optional[Union[FormStatus, List[FormStatus]]] = None,
         system: Optional[Union[str, List[str]]] = None,
         user_id: Optional[str] = None,
         created_at_start: Optional[int] = None,
@@ -195,7 +195,7 @@ class FormRepositoryMock(IFormRepository):
             ]
 
         def sort_key(f: Form):
-            is_open = f.status not in [FORM_STATUS.COMPLETED, FORM_STATUS.CANCELLED]
+            is_open = f.status not in [FormStatus.COMPLETED, FormStatus.CANCELLED]
             return (is_open, int(f.priority.value), f.created_at)
 
         forms = sorted(forms, key=sort_key, reverse=True)
@@ -233,14 +233,14 @@ class FormRepositoryMock(IFormRepository):
         self,
         user_id: str,
         form_id: str,
-        status: Optional[FORM_STATUS] = None,
+        status: Optional[FormStatus] = None,
         in_progress_at: Optional[int] = None,
         completed_at: Optional[int] = None,
         cancelled_at: Optional[int] = None,
         updated_at: Optional[int] = None,
         sections: Optional[List[Section]] = None,
         justification: Optional[Justification] = None,
-        expected_status: Optional[FORM_STATUS] = None,
+        expected_status: Optional[FormStatus] = None,
     ) -> Form:
         for form in self.forms:
             if form.id == form_id:

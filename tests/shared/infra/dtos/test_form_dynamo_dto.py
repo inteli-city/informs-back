@@ -14,8 +14,8 @@ from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.information_field import TextInformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption
 from src.shared.domain.entities.section import Section
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
-from src.shared.domain.enums.priority_enum import PRIORITY
+from src.shared.domain.enums.form_status_enum import FormStatus
+from src.shared.domain.enums.priority_enum import Priority
 from src.shared.infra.dtos.form_dynamo_dto import FormDynamoDTO
 
 
@@ -55,8 +55,8 @@ def _common_kwargs() -> dict:
         "latitude": 0.0,
         "longitude": 0.0,
         "observation": "observation",
-        "priority": PRIORITY.EMERGENCY,
-        "status": FORM_STATUS.IN_PROGRESS,
+        "priority": Priority.EMERGENCY,
+        "status": FormStatus.IN_PROGRESS,
         "expiration_date": SAMPLE_TS,
         "created_at": SAMPLE_TS,
         "updated_at": SAMPLE_TS,
@@ -92,8 +92,8 @@ def _dynamo_dict() -> dict:
         "latitude": 0.0,
         "longitude": 0.0,
         "observation": "observation",
-        "priority": PRIORITY.EMERGENCY.value,
-        "status": FORM_STATUS.IN_PROGRESS.value,
+        "priority": Priority.EMERGENCY.value,
+        "status": FormStatus.IN_PROGRESS.value,
         "expiration_date": SAMPLE_TS,
         "created_at": SAMPLE_TS,
         "updated_at": SAMPLE_TS,
@@ -145,8 +145,8 @@ def _assert_object_attrs(obj):
     assert obj.latitude == pytest.approx(0.0, abs=1e-9)
     assert obj.longitude == pytest.approx(0.0, abs=1e-9)
     assert obj.observation == "observation"
-    assert obj.priority == PRIORITY.EMERGENCY
-    assert obj.status == FORM_STATUS.IN_PROGRESS
+    assert obj.priority == Priority.EMERGENCY
+    assert obj.status == FormStatus.IN_PROGRESS
     assert obj.expiration_date == SAMPLE_TS
     assert obj.created_at == SAMPLE_TS
     assert obj.in_progress_at == SAMPLE_TS
@@ -181,8 +181,8 @@ def _assert_dynamo_dict(form_dict: dict):
     assert form_dict["number"] == 123
     assert form_dict["latitude"] == pytest.approx(0.0, abs=1e-9)
     assert form_dict["longitude"] == pytest.approx(0.0, abs=1e-9)
-    assert form_dict["priority"] == PRIORITY.EMERGENCY.value
-    assert form_dict["status"] == FORM_STATUS.IN_PROGRESS.value
+    assert form_dict["priority"] == Priority.EMERGENCY.value
+    assert form_dict["status"] == FormStatus.IN_PROGRESS.value
     assert form_dict["expiration_date"] == SAMPLE_TS
     assert form_dict["created_at"] == SAMPLE_TS
     assert form_dict["updated_at"] == SAMPLE_TS

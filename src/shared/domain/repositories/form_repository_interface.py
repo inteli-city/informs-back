@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple, Union
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import Section
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
+from src.shared.domain.enums.form_status_enum import FormStatus
 
 
 class IFormRepository(ABC):
@@ -22,7 +22,7 @@ class IFormRepository(ABC):
         self,
         limit: Optional[int],
         exclusive_start_key: Optional[dict] = None,
-        status: Optional[Union[FORM_STATUS, List[FORM_STATUS]]] = None,
+        status: Optional[Union[FormStatus, List[FormStatus]]] = None,
         system: Optional[Union[str, List[str]]] = None,
         user_id: Optional[str] = None,
         created_at_start: Optional[int] = None,
@@ -51,13 +51,13 @@ class IFormRepository(ABC):
         self,
         user_id: str,
         form_id: str,
-        status: Optional[FORM_STATUS] = None,
+        status: Optional[FormStatus] = None,
         in_progress_at: Optional[int] = None,
         completed_at: Optional[int] = None,
         cancelled_at: Optional[int] = None,
         updated_at: Optional[int] = None,
         sections: Optional[List[Section]] = None,
         justification: Optional[Justification] = None,
-        expected_status: Optional[FORM_STATUS] = None,
+        expected_status: Optional[FormStatus] = None,
     ) -> Form:
         pass

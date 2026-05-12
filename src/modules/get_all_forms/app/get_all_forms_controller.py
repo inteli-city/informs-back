@@ -2,7 +2,7 @@ from pydantic import ValidationError
 
 from .get_all_forms_usecase import GetAllFormsUsecase
 from .get_all_forms_viewmodel import GetAllFormsViewmodel
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
+from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.helpers.controller_error_handler import controller_error_handler
 from src.shared.helpers.contracts.runtime_requests import GetAllFormsControllerRequestSchema
 from src.shared.helpers.errors.controller_errors import MissingParameters, WrongTypeParameter
@@ -28,9 +28,9 @@ class GetAllFormsController:
             if not isinstance(status_item, str):
                 raise WrongTypeParameter("status", "str", type(status_item))
             status_str = status_item.upper()
-            if status_str not in FORM_STATUS.__members__:
-                raise EntityError(f"Status '{status_str}' inválido. Valores aceitos: {list(FORM_STATUS.__members__.keys())}")
-            parsed_statuses.append(FORM_STATUS[status_str])
+            if status_str not in FormStatus.__members__:
+                raise EntityError(f"Status '{status_str}' inválido. Valores aceitos: {list(FormStatus.__members__.keys())}")
+            parsed_statuses.append(FormStatus[status_str])
         return parsed_statuses[0] if len(parsed_statuses) == 1 else parsed_statuses
 
     def _validate_system(self, system_raw):

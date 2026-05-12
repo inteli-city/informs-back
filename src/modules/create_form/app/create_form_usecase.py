@@ -7,9 +7,9 @@ from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.information_field import FileInformationField, InformationField
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import Section
-from src.shared.domain.enums.file_type_enum import FILE_TYPE
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
-from src.shared.domain.enums.priority_enum import PRIORITY
+from src.shared.domain.enums.file_type_enum import FileType
+from src.shared.domain.enums.form_status_enum import FormStatus
+from src.shared.domain.enums.priority_enum import Priority
 from src.shared.domain.repositories.file_repository_interface import IFileRepository
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
@@ -40,7 +40,7 @@ class CreateFormUsecase:
         city: str,
         latitude: float,
         longitude: float,
-        priority: PRIORITY,
+        priority: Priority,
         sections: List[Section],
         justification: Justification,
         template: Optional[str] = None,
@@ -91,9 +91,9 @@ class CreateFormUsecase:
                     information_field.file_path = file_url
                     if information_field.file_type is None:
                         if mimetype.lower().startswith("image/"):
-                            information_field.file_type = FILE_TYPE.IMAGE
+                            information_field.file_type = FileType.IMAGE
                         else:
-                            information_field.file_type = FILE_TYPE.DOCUMENT
+                            information_field.file_type = FileType.DOCUMENT
                     files.append(
                         FileUpload(
                             filename=filename,
@@ -120,7 +120,7 @@ class CreateFormUsecase:
             latitude=latitude,
             longitude=longitude,
             priority=priority,
-            status=FORM_STATUS.PENDING,
+            status=FormStatus.PENDING,
             created_at=now_timestamp,
             updated_at=now_timestamp,
             sections=resolved_sections,

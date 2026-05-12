@@ -4,7 +4,7 @@ import sys
 sys.path.append(os.getcwd())
 
 from src.modules.get_form.app.get_form_usecase import GetFormUsecase
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
+from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 

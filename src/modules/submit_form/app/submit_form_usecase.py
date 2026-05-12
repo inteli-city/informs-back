@@ -4,7 +4,7 @@ import uuid
 from src.shared.domain.entities.field import FileField
 from src.shared.domain.entities.file_upload import FileUpload, FileUploadRequest
 from src.shared.domain.entities.form import Form
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
+from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.file_repository_interface import IFileRepository
 from src.shared.helpers.errors.domain_errors import EntityError
@@ -125,5 +125,5 @@ class SubmitFormUsecase:
             sections=form.sections,
             completed_at=form.completed_at,
             updated_at=form.updated_at,
-            expected_status=FORM_STATUS.IN_PROGRESS,
+            expected_status=FormStatus.IN_PROGRESS,
         )

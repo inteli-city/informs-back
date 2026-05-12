@@ -4,7 +4,7 @@ import sys
 sys.path.append(os.getcwd())
 
 from src.modules.get_all_forms.app.get_all_forms_usecase import GetAllFormsUsecase
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
+from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 
@@ -42,9 +42,9 @@ class Test_GetAllFormsUsecase:
         forms, next_key = usecase(
             requester=requester,
             limit=20,
-            status=FORM_STATUS.PENDING
+            status=FormStatus.PENDING
         )
 
         assert len(forms) == 1
-        assert forms[0].status == FORM_STATUS.PENDING
+        assert forms[0].status == FormStatus.PENDING
         assert next_key is None
