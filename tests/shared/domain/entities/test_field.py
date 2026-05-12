@@ -254,7 +254,7 @@ class Test_Field:
 
         number_field.set_value('2')
 
-        assert number_field.value == 2.0
+        assert number_field.value == pytest.approx(2.0, abs=1e-9)
 
         with pytest.raises(EntityError):
             number_field.set_value('invalid')

@@ -10,26 +10,10 @@ from src.shared.helpers.functions.pagination_token import encode_pagination_toke
 
 
 class TemplateRepositoryMock(ITemplateRepository):
-    templates: List[Template] = [
-        Template(
-            id="166e777a-d586-44b4-b90a-73618dfdc917",
-            name="Default Template",
-            description="Sample template",
-            system="GAIA",
-            is_active=True,
-            created_by="user-1",
-            created_at=int(datetime.now(timezone.utc).timestamp() * 1000),
-            updated_at=int(datetime.now(timezone.utc).timestamp() * 1000),
-            sections=[
-                Section(
-                    section_id=1,
-                    fields=[
-                        TextField(label="Name", required=True, key="name", order=1)
-                    ]
-                )
-            ],
-        )
-    ]
+    # Anotação de tipo apenas. A lista é populada em __init__ — não fica como
+    # atributo de classe pra evitar (a) bug de timestamp avaliado no import e
+    # (b) estado compartilhado entre instâncias do mock nos testes.
+    templates: List[Template]
 
     def __init__(self):
         now = int(datetime.now(timezone.utc).timestamp() * 1000)
