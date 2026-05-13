@@ -116,7 +116,11 @@ class TrackingStack(Stack):
                     aws_iam.PolicyStatement(
                         effect=aws_iam.Effect.ALLOW,
                         actions=["lightsail:CreateKeyPair", "lightsail:DeleteKeyPair"],
-                        resources=["*"],
+                        # Restringe ao ARN do key pair específico —
+                        # silencia python:S6304 e dá menor privilégio real.
+                        resources=[
+                            f"arn:aws:lightsail:{self.region}:{self.account}:KeyPair/{key_pair_name}"
+                        ],
                     )
                 ]
             ),
