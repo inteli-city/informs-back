@@ -37,8 +37,9 @@ def _build_justification() -> Justification:
     )
 
 
-def _build_form() -> Form:
-    return Form(
+def _common_kwargs() -> dict:
+    """Kwargs compartilhados entre Form e FormDynamoDTO — assinaturas iguais."""
+    return dict(
         form_title="form_title",
         id=SAMPLE_ID,
         created_by=SAMPLE_ID,
@@ -63,34 +64,14 @@ def _build_form() -> Form:
         sections=[Section(section_id=0, fields=[SAMPLE_FIELD])],
         information_fields=[TextInformationField(value="value")],
     )
+
+
+def _build_form() -> Form:
+    return Form(**_common_kwargs())
 
 
 def _build_form_dto() -> FormDynamoDTO:
-    return FormDynamoDTO(
-        form_title="form_title",
-        id=SAMPLE_ID,
-        created_by=SAMPLE_ID,
-        user_id=SAMPLE_ID,
-        template="template",
-        area="area",
-        system="system",
-        street="street",
-        city="city",
-        number=123,
-        latitude=0.0,
-        longitude=0.0,
-        observation="observation",
-        priority=PRIORITY.EMERGENCY,
-        status=FORM_STATUS.IN_PROGRESS,
-        expiration_date=SAMPLE_TS,
-        created_at=SAMPLE_TS,
-        updated_at=SAMPLE_TS,
-        in_progress_at=SAMPLE_TS,
-        completed_at=SAMPLE_TS,
-        justification=_build_justification(),
-        sections=[Section(section_id=0, fields=[SAMPLE_FIELD])],
-        information_fields=[TextInformationField(value="value")],
-    )
+    return FormDynamoDTO(**_common_kwargs())
 
 
 def _dynamo_dict() -> dict:
