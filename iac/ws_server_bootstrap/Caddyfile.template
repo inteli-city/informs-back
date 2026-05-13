@@ -1,0 +1,27 @@
+# Template do Caddyfile final — gerado pelo GitHub Actions (PR3) substituindo
+# {{IP_DASHED}} pelo static IP da Lightsail no formato dash (ex: 54-232-10-5).
+#
+# Cada hostname sslip.io recebe seu próprio cert Let's Encrypt e proxa pra
+# porta interna do uvicorn correspondente.
+#
+# Por que sslip.io: serviço gratuito que resolve <ip-com-dashes>.sslip.io pro
+# IP literal. Let's Encrypt aceita esse domínio (sslip.io publica o registro).
+# Permite ter wss:// sem precisar comprar domínio próprio.
+
+{
+    # Email pro Let's Encrypt (recomendado pra notificações de expiração).
+    # Substituir antes do deploy.
+    email ops@informs.intelicity.com
+}
+
+dev-{{IP_DASHED}}.sslip.io {
+    reverse_proxy 127.0.0.1:8001
+}
+
+homolog-{{IP_DASHED}}.sslip.io {
+    reverse_proxy 127.0.0.1:8002
+}
+
+prod-{{IP_DASHED}}.sslip.io {
+    reverse_proxy 127.0.0.1:8003
+}
