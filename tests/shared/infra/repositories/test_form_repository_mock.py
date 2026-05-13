@@ -4,8 +4,8 @@ from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.information_field import FileInformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption, SelectedJustification
 from src.shared.domain.entities.section import Section
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
-from src.shared.domain.enums.priority_enum import PRIORITY
+from src.shared.domain.enums.form_status_enum import FormStatus
+from src.shared.domain.enums.priority_enum import Priority
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 
@@ -27,9 +27,9 @@ class Test_FormRepositoryMock:
         repo = FormRepositoryMock()
         form = repo.get_form_by_id(user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001', form_id=repo.forms[0].id)
 
-        form.status = FORM_STATUS.COMPLETED
+        form.status = FormStatus.COMPLETED
 
-        assert repo.forms[0].status == FORM_STATUS.IN_PROGRESS
+        assert repo.forms[0].status == FormStatus.IN_PROGRESS
     
     def test_form_repository_mock_get_form_by_id_not_found(self):
         repo = FormRepositoryMock()
@@ -62,8 +62,8 @@ class Test_FormRepositoryMock:
             number=1,
             latitude=1.0,
             longitude=1.0,
-            priority=PRIORITY.EMERGENCY,
-            status=FORM_STATUS.COMPLETED,
+            priority=Priority.EMERGENCY,
+            status=FormStatus.COMPLETED,
             expiration_date=946407600000,
             created_at=946407600000,
             updated_at=946407600000,
@@ -91,22 +91,22 @@ class Test_FormRepositoryMock:
     
     def test_form_repository_mock_update_form_status(self):
         repo = FormRepositoryMock()
-        form = repo.update_form(user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001', form_id=repo.forms[0].id, status=FORM_STATUS.IN_PROGRESS, updated_at=1)
+        form = repo.update_form(user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001', form_id=repo.forms[0].id, status=FormStatus.IN_PROGRESS, updated_at=1)
 
-        assert form.status == FORM_STATUS.IN_PROGRESS
+        assert form.status == FormStatus.IN_PROGRESS
     
     def test_form_repository_mock_cancel_form(self):
         repo = FormRepositoryMock()
         form = repo.update_form(
             user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
             form_id=repo.forms[0].id,
-            status=FORM_STATUS.CANCELLED,
+            status=FormStatus.CANCELLED,
             justification=justification,
             cancelled_at=1,
             updated_at=1
         )
 
-        assert form.status == FORM_STATUS.CANCELLED
+        assert form.status == FormStatus.CANCELLED
         assert form.justification.selected.option == 'option'
         assert form.justification.selected.text == 'text'
         assert form.justification.selected.image_url == 'image'
@@ -119,13 +119,13 @@ class Test_FormRepositoryMock:
         form = repo.update_form(
             user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
             form_id=repo.forms[0].id,
-            status=FORM_STATUS.COMPLETED,
+            status=FormStatus.COMPLETED,
             sections=[section],
             completed_at=1,
             updated_at=1
         )
 
-        assert form.status == FORM_STATUS.COMPLETED
+        assert form.status == FormStatus.COMPLETED
         assert form.sections == [section]
 
     def test_form_repository_mock_get_forms_updated_since(self):
@@ -141,7 +141,7 @@ class Test_FormRepositoryMock:
             repo.update_form(
                 user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 form_id=repo.forms[0].id,
-                status=FORM_STATUS.IN_PROGRESS,
+                status=FormStatus.IN_PROGRESS,
                 updated_at=1,
-                expected_status=FORM_STATUS.COMPLETED,
+                expected_status=FormStatus.COMPLETED,
             )

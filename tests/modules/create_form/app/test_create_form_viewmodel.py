@@ -9,9 +9,9 @@ from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.information_field import TextInformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption
 from src.shared.domain.entities.section import Section
-from src.shared.domain.enums.file_type_enum import FILE_TYPE
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
-from src.shared.domain.enums.priority_enum import PRIORITY
+from src.shared.domain.enums.file_type_enum import FileType
+from src.shared.domain.enums.form_status_enum import FormStatus
+from src.shared.domain.enums.priority_enum import Priority
 
 
 class Test_CreateFormViewmodel:
@@ -32,8 +32,8 @@ class Test_CreateFormViewmodel:
             number=1,
             latitude=1.0,
             longitude=1.0,
-            priority=PRIORITY.EMERGENCY,
-            status=FORM_STATUS.PENDING,
+            priority=Priority.EMERGENCY,
+            status=FormStatus.PENDING,
             expiration_date=946407600000,
             observation=None,
             created_at=946407600000,
@@ -53,7 +53,7 @@ class Test_CreateFormViewmodel:
         assert response["max_length"] == 10
 
     def test_field_viewmodel_file(self):
-        viewmodel = FieldViewmodel(field=FileField(placeholder='placeholder', required=True, key='key', file_type=FILE_TYPE.IMAGE, min_quantity=1, max_quantity=10, value=['value']))
+        viewmodel = FieldViewmodel(field=FileField(placeholder='placeholder', required=True, key='key', file_type=FileType.IMAGE, min_quantity=1, max_quantity=10, value=['value']))
         response = viewmodel.to_dict()
         assert response["file_type"] == "IMAGE"
         assert response["min_quantity"] == 1

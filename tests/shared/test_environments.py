@@ -1,4 +1,4 @@
-from src.shared.environments import Environments, STAGE
+from src.shared.environments import Environments, Stage
 
 
 def test_environments_parse_bool():
@@ -18,7 +18,7 @@ def test_environments_get_envs_caches_and_resets(monkeypatch):
     second = Environments.get_envs()
 
     assert first is second
-    assert first.stage is STAGE.TEST
+    assert first.stage is Stage.TEST
 
     Environments._reset_instance()
     third = Environments.get_envs()

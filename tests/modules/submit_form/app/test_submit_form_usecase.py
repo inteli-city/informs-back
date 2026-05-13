@@ -2,8 +2,8 @@ import pytest
 from src.modules.submit_form.app.submit_form_usecase import SubmitFormUsecase
 from src.shared.domain.entities.field import FileField
 from src.shared.domain.entities.section import Section
-from src.shared.domain.enums.file_type_enum import FILE_TYPE
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
+from src.shared.domain.enums.file_type_enum import FileType
+from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
@@ -25,7 +25,7 @@ class Test_SubmitFormUsecase:
 
         usecase(user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001', form_id=form.id, fields=fields, completed_at=123)
 
-        assert form.status == FORM_STATUS.COMPLETED
+        assert form.status == FormStatus.COMPLETED
         assert form.sections[0].fields[0].value == 'poggers'
         assert form.completed_at == 123
     
@@ -109,7 +109,7 @@ class Test_SubmitFormUsecase:
             placeholder='file',
             required=True,
             key='file_key',
-            file_type=FILE_TYPE.IMAGE,
+            file_type=FileType.IMAGE,
             min_quantity=1,
             max_quantity=1,
             value={"filename": "a.jpg", "mimetype": "image/jpeg"},
@@ -144,7 +144,7 @@ class Test_SubmitFormUsecase:
             placeholder='file',
             required=True,
             key='file_key',
-            file_type=FILE_TYPE.IMAGE,
+            file_type=FileType.IMAGE,
             min_quantity=1,
             max_quantity=3,
             value=[

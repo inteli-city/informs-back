@@ -24,7 +24,7 @@ from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.information_field import InformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption
 from src.shared.domain.entities.section import Section
-from src.shared.domain.enums.fields_enum import FIELD_TYPE
+from src.shared.domain.enums.fields_enum import FieldType
 
 
 # Atributos opcionais que copiamos diretamente quando presentes no field.
@@ -65,7 +65,7 @@ def build_field_dict(field: Field, *, include_dynamic_extras: bool = False) -> D
         "help_text": getattr(field, "help_text", None),
     }
 
-    if field.field_type == FIELD_TYPE.TEXT_FIELD:
+    if field.field_type == FieldType.TEXT_FIELD:
         base["regex"] = getattr(field, "regex", None)
         base["max_length"] = getattr(field, "max_length", None)
 

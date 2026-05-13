@@ -3,8 +3,8 @@ from copy import deepcopy
 import pytest
 
 from src.modules.plan_route.app.plan_route_usecase import PlanRouteUsecase
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
-from src.shared.domain.enums.priority_enum import PRIORITY
+from src.shared.domain.enums.form_status_enum import FormStatus
+from src.shared.domain.enums.priority_enum import Priority
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 
 
@@ -19,7 +19,7 @@ def _build_pending_form(
     user_id: str,
     latitude: float,
     longitude: float,
-    priority: PRIORITY,
+    priority: Priority,
     created_at: int,
 ):
     """Clona o form PENDING existente do mock e troca os atributos relevantes."""
@@ -31,7 +31,7 @@ def _build_pending_form(
     form.latitude = latitude
     form.longitude = longitude
     form.priority = priority
-    form.status = FORM_STATUS.PENDING
+    form.status = FormStatus.PENDING
     form.created_at = created_at
     return form
 
@@ -72,7 +72,7 @@ class TestPlanRouteUsecase:
         intruder = _build_pending_form(
             repo, suffix="100", user_id=OTHER_USER_ID,
             latitude=-23.0, longitude=-46.0,
-            priority=PRIORITY.HIGH, created_at=946407600000,
+            priority=Priority.HIGH, created_at=946407600000,
         )
         repo.forms.append(intruder)
         usecase = PlanRouteUsecase(repo)
@@ -93,16 +93,16 @@ class TestPlanRouteUsecase:
         repo.forms = [
             _build_pending_form(repo, suffix="200", user_id=REQUESTER_USER_ID,
                                 latitude=0.0, longitude=0.0,
-                                priority=PRIORITY.HIGH, created_at=200),
+                                priority=Priority.HIGH, created_at=200),
             _build_pending_form(repo, suffix="201", user_id=REQUESTER_USER_ID,
                                 latitude=0.0, longitude=0.0,
-                                priority=PRIORITY.HIGH, created_at=100),
+                                priority=Priority.HIGH, created_at=100),
             _build_pending_form(repo, suffix="202", user_id=REQUESTER_USER_ID,
                                 latitude=0.0, longitude=0.0,
-                                priority=PRIORITY.EMERGENCY, created_at=300),
+                                priority=Priority.EMERGENCY, created_at=300),
             _build_pending_form(repo, suffix="203", user_id=REQUESTER_USER_ID,
                                 latitude=0.0, longitude=0.0,
-                                priority=PRIORITY.EMERGENCY, created_at=200),
+                                priority=Priority.EMERGENCY, created_at=200),
         ]
         usecase = PlanRouteUsecase(repo)
 
@@ -117,7 +117,7 @@ class TestPlanRouteUsecase:
         # do nearest-neighbor é estável e mantém a ordem de chegada.
         assert len(ordered_forms) == 2
         priorities = [int(f.priority.value) for f in ordered_forms]
-        assert all(p == int(PRIORITY.EMERGENCY.value) for p in priorities)
+        assert all(p == int(Priority.EMERGENCY.value) for p in priorities)
         # E entre os dois, esperamos created_at ASC primeiro (200 antes de 300)
         assert ordered_forms[0].created_at == 200
         assert ordered_forms[1].created_at == 300
@@ -130,13 +130,13 @@ class TestPlanRouteUsecase:
         repo.forms = [
             _build_pending_form(repo, suffix="300", user_id=REQUESTER_USER_ID,
                                 latitude=0.0, longitude=10.0,
-                                priority=PRIORITY.MEDIUM, created_at=100),
+                                priority=Priority.MEDIUM, created_at=100),
             _build_pending_form(repo, suffix="301", user_id=REQUESTER_USER_ID,
                                 latitude=0.0, longitude=0.1,
-                                priority=PRIORITY.MEDIUM, created_at=100),
+                                priority=Priority.MEDIUM, created_at=100),
             _build_pending_form(repo, suffix="302", user_id=REQUESTER_USER_ID,
                                 latitude=0.0, longitude=5.0,
-                                priority=PRIORITY.MEDIUM, created_at=100),
+                                priority=Priority.MEDIUM, created_at=100),
         ]
         usecase = PlanRouteUsecase(repo)
 
@@ -156,7 +156,7 @@ class TestPlanRouteUsecase:
         repo.forms = [
             _build_pending_form(repo, suffix="400", user_id=REQUESTER_USER_ID,
                                 latitude=0.0, longitude=1.0,
-                                priority=PRIORITY.MEDIUM, created_at=100),
+                                priority=Priority.MEDIUM, created_at=100),
         ]
         usecase = PlanRouteUsecase(repo)
 
@@ -176,7 +176,7 @@ class TestPlanRouteUsecase:
         repo.forms = [
             _build_pending_form(repo, suffix="500", user_id=REQUESTER_USER_ID,
                                 latitude=0.0, longitude=1.0,
-                                priority=PRIORITY.MEDIUM, created_at=100),
+                                priority=Priority.MEDIUM, created_at=100),
         ]
         usecase = PlanRouteUsecase(repo)
 

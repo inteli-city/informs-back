@@ -1,5 +1,5 @@
 from src.shared.domain.entities.form import Form
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
+from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.helpers.errors.usecase_errors import NoItemsFound
 from src.shared.helpers.functions.datetime_utils import now_timestamp_ms
@@ -26,6 +26,6 @@ class StartFormUsecase:
             status=form.status,
             in_progress_at=form.in_progress_at,
             updated_at=form.updated_at,
-            expected_status=FORM_STATUS.PENDING,
+            expected_status=FormStatus.PENDING,
         )
         return updated_form

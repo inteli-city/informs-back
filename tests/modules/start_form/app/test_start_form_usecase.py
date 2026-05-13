@@ -5,7 +5,7 @@ from datetime import datetime
 sys.path.append(os.getcwd())
 
 from src.modules.start_form.app.start_form_usecase import StartFormUsecase
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
+from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 
@@ -16,7 +16,7 @@ class Test_StartFormUsecase:
         usecase = StartFormUsecase(repo)
 
         form = repo.forms[0]
-        form.status = FORM_STATUS.PENDING
+        form.status = FormStatus.PENDING
 
         usecase(
             requester_user_id=form.user_id,
@@ -24,7 +24,7 @@ class Test_StartFormUsecase:
             in_progress_at=int(datetime.now().timestamp() * 1000)
         )
 
-        assert form.status == FORM_STATUS.IN_PROGRESS
+        assert form.status == FormStatus.IN_PROGRESS
         assert form.in_progress_at is not None
 
     def test_start_form_wrong_user(self):
@@ -32,7 +32,7 @@ class Test_StartFormUsecase:
         usecase = StartFormUsecase(repo)
 
         form = repo.forms[0]
-        form.status = FORM_STATUS.PENDING
+        form.status = FormStatus.PENDING
 
         try:
             usecase(
