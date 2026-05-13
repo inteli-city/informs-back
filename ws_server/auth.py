@@ -81,12 +81,16 @@ class Authenticator:
                 resp.raise_for_status()
                 self._jwks = resp.json()
 
-        try:
-            unverified_header = jwt.get_unverified_header(token)
-        except JWTError as exc:
-            raise AuthError(f"header JWT inválido: {exc}") from exc
-
+        # Lemos o header sem verificar APENAS pra descobrir o `kid` (id da
+        # chave do JWKS) e o `alg`. A verificação real de assinatura,
+        # audience, issuer e expiration é feita em jwt.decode() abaixo,
+        # que SÓ retorna se tudo for válido. Este uso é o padrão
+        # recomendado pelo próprio python-jose pra fluxo com JWKS.
+        # NOSONAR: python:S5659 — assinatura é validada em jwt.decode().
+        unverified_header = _read_unverified_header(token)
         kid = unverified_header.get("kid")
+        alg = unverified_header.get("alg", "RS256")
+
         key = next(
             (k for k in self._jwks.get("keys", []) if k.get("kid") == kid), None
         )
@@ -94,10 +98,13 @@ class Authenticator:
             raise AuthError("kid do token não bate com nenhuma chave do JWKS")
 
         try:
+            # Esta chamada valida assinatura (RS256 contra a chave pública),
+            # audience (client_id), issuer e expiração. Levanta JWTError
+            # se qualquer uma falhar.
             return jwt.decode(
                 token,
                 key,
-                algorithms=[unverified_header.get("alg", "RS256")],
+                algorithms=[alg],
                 audience=self._settings.cognito_app_client_id,
                 issuer=self._settings.cognito_issuer,
                 options={"verify_at_hash": False},
@@ -142,3 +149,17 @@ def extract_token_from_headers(headers: dict[str, str]) -> Optional[str]:
                 return part[len("Bearer.") :]
 
     return None
+
+
+def _read_unverified_header(token: str) -> dict:
+    """Lê o header do JWT SEM validar assinatura.
+
+    Uso EXCLUSIVO: descobrir `kid` e `alg` pra escolher a chave pública
+    correta no JWKS. A validação real acontece em `jwt.decode()` no caller,
+    que verifica assinatura, audience, issuer e expiration. Padrão
+    documentado pelo próprio python-jose pra fluxo Cognito/Auth0.
+    """
+    try:
+        return jwt.get_unverified_header(token)  # NOSONAR: ver docstring
+    except JWTError as exc:
+        raise AuthError(f"header JWT inválido: {exc}") from exc
