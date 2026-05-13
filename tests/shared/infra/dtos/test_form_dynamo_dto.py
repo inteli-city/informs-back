@@ -7,6 +7,8 @@ Agora cada teste tem só o setup específico do seu caso e usa helpers
 compartilhados para asserts comuns.
 """
 
+import pytest
+
 from src.shared.domain.entities.field import TextField
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.information_field import TextInformationField
@@ -39,31 +41,31 @@ def _build_justification() -> Justification:
 
 def _common_kwargs() -> dict:
     """Kwargs compartilhados entre Form e FormDynamoDTO — assinaturas iguais."""
-    return dict(
-        form_title="form_title",
-        id=SAMPLE_ID,
-        created_by=SAMPLE_ID,
-        user_id=SAMPLE_ID,
-        template="template",
-        area="area",
-        system="system",
-        street="street",
-        city="city",
-        number=123,
-        latitude=0.0,
-        longitude=0.0,
-        observation="observation",
-        priority=PRIORITY.EMERGENCY,
-        status=FORM_STATUS.IN_PROGRESS,
-        expiration_date=SAMPLE_TS,
-        created_at=SAMPLE_TS,
-        updated_at=SAMPLE_TS,
-        in_progress_at=SAMPLE_TS,
-        completed_at=SAMPLE_TS,
-        justification=_build_justification(),
-        sections=[Section(section_id=0, fields=[SAMPLE_FIELD])],
-        information_fields=[TextInformationField(value="value")],
-    )
+    return {
+        "form_title": "form_title",
+        "id": SAMPLE_ID,
+        "created_by": SAMPLE_ID,
+        "user_id": SAMPLE_ID,
+        "template": "template",
+        "area": "area",
+        "system": "system",
+        "street": "street",
+        "city": "city",
+        "number": 123,
+        "latitude": 0.0,
+        "longitude": 0.0,
+        "observation": "observation",
+        "priority": PRIORITY.EMERGENCY,
+        "status": FORM_STATUS.IN_PROGRESS,
+        "expiration_date": SAMPLE_TS,
+        "created_at": SAMPLE_TS,
+        "updated_at": SAMPLE_TS,
+        "in_progress_at": SAMPLE_TS,
+        "completed_at": SAMPLE_TS,
+        "justification": _build_justification(),
+        "sections": [Section(section_id=0, fields=[SAMPLE_FIELD])],
+        "information_fields": [TextInformationField(value="value")],
+    }
 
 
 def _build_form() -> Form:
@@ -140,8 +142,8 @@ def _assert_object_attrs(obj):
     assert obj.street == "street"
     assert obj.city == "city"
     assert obj.number == 123
-    assert obj.latitude == 0.0
-    assert obj.longitude == 0.0
+    assert obj.latitude == pytest.approx(0.0, abs=1e-9)
+    assert obj.longitude == pytest.approx(0.0, abs=1e-9)
     assert obj.observation == "observation"
     assert obj.priority == PRIORITY.EMERGENCY
     assert obj.status == FORM_STATUS.IN_PROGRESS
@@ -177,8 +179,8 @@ def _assert_dynamo_dict(form_dict: dict):
     assert form_dict["street"] == "street"
     assert form_dict["city"] == "city"
     assert form_dict["number"] == 123
-    assert form_dict["latitude"] == 0.0
-    assert form_dict["longitude"] == 0.0
+    assert form_dict["latitude"] == pytest.approx(0.0, abs=1e-9)
+    assert form_dict["longitude"] == pytest.approx(0.0, abs=1e-9)
     assert form_dict["priority"] == PRIORITY.EMERGENCY.value
     assert form_dict["status"] == FORM_STATUS.IN_PROGRESS.value
     assert form_dict["expiration_date"] == SAMPLE_TS
