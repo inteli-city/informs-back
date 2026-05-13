@@ -165,5 +165,6 @@ def _decode_jwt_header(token: str) -> dict:
         # Padding base64url — string pode ter 0/2/3 mod 4 caracteres faltando.
         header_b64 += "=" * (-len(header_b64) % 4)
         return json.loads(base64.urlsafe_b64decode(header_b64))
-    except (ValueError, json.JSONDecodeError) as exc:
+    except ValueError as exc:
+        # json.JSONDecodeError já é subclasse de ValueError — Sonar S5713.
         raise AuthError(f"header JWT inválido: {exc}") from exc
