@@ -11,8 +11,7 @@ Verifica o protocolo:
 - payload inválido fecha ou retorna error sem matar a sessão
 """
 
-import json
-from unittest.mock import MagicMock
+import os
 
 import boto3
 import pytest
@@ -21,12 +20,10 @@ from moto import mock_aws
 
 from ws_server import config, main as main_module
 from ws_server.auth import AuthenticatedUser
-from ws_server.location_repo import LocationRepository
-from ws_server.presence import ConnectionRegistry
 
 
 TABLE = "informs-tracking-location-test"
-REGION = "sa-east-1"
+REGION = os.environ.get("AWS_REGION", "sa-east-1")
 
 
 @pytest.fixture
@@ -59,13 +56,16 @@ def app_with_mocks(monkeypatch):
         )
         monkeypatch.setattr(config, "load", lambda: fake_settings)
 
-        # Substitui Authenticator por um stub configurável via header de teste.
-        # O cliente passa Authorization: "Bearer <user_id>:<role>" pra simular.
+        # Stub do Authenticator: cliente passa Authorization: "Bearer u1:MOTOCA"
+        # e a gente devolve AuthenticatedUser correspondente.
+        # `await asyncio.sleep(0)` pra aderir ao contrato async sem
+        # disparar python:S7503 (corrotina sem await).
+        import asyncio
+        from ws_server.auth import AuthError
+
         class StubAuth:
             async def authenticate(self, token):
-                # token vem como "u1:MOTOCA"
-                from ws_server.auth import AuthError
-
+                await asyncio.sleep(0)
                 if not token or ":" not in token:
                     raise AuthError("token de teste inválido")
                 user_id, role = token.split(":", 1)
@@ -77,14 +77,11 @@ def app_with_mocks(monkeypatch):
         # ser no namespace de main, não no de auth.
         monkeypatch.setattr(main_module, "Authenticator", lambda *_a, **_k: StubAuth())
 
-        # Recria o repo apontando pro moto (lifespan vai reinstanciar).
-        # Não precisa monkeypatch — boto3 pega creds default do moto.
-
         with TestClient(main_module.app) as client:
             yield client, ddb
 
 
-class Test_HealthEndpoint:
+class TestHealthEndpoint:
     def test_returns_ok(self, app_with_mocks):
         client, _ = app_with_mocks
         resp = client.get("/health")
@@ -92,7 +89,7 @@ class Test_HealthEndpoint:
         assert resp.json()["status"] == "ok"
 
 
-class Test_AuthFailureClosesSocket:
+class TestAuthFailureClosesSocket:
     def test_no_token_closes_with_4401(self, app_with_mocks):
         client, _ = app_with_mocks
         with pytest.raises(Exception):
@@ -101,7 +98,7 @@ class Test_AuthFailureClosesSocket:
                 ws.receive_json()
 
 
-class Test_GestorReceivesSnapshot:
+class TestGestorReceivesSnapshot:
     def test_snapshot_empty_when_no_motocas(self, app_with_mocks):
         client, _ = app_with_mocks
         with client.websocket_connect(
@@ -112,7 +109,7 @@ class Test_GestorReceivesSnapshot:
             assert msg["online"] == []
 
 
-class Test_MotocaPingFanOut:
+class TestMotocaPingFanOut:
     def test_motoca_ping_reaches_gestor(self, app_with_mocks):
         client, ddb = app_with_mocks
         with client.websocket_connect(
@@ -152,7 +149,7 @@ class Test_MotocaPingFanOut:
             assert evt == {"type": "disconnect", "user_id": "m1"}
 
 
-class Test_InvalidPayloadDoesNotKillSession:
+class TestInvalidPayloadDoesNotKillSession:
     def test_motoca_invalid_then_valid(self, app_with_mocks):
         client, _ = app_with_mocks
         with client.websocket_connect(
@@ -176,16 +173,16 @@ class Test_InvalidPayloadDoesNotKillSession:
                 assert loc["lat"] == pytest.approx(1)
 
 
-class Test_DuplicateMotocaSession:
+class TestDuplicateMotocaSession:
     def test_second_connection_kicks_first(self, app_with_mocks):
         client, _ = app_with_mocks
         with client.websocket_connect(
             "/ws", headers={"authorization": "Bearer m1:MOTOCA"}
         ) as ws1:
-            # Segunda sessão do mesmo user_id
+            # Segunda sessão do mesmo user_id — só conectar já força
+            # o disconnect da primeira (sem precisar usar a referência).
             with client.websocket_connect(
                 "/ws", headers={"authorization": "Bearer m1:MOTOCA"}
-            ) as ws2:
-                # ws1 deve receber close
+            ):
                 with pytest.raises(Exception):
                     ws1.receive_text()

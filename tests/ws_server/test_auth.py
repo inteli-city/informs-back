@@ -7,7 +7,7 @@ do Cognito e não agrega valor unitário (jose já é testado).  Testamos:
 - tratamento de profile inexistente / inativo / role desconhecida
 """
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -29,7 +29,7 @@ _SETTINGS = Settings(
 )
 
 
-class Test_extract_token_from_headers:
+class TestExtractTokenFromHeaders:
     def test_authorization_bearer(self):
         assert extract_token_from_headers({"authorization": "Bearer abc.def"}) == "abc.def"
 
@@ -54,7 +54,7 @@ class Test_extract_token_from_headers:
         assert extract_token_from_headers({"authorization": "Basic Zm9v"}) is None
 
 
-class Test_Authenticator_lookup_role:
+class TestAuthenticatorLookupRole:
     def _build(self, item: dict | None):
         ddb = MagicMock()
         ddb.Table.return_value.get_item.return_value = (
@@ -80,7 +80,7 @@ class Test_Authenticator_lookup_role:
         assert auth._lookup_role("u1") is None
 
 
-class Test_Authenticator_authenticate:
+class TestAuthenticatorAuthenticate:
     """Testa só o caminho pós-JWT, mockando _verify_jwt."""
 
     @pytest.mark.asyncio
@@ -90,11 +90,7 @@ class Test_Authenticator_authenticate:
             "Item": {"role": "INSPECTOR", "active": True}
         }
         auth = Authenticator(_SETTINGS, dynamodb_resource=ddb)
-
-        async def fake_verify(_token):
-            return {"sub": "u1"}
-
-        monkeypatch.setattr(auth, "_verify_jwt", fake_verify)
+        monkeypatch.setattr(auth, "_verify_jwt", AsyncMock(return_value={"sub": "u1"}))
         user = await auth.authenticate("dummy")
         assert user.user_id == "u1"
         assert user.role == "MOTOCA"
@@ -106,7 +102,7 @@ class Test_Authenticator_authenticate:
             "Item": {"role": "ADMIN", "active": True}
         }
         auth = Authenticator(_SETTINGS, dynamodb_resource=ddb)
-        monkeypatch.setattr(auth, "_verify_jwt", lambda _t: _coro({"sub": "u2"}))
+        monkeypatch.setattr(auth, "_verify_jwt", AsyncMock(return_value={"sub": "u2"}))
         user = await auth.authenticate("dummy")
         assert user.role == "GESTOR"
 
@@ -119,7 +115,7 @@ class Test_Authenticator_authenticate:
     @pytest.mark.asyncio
     async def test_token_without_sub_raises(self, monkeypatch):
         auth = Authenticator(_SETTINGS, dynamodb_resource=MagicMock())
-        monkeypatch.setattr(auth, "_verify_jwt", lambda _t: _coro({}))
+        monkeypatch.setattr(auth, "_verify_jwt", AsyncMock(return_value={}))
         with pytest.raises(AuthError, match="sub"):
             await auth.authenticate("dummy")
 
@@ -128,7 +124,7 @@ class Test_Authenticator_authenticate:
         ddb = MagicMock()
         ddb.Table.return_value.get_item.return_value = {}
         auth = Authenticator(_SETTINGS, dynamodb_resource=ddb)
-        monkeypatch.setattr(auth, "_verify_jwt", lambda _t: _coro({"sub": "ghost"}))
+        monkeypatch.setattr(auth, "_verify_jwt", AsyncMock(return_value={"sub": "ghost"}))
         with pytest.raises(AuthError, match="profile"):
             await auth.authenticate("dummy")
 
@@ -139,11 +135,6 @@ class Test_Authenticator_authenticate:
             "Item": {"role": "WHATEVER", "active": True}
         }
         auth = Authenticator(_SETTINGS, dynamodb_resource=ddb)
-        monkeypatch.setattr(auth, "_verify_jwt", lambda _t: _coro({"sub": "u1"}))
+        monkeypatch.setattr(auth, "_verify_jwt", AsyncMock(return_value={"sub": "u1"}))
         with pytest.raises(AuthError, match="não autorizada"):
             await auth.authenticate("dummy")
-
-
-async def _coro(value):
-    """Helper pra transformar valor síncrono em coroutine no monkeypatch."""
-    return value

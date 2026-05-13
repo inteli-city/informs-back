@@ -72,7 +72,6 @@ async def health():
 @app.websocket("/ws")
 async def ws_endpoint(websocket: WebSocket):
     """Único endpoint WS — papel é descoberto via JWT + Profile."""
-    settings = websocket.app.state.settings
     registry: ConnectionRegistry = websocket.app.state.registry
     repo: LocationRepository = websocket.app.state.location_repo
     auth: Authenticator = websocket.app.state.authenticator

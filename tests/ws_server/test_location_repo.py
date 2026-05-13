@@ -1,5 +1,7 @@
 """Tests do LocationRepository com moto (DynamoDB local em memória)."""
 
+import os
+
 import boto3
 import pytest
 from moto import mock_aws
@@ -8,7 +10,9 @@ from ws_server.location_repo import LocationRepository
 
 
 TABLE = "informs-tracking-location-test"
-REGION = "sa-east-1"
+# Region puxa de env (cai pra default só quando rodando local sem AWS_REGION).
+# Resolve python:S6262 — Sonar não gosta de region literal hardcoded.
+REGION = os.environ.get("AWS_REGION", "sa-east-1")
 
 
 @pytest.fixture
@@ -30,7 +34,7 @@ def ddb():
         yield boto3.resource("dynamodb", region_name=REGION)
 
 
-class Test_LocationRepository:
+class TestLocationRepository:
     def test_put_ping_minimal(self, ddb):
         repo = LocationRepository(table_name=TABLE, region=REGION, dynamodb_resource=ddb)
         repo.put_ping(

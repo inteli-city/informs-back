@@ -1,24 +1,35 @@
 """Tests do ConnectionRegistry — sem rede, com WebSocket falso."""
 
+from typing import cast
+from unittest.mock import MagicMock
+
+from fastapi import WebSocket
+
 from ws_server.messages import LocationOut
 from ws_server.presence import ConnectionRegistry
 
 
-class _FakeWS:
-    """Stub mínimo: o registry só compara identidade dos sockets."""
+def _ws() -> WebSocket:
+    """Stub mínimo: o registry só compara identidade dos sockets.
+
+    Casting pra WebSocket silencia python:S5655 (type checker do Sonar)
+    sem incorrer em deps reais — MagicMock(spec=WebSocket) atende ao
+    contrato estrutural do que o registry usa.
+    """
+    return cast(WebSocket, MagicMock(spec=WebSocket))
 
 
-class Test_ConnectionRegistry_Motoca:
+class TestConnectionRegistryMotoca:
     def test_register_returns_none_when_first(self):
         reg = ConnectionRegistry()
-        ws = _FakeWS()
+        ws = _ws()
         assert reg.register_motoca("u1", ws) is None
         assert ("u1", None) in reg.online_motocas()
 
     def test_register_returns_previous_on_duplicate(self):
         reg = ConnectionRegistry()
-        ws_old = _FakeWS()
-        ws_new = _FakeWS()
+        ws_old = _ws()
+        ws_new = _ws()
         reg.register_motoca("u1", ws_old)
         previous = reg.register_motoca("u1", ws_new)
         assert previous is ws_old
@@ -27,8 +38,8 @@ class Test_ConnectionRegistry_Motoca:
 
     def test_unregister_only_removes_matching_socket(self):
         reg = ConnectionRegistry()
-        ws_old = _FakeWS()
-        ws_new = _FakeWS()
+        ws_old = _ws()
+        ws_new = _ws()
         reg.register_motoca("u1", ws_old)
         reg.register_motoca("u1", ws_new)  # ws_old fica órfão
         # cleanup tardio do ws_old NÃO pode remover ws_new
@@ -39,7 +50,7 @@ class Test_ConnectionRegistry_Motoca:
 
     def test_update_last_known_persists(self):
         reg = ConnectionRegistry()
-        reg.register_motoca("u1", _FakeWS())
+        reg.register_motoca("u1", _ws())
         loc = LocationOut(user_id="u1", lat=1, lng=2, ts=3, ts_device=4)
         reg.update_last_known("u1", loc)
         online = reg.online_motocas()
@@ -54,10 +65,10 @@ class Test_ConnectionRegistry_Motoca:
         assert reg.online_motocas() == []
 
 
-class Test_ConnectionRegistry_Gestor:
+class TestConnectionRegistryGestor:
     def test_register_unregister(self):
         reg = ConnectionRegistry()
-        ws = _FakeWS()
+        ws = _ws()
         reg.register_gestor(ws)
         assert ws in reg.gestores()
         reg.unregister_gestor(ws)
@@ -66,11 +77,11 @@ class Test_ConnectionRegistry_Gestor:
     def test_unregister_unknown_is_silent(self):
         reg = ConnectionRegistry()
         # discard não levanta
-        reg.unregister_gestor(_FakeWS())
+        reg.unregister_gestor(_ws())
 
     def test_gestores_returns_copy(self):
         reg = ConnectionRegistry()
-        ws = _FakeWS()
+        ws = _ws()
         reg.register_gestor(ws)
         snap = reg.gestores()
         reg.unregister_gestor(ws)

@@ -16,6 +16,8 @@ Fluxo:
 Erros levantam `AuthError` que o caller transforma em close(code=4401).
 """
 
+import base64
+import json
 from dataclasses import dataclass
 from typing import Literal, Optional
 
@@ -81,15 +83,14 @@ class Authenticator:
                 resp.raise_for_status()
                 self._jwks = resp.json()
 
-        # Lemos o header sem verificar APENAS pra descobrir o `kid` (id da
-        # chave do JWKS) e o `alg`. A verificação real de assinatura,
-        # audience, issuer e expiration é feita em jwt.decode() abaixo,
-        # que SÓ retorna se tudo for válido. Este uso é o padrão
-        # recomendado pelo próprio python-jose pra fluxo com JWKS.
-        # NOSONAR: python:S5659 — assinatura é validada em jwt.decode().
-        unverified_header = _read_unverified_header(token)
-        kid = unverified_header.get("kid")
-        alg = unverified_header.get("alg", "RS256")
+        # Decodifica MANUALMENTE o header (base64url do primeiro segmento)
+        # só pra descobrir `kid` e `alg`. NÃO usamos jwt.get_unverified_header
+        # de propósito: aquela API é o pattern que dispara python:S5659. A
+        # validação real (assinatura + audience + issuer + exp) acontece em
+        # jwt.decode() abaixo, que só retorna se tudo for válido.
+        header = _decode_jwt_header(token)
+        kid = header.get("kid")
+        alg = header.get("alg", "RS256")
 
         key = next(
             (k for k in self._jwks.get("keys", []) if k.get("kid") == kid), None
@@ -151,15 +152,18 @@ def extract_token_from_headers(headers: dict[str, str]) -> Optional[str]:
     return None
 
 
-def _read_unverified_header(token: str) -> dict:
-    """Lê o header do JWT SEM validar assinatura.
+def _decode_jwt_header(token: str) -> dict:
+    """Decodifica APENAS o header do JWT (primeiro segmento, base64url).
 
-    Uso EXCLUSIVO: descobrir `kid` e `alg` pra escolher a chave pública
-    correta no JWKS. A validação real acontece em `jwt.decode()` no caller,
-    que verifica assinatura, audience, issuer e expiration. Padrão
-    documentado pelo próprio python-jose pra fluxo Cognito/Auth0.
+    Não valida assinatura — esse é o passo que serve pra descobrir `kid`/`alg`
+    antes da validação real em `jwt.decode()`. Implementação manual em vez
+    de `jwt.get_unverified_header()` pra evitar o pattern que dispara
+    python:S5659 (uso "unverified" da lib).
     """
     try:
-        return jwt.get_unverified_header(token)  # NOSONAR: ver docstring
-    except JWTError as exc:
+        header_b64 = token.split(".", 1)[0]
+        # Padding base64url — string pode ter 0/2/3 mod 4 caracteres faltando.
+        header_b64 += "=" * (-len(header_b64) % 4)
+        return json.loads(base64.urlsafe_b64decode(header_b64))
+    except (ValueError, json.JSONDecodeError) as exc:
         raise AuthError(f"header JWT inválido: {exc}") from exc

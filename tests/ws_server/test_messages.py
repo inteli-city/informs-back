@@ -6,7 +6,7 @@ from pydantic import ValidationError
 from ws_server.messages import LocationOut, LocationPing, OnlineEntry, Snapshot
 
 
-class Test_LocationPing:
+class TestLocationPing:
     def test_minimal_valid(self):
         ping = LocationPing(lat=-23.5, lng=-46.6, ts_device=1715000000000)
         assert ping.accuracy is None
@@ -30,7 +30,7 @@ class Test_LocationPing:
             LocationPing(lat=0, lng=0, ts_device=1, accuracy=-0.1)
 
 
-class Test_Snapshot:
+class TestSnapshot:
     def test_empty_online(self):
         s = Snapshot(online=[])
         d = s.model_dump()
