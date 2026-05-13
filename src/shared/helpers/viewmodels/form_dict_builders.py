@@ -27,6 +27,34 @@ from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.fields_enum import FIELD_TYPE
 
 
+# Atributos opcionais que copiamos diretamente quando presentes no field.
+_OPTIONAL_PASSTHROUGH_ATTRS = ("options", "max_value", "min_value", "decimal", "check_limit")
+
+
+def _add_optional_passthrough(base: Dict[str, Any], field: Field) -> None:
+    for attr in _OPTIONAL_PASSTHROUGH_ATTRS:
+        if hasattr(field, attr):
+            base[attr] = getattr(field, attr)
+
+
+def _add_file_attrs(base: Dict[str, Any], field: Field) -> None:
+    if not hasattr(field, "file_type"):
+        return
+    base["file_type"] = getattr(field.file_type, "value", None)
+    base["min_quantity"] = getattr(field, "min_quantity", None)
+    base["max_quantity"] = getattr(field, "max_quantity", None)
+
+
+def _add_dynamic_extras(base: Dict[str, Any], field: Field) -> None:
+    if hasattr(field, "min_date"):
+        base["min_date"] = field.min_date
+    if hasattr(field, "max_date"):
+        base["max_date"] = field.max_date
+    if hasattr(field, "value"):
+        value = field.value
+        base["value"] = value.value if isinstance(value, Enum) else value
+
+
 def build_field_dict(field: Field, *, include_dynamic_extras: bool = False) -> Dict[str, Any]:
     base: Dict[str, Any] = {
         "field_type": field.field_type.value,
@@ -41,29 +69,11 @@ def build_field_dict(field: Field, *, include_dynamic_extras: bool = False) -> D
         base["regex"] = getattr(field, "regex", None)
         base["max_length"] = getattr(field, "max_length", None)
 
-    if hasattr(field, "options"):
-        base["options"] = field.options
-    if hasattr(field, "max_value"):
-        base["max_value"] = field.max_value
-    if hasattr(field, "min_value"):
-        base["min_value"] = field.min_value
-    if hasattr(field, "decimal"):
-        base["decimal"] = field.decimal
-    if hasattr(field, "check_limit"):
-        base["check_limit"] = field.check_limit
-    if hasattr(field, "file_type"):
-        base["file_type"] = getattr(field.file_type, "value", None)
-        base["min_quantity"] = getattr(field, "min_quantity", None)
-        base["max_quantity"] = getattr(field, "max_quantity", None)
+    _add_optional_passthrough(base, field)
+    _add_file_attrs(base, field)
 
     if include_dynamic_extras:
-        if hasattr(field, "min_date"):
-            base["min_date"] = field.min_date
-        if hasattr(field, "max_date"):
-            base["max_date"] = field.max_date
-        if hasattr(field, "value"):
-            value = field.value
-            base["value"] = value.value if isinstance(value, Enum) else value
+        _add_dynamic_extras(base, field)
 
     return base
 
