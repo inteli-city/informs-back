@@ -11,8 +11,8 @@ aplicacionais: `ADMIN` e `INSPECTOR`. O serviço de tracking precisa
 diferenciar quem **emite** localizações (no campo) de quem **consome** o
 stream em tempo real (na operação).
 
-Decisão necessária: introduzir papéis novos no enum (ex: `MOTOCA`/`GESTOR`)
-ou reusar os papéis existentes diretamente.
+Decisão necessária: introduzir papéis novos no enum (com nomes específicos
+do tracking) ou reusar os papéis existentes diretamente.
 
 ## Decisão
 
@@ -31,10 +31,10 @@ Outras roles são rejeitadas no handshake (`AuthError` → close code 4401).
 2. **Modelagem operacional bate.** Quem inspeciona forms em campo
    (INSPECTOR) é a mesma persona que vai emitir localização. Quem
    administra a operação (ADMIN) é quem vai monitorar.
-3. **Sem indireção.** Iteração anterior do código tinha um `_PROFILE_TO_TRACKING`
-   traduzindo INSPECTOR→MOTOCA / ADMIN→GESTOR; isso adicionava nomes
-   próprios ao tracking sem ganho semântico — o operador de suporte
-   precisava lembrar 2 conjuntos de termos. Removido.
+3. **Sem indireção.** Iteração anterior tinha um dicionário de tradução
+   pra papéis específicos do tracking; isso adicionava nomes próprios sem
+   ganho semântico — o operador de suporte precisaria lembrar 2 conjuntos
+   de termos. Removido.
 4. **Não compromete o RBAC do REST.** A lambda do REST continua usando
    `ProfileRole.ADMIN`/`INSPECTOR` puros, sem qualquer interferência.
 
@@ -52,14 +52,14 @@ Outras roles são rejeitadas no handshake (`AuthError` → close code 4401).
 
 ## Alternativas consideradas
 
-- **Adicionar MOTOCA/GESTOR ao enum ProfileRole** (avaliado e descartado):
-  exigiria migração de todos os profiles existentes (script + janela) e
-  cria 4 papéis num módulo só (RBAC do REST), sendo que metade não tem uso
-  no REST.
+- **Adicionar papéis específicos do tracking ao enum ProfileRole**
+  (avaliado e descartado): exigiria migração de todos os profiles
+  existentes (script + janela) e cria 4 papéis num módulo só (RBAC do
+  REST), sendo que metade não teria uso no REST.
 - **Tabela Profile separada só pro tracking**: isolamento total, mas
   duplica o cadastro de usuários e cria nova fonte de divergência.
-- **Mapping interno (INSPECTOR→MOTOCA, ADMIN→GESTOR)**: foi a 1ª iteração
-  do código no PR #46, removida por adicionar termos sem ganho.
+- **Mapping interno**: foi a 1ª iteração do código no PR #46, removida
+  por adicionar termos sem ganho.
 
 ## Referências
 
