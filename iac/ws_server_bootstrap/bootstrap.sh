@@ -17,7 +17,7 @@ set -euxo pipefail
 exec > >(tee /var/log/informs-ws-bootstrap.log) 2>&1
 
 echo "==> [1/5] Swap 1GB"
-if [ ! -f /swapfile ]; then
+if [[ ! -f /swapfile ]]; then
     fallocate -l 1G /swapfile
     chmod 600 /swapfile
     mkswap /swapfile
@@ -59,6 +59,10 @@ for STAGE in dev homolog prod; do
         dev)     PORT=8001 ;;
         homolog) PORT=8002 ;;
         prod)    PORT=8003 ;;
+        # `for` itera só sobre dev/homolog/prod, mas SonarQube shelldre:S131
+        # exige default explícito. Mantemos uma falha barulhenta no caso
+        # improvável de alguém editar a lista acima sem atualizar o case.
+        *) echo "STAGE inesperado: ${STAGE}"; exit 1 ;;
     esac
 
     cat > /etc/systemd/system/informs-ws-${STAGE}.service <<EOF

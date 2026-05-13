@@ -44,6 +44,10 @@ LIGHTSAIL_BUNDLE_ID = "nano_3_0"
 # Blueprint Debian 12. Confere com: aws lightsail get-blueprints --region sa-east-1
 LIGHTSAIL_BLUEPRINT_ID = "debian_12"
 
+# Open-internet CIDR — usamos pra SSH (22), HTTP (80, Let's Encrypt) e WSS (443).
+# Extrair constante evita python:S1192 (literal duplicado).
+_OPEN_INTERNET_CIDR = "0.0.0.0/0"
+
 
 class TrackingStack(Stack):
     """Stack independente — não depende do IacStack principal."""
@@ -265,16 +269,16 @@ class TrackingStack(Stack):
             networking=aws_lightsail.CfnInstance.NetworkingProperty(
                 ports=[
                     aws_lightsail.CfnInstance.PortProperty(
-                        from_port=22, to_port=22, protocol="tcp", access_from="0.0.0.0/0",
+                        from_port=22, to_port=22, protocol="tcp", access_from=_OPEN_INTERNET_CIDR,
                         access_type="public", access_direction="inbound", common_name="SSH",
                     ),
                     aws_lightsail.CfnInstance.PortProperty(
-                        from_port=80, to_port=80, protocol="tcp", access_from="0.0.0.0/0",
+                        from_port=80, to_port=80, protocol="tcp", access_from=_OPEN_INTERNET_CIDR,
                         access_type="public", access_direction="inbound",
                         common_name="HTTP (Let's Encrypt HTTP-01)",
                     ),
                     aws_lightsail.CfnInstance.PortProperty(
-                        from_port=443, to_port=443, protocol="tcp", access_from="0.0.0.0/0",
+                        from_port=443, to_port=443, protocol="tcp", access_from=_OPEN_INTERNET_CIDR,
                         access_type="public", access_direction="inbound", common_name="WSS",
                     ),
                 ]
