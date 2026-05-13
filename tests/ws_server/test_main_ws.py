@@ -1,12 +1,12 @@
 """Tests de integração do endpoint /ws com TestClient da FastAPI.
 
 Mocka:
-- Authenticator: força MOTOCA ou GESTOR sem precisar de JWT real.
+- Authenticator: força INSPECTOR ou ADMIN sem precisar de JWT real.
 - LocationRepository: usa moto pra DynamoDB local.
 
 Verifica o protocolo:
-- snapshot inicial pro gestor
-- broadcast de location ping motoca → gestor
+- snapshot inicial pro admin
+- broadcast de location ping inspector → admin
 - presence connect/disconnect
 - payload inválido fecha ou retorna error sem matar a sessão
 """
@@ -56,7 +56,7 @@ def app_with_mocks(monkeypatch):
         )
         monkeypatch.setattr(config, "load", lambda: fake_settings)
 
-        # Stub do Authenticator: cliente passa Authorization: "Bearer u1:MOTOCA"
+        # Stub do Authenticator: cliente passa Authorization: "Bearer u1:INSPECTOR"
         # e a gente devolve AuthenticatedUser correspondente.
         # `await asyncio.sleep(0)` pra aderir ao contrato async sem
         # disparar python:S7503 (corrotina sem await).
@@ -69,7 +69,7 @@ def app_with_mocks(monkeypatch):
                 if not token or ":" not in token:
                     raise AuthError("token de teste inválido")
                 user_id, role = token.split(":", 1)
-                if role not in ("MOTOCA", "GESTOR"):
+                if role not in ("INSPECTOR", "ADMIN"):
                     raise AuthError("role desconhecida")
                 return AuthenticatedUser(user_id=user_id, role=role)
 
@@ -98,39 +98,39 @@ class TestAuthFailureClosesSocket:
                 ws.receive_json()
 
 
-class TestGestorReceivesSnapshot:
-    def test_snapshot_empty_when_no_motocas(self, app_with_mocks):
+class TestAdminReceivesSnapshot:
+    def test_snapshot_empty_when_no_inspectors(self, app_with_mocks):
         client, _ = app_with_mocks
         with client.websocket_connect(
-            "/ws", headers={"authorization": "Bearer g1:GESTOR"}
+            "/ws", headers={"authorization": "Bearer g1:ADMIN"}
         ) as ws:
             msg = ws.receive_json()
             assert msg["type"] == "snapshot"
             assert msg["online"] == []
 
 
-class TestMotocaPingFanOut:
-    def test_motoca_ping_reaches_gestor(self, app_with_mocks):
+class TestInspectorPingFanOut:
+    def test_inspector_ping_reaches_admin(self, app_with_mocks):
         client, ddb = app_with_mocks
         with client.websocket_connect(
-            "/ws", headers={"authorization": "Bearer g1:GESTOR"}
-        ) as gestor_ws:
-            gestor_ws.receive_json()  # consome snapshot
+            "/ws", headers={"authorization": "Bearer g1:ADMIN"}
+        ) as admin_ws:
+            admin_ws.receive_json()  # consome snapshot
 
             with client.websocket_connect(
-                "/ws", headers={"authorization": "Bearer m1:MOTOCA"}
-            ) as motoca_ws:
-                # Gestor recebe presence:connect
-                evt = gestor_ws.receive_json()
+                "/ws", headers={"authorization": "Bearer m1:INSPECTOR"}
+            ) as inspector_ws:
+                # Admin recebe presence:connect
+                evt = admin_ws.receive_json()
                 assert evt == {"type": "connect", "user_id": "m1"}
 
-                # Motoca manda ping
-                motoca_ws.send_json(
+                # Inspector manda ping
+                inspector_ws.send_json(
                     {"lat": -23.5, "lng": -46.6, "ts_device": 999}
                 )
 
-                # Gestor recebe location
-                loc = gestor_ws.receive_json()
+                # Admin recebe location
+                loc = admin_ws.receive_json()
                 assert loc["type"] == "location"
                 assert loc["user_id"] == "m1"
                 assert loc["lat"] == pytest.approx(-23.5)
@@ -144,45 +144,45 @@ class TestMotocaPingFanOut:
                 )["Items"]
                 assert len(items) == 1
 
-            # Motoca disconectou → gestor recebe presence:disconnect
-            evt = gestor_ws.receive_json()
+            # Inspector disconectou → admin recebe presence:disconnect
+            evt = admin_ws.receive_json()
             assert evt == {"type": "disconnect", "user_id": "m1"}
 
 
 class TestInvalidPayloadDoesNotKillSession:
-    def test_motoca_invalid_then_valid(self, app_with_mocks):
+    def test_inspector_invalid_then_valid(self, app_with_mocks):
         client, _ = app_with_mocks
         with client.websocket_connect(
-            "/ws", headers={"authorization": "Bearer g1:GESTOR"}
-        ) as gestor_ws:
-            gestor_ws.receive_json()
+            "/ws", headers={"authorization": "Bearer g1:ADMIN"}
+        ) as admin_ws:
+            admin_ws.receive_json()
             with client.websocket_connect(
-                "/ws", headers={"authorization": "Bearer m1:MOTOCA"}
-            ) as motoca_ws:
-                gestor_ws.receive_json()  # connect
+                "/ws", headers={"authorization": "Bearer m1:INSPECTOR"}
+            ) as inspector_ws:
+                admin_ws.receive_json()  # connect
 
                 # ping sem ts_device
-                motoca_ws.send_json({"lat": 0, "lng": 0})
-                err = motoca_ws.receive_json()
+                inspector_ws.send_json({"lat": 0, "lng": 0})
+                err = inspector_ws.receive_json()
                 assert err["type"] == "error"
 
                 # mesma sessão aceita ping válido depois
-                motoca_ws.send_json({"lat": 1, "lng": 2, "ts_device": 1})
-                loc = gestor_ws.receive_json()
+                inspector_ws.send_json({"lat": 1, "lng": 2, "ts_device": 1})
+                loc = admin_ws.receive_json()
                 assert loc["type"] == "location"
                 assert loc["lat"] == pytest.approx(1)
 
 
-class TestDuplicateMotocaSession:
+class TestDuplicateInspectorSession:
     def test_second_connection_kicks_first(self, app_with_mocks):
         client, _ = app_with_mocks
         with client.websocket_connect(
-            "/ws", headers={"authorization": "Bearer m1:MOTOCA"}
+            "/ws", headers={"authorization": "Bearer m1:INSPECTOR"}
         ) as ws1:
             # Segunda sessão do mesmo user_id — só conectar já força
             # o disconnect da primeira (sem precisar usar a referência).
             with client.websocket_connect(
-                "/ws", headers={"authorization": "Bearer m1:MOTOCA"}
+                "/ws", headers={"authorization": "Bearer m1:INSPECTOR"}
             ):
                 with pytest.raises(Exception):
                     ws1.receive_text()

@@ -7,7 +7,7 @@ Schema da tabela `informs-tracking-location-{stage}`:
 
 Sem TTL — histórico é fonte de verdade pra auditoria de rota.
 Writes são fire-and-forget via batch writer? Não — usamos put_item
-individual porque ping é 1 a cada 60s por motoca, volume baixo.
+individual porque ping é 1 a cada 60s por inspector, volume baixo.
 """
 
 import boto3

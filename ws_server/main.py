@@ -1,17 +1,17 @@
-"""FastAPI app — único endpoint WS `/ws` que serve MOTOCA e GESTOR.
+"""FastAPI app — único endpoint WS `/ws` que serve INSPECTOR e ADMIN.
 
-Decisão de não separar `/ws/motoca` e `/ws/gestor`: o role já vem do
+Decisão de não separar `/ws/inspector` e `/ws/admin`: o role já vem do
 Profile (lookup pós-JWT), então a separação seria redundante e abriria
 caminho pra cliente errar de path. Server decide o comportamento pelo
 role descoberto.
 
 Fluxo:
 1. Conecta → handshake busca JWT no header → valida → lookup role.
-2. Se role = MOTOCA: registra na presence, broadcast presence:connect
-   pros gestores, escuta loop de pings.
-3. Se role = GESTOR: registra na presence, manda snapshot inicial,
-   escuta (sem ler nada — gestor é read-only por enquanto).
-4. Disconnect → cleanup + broadcast presence:disconnect (se motoca).
+2. Se role = INSPECTOR: registra na presence (emissor de localizações),
+   broadcast presence:connect pros admins, escuta loop de pings.
+3. Se role = ADMIN: registra na presence (consumidor), manda snapshot
+   inicial, escuta (sem ler nada — admin é read-only por enquanto).
+4. Disconnect → cleanup + broadcast presence:disconnect (se inspector).
 
 Health endpoint `/health` pra liveness/readiness probes (e também
 pro Caddy não bater 404 em GET / antes do TLS estar pronto).
@@ -89,31 +89,31 @@ async def ws_endpoint(websocket: WebSocket):
     await websocket.accept()
     logger.info("connect user=%s role=%s", user.user_id, user.role)
 
-    if user.role == "MOTOCA":
-        await _serve_motoca(websocket, user.user_id, registry, repo)
+    if user.role == "INSPECTOR":
+        await _serve_inspector(websocket, user.user_id, registry, repo)
     else:
-        await _serve_gestor(websocket, registry)
+        await _serve_admin(websocket, registry)
 
 
 # ----------------------- handlers por role ----------------------------
 
 
-async def _serve_motoca(
+async def _serve_inspector(
     websocket: WebSocket,
     user_id: str,
     registry: ConnectionRegistry,
     repo: LocationRepository,
 ) -> None:
     # Sessão duplicada: força disconnect da anterior.
-    previous = registry.register_motoca(user_id, websocket)
+    previous = registry.register_inspector(user_id, websocket)
     if previous is not None:
         try:
             await previous.close(code=4002, reason="reconectado em outra sessão")
         except Exception:
             pass
 
-    # Notifica gestores que motoca entrou online.
-    await _broadcast_to_gestores(
+    # Notifica admins que inspector entrou online.
+    await _broadcast_to_admins(
         registry, PresenceEvent(type="connect", user_id=user_id)
     )
 
@@ -152,61 +152,61 @@ async def _serve_motoca(
                 accuracy=ping.accuracy,
             )
             registry.update_last_known(user_id, location)
-            await _broadcast_to_gestores(registry, location)
+            await _broadcast_to_admins(registry, location)
     except WebSocketDisconnect:
         pass
     finally:
-        if registry.unregister_motoca(user_id, websocket):
-            await _broadcast_to_gestores(
+        if registry.unregister_inspector(user_id, websocket):
+            await _broadcast_to_admins(
                 registry, PresenceEvent(type="disconnect", user_id=user_id)
             )
-        logger.info("disconnect motoca user=%s", user_id)
+        logger.info("disconnect inspector user=%s", user_id)
 
 
-async def _serve_gestor(websocket: WebSocket, registry: ConnectionRegistry) -> None:
-    registry.register_gestor(websocket)
+async def _serve_admin(websocket: WebSocket, registry: ConnectionRegistry) -> None:
+    registry.register_admin(websocket)
 
-    # Snapshot inicial: estado atual dos motocas online.
+    # Snapshot inicial: estado atual dos inspectors online.
     snapshot = Snapshot(
         online=[
             OnlineEntry(user_id=uid, last=last)
-            for uid, last in registry.online_motocas()
+            for uid, last in registry.online_inspectors()
         ]
     )
     await websocket.send_json(snapshot.model_dump())
 
     try:
-        # Gestor é read-only — descartamos qualquer mensagem que mande.
+        # Admin é read-only — descartamos qualquer mensagem que mande.
         # Esse loop existe só pra detectar disconnect.
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
         pass
     finally:
-        registry.unregister_gestor(websocket)
-        logger.info("disconnect gestor")
+        registry.unregister_admin(websocket)
+        logger.info("disconnect admin")
 
 
 # ----------------------- broadcast helper ----------------------------
 
 
-async def _broadcast_to_gestores(
+async def _broadcast_to_admins(
     registry: ConnectionRegistry, message
 ) -> None:
-    """Envia a mesma mensagem pra todos os gestores online em paralelo.
+    """Envia a mesma mensagem pra todos os admins online em paralelo.
 
-    Falhas individuais não derrubam o broadcast — gestor com socket morto
+    Falhas individuais não derrubam o broadcast — admin com socket morto
     é limpo silenciosamente; a próxima iteração do servidor já vai detectar.
     """
     payload = message.model_dump()
-    gestores = registry.gestores()
-    if not gestores:
+    admins = registry.admins()
+    if not admins:
         return
 
     async def _send(ws: WebSocket):
         try:
             await ws.send_json(payload)
         except Exception:
-            registry.unregister_gestor(ws)
+            registry.unregister_admin(ws)
 
-    await asyncio.gather(*(_send(ws) for ws in gestores), return_exceptions=True)
+    await asyncio.gather(*(_send(ws) for ws in admins), return_exceptions=True)

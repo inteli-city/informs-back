@@ -37,7 +37,7 @@ class TestSnapshot:
         assert d["type"] == "snapshot"
         assert d["online"] == []
 
-    def test_with_motocas(self):
+    def test_with_inspectors(self):
         loc = LocationOut(
             user_id="u1", lat=0, lng=0, ts=1, ts_device=1, accuracy=None
         )

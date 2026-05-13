@@ -4,11 +4,11 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 
-# ----------------------- MOTOCA → server -----------------------
+# ----------------------- INSPECTOR → server -----------------------
 
 
 class LocationPing(BaseModel):
-    """Único tipo de mensagem que o servidor aceita do MOTOCA.
+    """Único tipo de mensagem que o servidor aceita do INSPECTOR.
 
     `ts_device` é o timestamp em ms gerado no celular no momento da leitura
     do GPS. Usado pra ordenação consistente quando há buffer offline e
@@ -21,7 +21,7 @@ class LocationPing(BaseModel):
     accuracy: Optional[float] = Field(default=None, ge=0.0)
 
 
-# ----------------------- server → GESTOR -----------------------
+# ----------------------- server → ADMIN -----------------------
 
 
 class OnlineEntry(BaseModel):
@@ -30,14 +30,14 @@ class OnlineEntry(BaseModel):
 
 
 class Snapshot(BaseModel):
-    """Enviado UMA vez logo após GESTOR conectar."""
+    """Enviado UMA vez logo após ADMIN conectar."""
 
     type: Literal["snapshot"] = "snapshot"
     online: list[OnlineEntry]
 
 
 class LocationOut(BaseModel):
-    """Fan-out de uma localização nova pros gestores."""
+    """Fan-out de uma localização nova pros admines."""
 
     type: Literal["location"] = "location"
     user_id: str
@@ -49,7 +49,7 @@ class LocationOut(BaseModel):
 
 
 class PresenceEvent(BaseModel):
-    """Disparado quando MOTOCA conecta/desconecta."""
+    """Disparado quando INSPECTOR conecta/desconecta."""
 
     type: Literal["connect", "disconnect"]
     user_id: str

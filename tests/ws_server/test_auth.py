@@ -84,7 +84,7 @@ class TestAuthenticatorAuthenticate:
     """Testa só o caminho pós-JWT, mockando _verify_jwt."""
 
     @pytest.mark.asyncio
-    async def test_inspector_maps_to_motoca(self, monkeypatch):
+    async def test_inspector_role_accepted(self, monkeypatch):
         ddb = MagicMock()
         ddb.Table.return_value.get_item.return_value = {
             "Item": {"role": "INSPECTOR", "active": True}
@@ -93,10 +93,10 @@ class TestAuthenticatorAuthenticate:
         monkeypatch.setattr(auth, "_verify_jwt", AsyncMock(return_value={"sub": "u1"}))
         user = await auth.authenticate("dummy")
         assert user.user_id == "u1"
-        assert user.role == "MOTOCA"
+        assert user.role == "INSPECTOR"
 
     @pytest.mark.asyncio
-    async def test_admin_maps_to_gestor(self, monkeypatch):
+    async def test_admin_role_accepted(self, monkeypatch):
         ddb = MagicMock()
         ddb.Table.return_value.get_item.return_value = {
             "Item": {"role": "ADMIN", "active": True}
@@ -104,7 +104,7 @@ class TestAuthenticatorAuthenticate:
         auth = Authenticator(_SETTINGS, dynamodb_resource=ddb)
         monkeypatch.setattr(auth, "_verify_jwt", AsyncMock(return_value={"sub": "u2"}))
         user = await auth.authenticate("dummy")
-        assert user.role == "GESTOR"
+        assert user.role == "ADMIN"
 
     @pytest.mark.asyncio
     async def test_missing_token_raises(self):

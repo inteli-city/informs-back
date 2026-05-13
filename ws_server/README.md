@@ -10,9 +10,9 @@ Roda numa Lightsail compartilhada provisionada pelo `iac/iac/tracking_stack.py`
                           ┌─────────────────────────────┐
                           │   Lightsail Debian 12 $5    │
                           │                             │
-  motoca app  ─wss──┐     │  Caddy :443                 │
+  inspector app  ─wss──┐     │  Caddy :443                 │
                     └────►│   ├─ dev-IP.sslip.io  ─►:8001
-  gestor web  ─wss──┐     │   ├─ homolog-IP...    ─►:8002
+  admin web  ─wss──┐     │   ├─ homolog-IP...    ─►:8002
                     └────►│   └─ prod-IP...       ─►:8003
                           │                             │
                           │  3× uvicorn (este código)   │
@@ -25,12 +25,12 @@ Roda numa Lightsail compartilhada provisionada pelo `iac/iac/tracking_stack.py`
 
 ## Protocolo
 
-**MOTOCA → server** (único tipo aceito):
+**INSPECTOR → server** (único tipo aceito):
 ```json
 {"lat": -23.5, "lng": -46.6, "ts_device": 1715000000000, "accuracy": 5.5}
 ```
 
-**server → GESTOR**:
+**server → ADMIN**:
 - snapshot inicial (1×, logo após conectar):
   ```json
   {"type":"snapshot","online":[{"user_id":"u1","last":{...}}, ...]}
@@ -50,11 +50,11 @@ Roda numa Lightsail compartilhada provisionada pelo `iac/iac/tracking_stack.py`
 JWT Cognito no header `Authorization: Bearer <id_token>` (ou
 `Sec-WebSocket-Protocol: Bearer.<token>` como fallback pra browser puro).
 
-Mapeamento role aplicacional → tracking:
-- `INSPECTOR` → MOTOCA
-- `ADMIN` → GESTOR
+Roles autorizadas no tracking (mesmas do Profile aplicacional, ADR #16):
+- `INSPECTOR` — emite localizações (1 sessão por user, segunda kicka a primeira).
+- `ADMIN` — consome o stream em tempo real (broadcast global, read-only).
 
-(Decisão consciente de não migrar enum — ver discussão no PR #46.)
+Outras roles são rejeitadas no handshake.
 
 ## Rodando local
 

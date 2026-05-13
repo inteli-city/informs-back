@@ -7,11 +7,8 @@ Fluxo:
 2. Validamos a assinatura do JWT contra o JWKS do User Pool (cacheado).
 3. Extraímos `sub` (user_id) e buscamos role na tabela
    `informs-tracking-profile-{stage}`.
-4. Mapeamos role aplicacional → papel do tracking:
-       INSPECTOR → MOTOCA
-       ADMIN     → GESTOR
-   (decisão consciente: reusa enum existente sem migração de dados;
-   documentado no ADR/README do tracking.)
+4. Validamos que a role é INSPECTOR (emite localizações) ou ADMIN
+   (consome o stream realtime). Outras roles são rejeitadas.
 
 Erros levantam `AuthError` que o caller transforma em close(code=4401).
 """
@@ -29,18 +26,16 @@ from jose.exceptions import JWTError
 from .config import Settings
 
 
-TrackingRole = Literal["MOTOCA", "GESTOR"]
-
-_PROFILE_TO_TRACKING: dict[str, TrackingRole] = {
-    "INSPECTOR": "MOTOCA",
-    "ADMIN": "GESTOR",
-}
+# Roles aplicacionais autorizadas no tracking.
+# Mantemos os mesmos nomes do Profile (ADR #16) — sem tradução.
+ProfileRole = Literal["INSPECTOR", "ADMIN"]
+_ALLOWED_ROLES = {"INSPECTOR", "ADMIN"}
 
 
 @dataclass(frozen=True)
 class AuthenticatedUser:
     user_id: str
-    role: TrackingRole
+    role: ProfileRole
 
 
 class AuthError(Exception):
@@ -69,12 +64,10 @@ class Authenticator:
         role = self._lookup_role(user_id)
         if role is None:
             raise AuthError(f"profile não encontrado pra user {user_id}")
-
-        tracking_role = _PROFILE_TO_TRACKING.get(role)
-        if tracking_role is None:
+        if role not in _ALLOWED_ROLES:
             raise AuthError(f"role {role!r} não autorizada no tracking")
 
-        return AuthenticatedUser(user_id=user_id, role=tracking_role)
+        return AuthenticatedUser(user_id=user_id, role=role)
 
     async def _verify_jwt(self, token: str) -> dict:
         if self._jwks is None:

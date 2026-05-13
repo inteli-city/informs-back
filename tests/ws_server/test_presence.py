@@ -19,41 +19,41 @@ def _ws() -> WebSocket:
     return cast(WebSocket, MagicMock(spec=WebSocket))
 
 
-class TestConnectionRegistryMotoca:
+class TestConnectionRegistryInspector:
     def test_register_returns_none_when_first(self):
         reg = ConnectionRegistry()
         ws = _ws()
-        assert reg.register_motoca("u1", ws) is None
-        assert ("u1", None) in reg.online_motocas()
+        assert reg.register_inspector("u1", ws) is None
+        assert ("u1", None) in reg.online_inspectors()
 
     def test_register_returns_previous_on_duplicate(self):
         reg = ConnectionRegistry()
         ws_old = _ws()
         ws_new = _ws()
-        reg.register_motoca("u1", ws_old)
-        previous = reg.register_motoca("u1", ws_new)
+        reg.register_inspector("u1", ws_old)
+        previous = reg.register_inspector("u1", ws_new)
         assert previous is ws_old
         # nova substitui no registry
-        assert len(reg.online_motocas()) == 1
+        assert len(reg.online_inspectors()) == 1
 
     def test_unregister_only_removes_matching_socket(self):
         reg = ConnectionRegistry()
         ws_old = _ws()
         ws_new = _ws()
-        reg.register_motoca("u1", ws_old)
-        reg.register_motoca("u1", ws_new)  # ws_old fica órfão
+        reg.register_inspector("u1", ws_old)
+        reg.register_inspector("u1", ws_new)  # ws_old fica órfão
         # cleanup tardio do ws_old NÃO pode remover ws_new
-        assert reg.unregister_motoca("u1", ws_old) is False
-        assert len(reg.online_motocas()) == 1
-        assert reg.unregister_motoca("u1", ws_new) is True
-        assert reg.online_motocas() == []
+        assert reg.unregister_inspector("u1", ws_old) is False
+        assert len(reg.online_inspectors()) == 1
+        assert reg.unregister_inspector("u1", ws_new) is True
+        assert reg.online_inspectors() == []
 
     def test_update_last_known_persists(self):
         reg = ConnectionRegistry()
-        reg.register_motoca("u1", _ws())
+        reg.register_inspector("u1", _ws())
         loc = LocationOut(user_id="u1", lat=1, lng=2, ts=3, ts_device=4)
         reg.update_last_known("u1", loc)
-        online = reg.online_motocas()
+        online = reg.online_inspectors()
         assert online[0][1] == loc
 
     def test_update_last_known_silent_for_unknown(self):
@@ -62,28 +62,28 @@ class TestConnectionRegistryMotoca:
         reg.update_last_known(
             "nope", LocationOut(user_id="nope", lat=0, lng=0, ts=1, ts_device=1)
         )
-        assert reg.online_motocas() == []
+        assert reg.online_inspectors() == []
 
 
-class TestConnectionRegistryGestor:
+class TestConnectionRegistryAdmin:
     def test_register_unregister(self):
         reg = ConnectionRegistry()
         ws = _ws()
-        reg.register_gestor(ws)
-        assert ws in reg.gestores()
-        reg.unregister_gestor(ws)
-        assert ws not in reg.gestores()
+        reg.register_admin(ws)
+        assert ws in reg.admins()
+        reg.unregister_admin(ws)
+        assert ws not in reg.admins()
 
     def test_unregister_unknown_is_silent(self):
         reg = ConnectionRegistry()
         # discard não levanta
-        reg.unregister_gestor(_ws())
+        reg.unregister_admin(_ws())
 
-    def test_gestores_returns_copy(self):
+    def test_admines_returns_copy(self):
         reg = ConnectionRegistry()
         ws = _ws()
-        reg.register_gestor(ws)
-        snap = reg.gestores()
-        reg.unregister_gestor(ws)
+        reg.register_admin(ws)
+        snap = reg.admins()
+        reg.unregister_admin(ws)
         # snap continua com referência ao socket antigo (cópia rasa)
         assert ws in snap
