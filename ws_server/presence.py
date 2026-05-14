@@ -53,7 +53,12 @@ class ConnectionRegistry:
 
     def update_last_known(self, user_id: str, location: LocationOut) -> None:
         conn = self._inspectors.get(user_id)
-        if conn:
+        if conn is None:
+            return
+        # Protege snapshot do admin contra cenário onde app envia ping
+        # live ANTES de despejar pings bufferizados antigos: sem essa
+        # guarda, o snapshot ficaria mostrando posição obsoleta do buffer.
+        if conn.last_known is None or location.ts_device >= conn.last_known.ts_device:
             conn.last_known = location
 
     def online_inspectors(self) -> list[tuple[str, Optional[LocationOut]]]:

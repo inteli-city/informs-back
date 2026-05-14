@@ -64,6 +64,45 @@ class TestConnectionRegistryInspector:
         )
         assert reg.online_inspectors() == []
 
+    def test_update_last_known_ignores_older_buffered_ping(self):
+        """Cenário: app envia live ping primeiro, depois despeja buffered antigo.
+        last_known deve continuar com o live (mais recente por ts_device)."""
+        reg = ConnectionRegistry()
+        reg.register_inspector("u1", _ws())
+
+        live = LocationOut(user_id="u1", lat=10, lng=10, ts=2000, ts_device=1500)
+        buffered_old = LocationOut(user_id="u1", lat=1, lng=1, ts=2001, ts_device=900)
+
+        reg.update_last_known("u1", live)
+        reg.update_last_known("u1", buffered_old)
+
+        assert reg.online_inspectors()[0][1] == live
+
+    def test_update_last_known_accepts_equal_ts_device(self):
+        """Empate em ts_device atualiza (último ganha — sem regressão)."""
+        reg = ConnectionRegistry()
+        reg.register_inspector("u1", _ws())
+
+        first = LocationOut(user_id="u1", lat=1, lng=1, ts=1000, ts_device=500)
+        second = LocationOut(user_id="u1", lat=2, lng=2, ts=1001, ts_device=500)
+
+        reg.update_last_known("u1", first)
+        reg.update_last_known("u1", second)
+
+        assert reg.online_inspectors()[0][1] == second
+
+    def test_update_last_known_advances_with_newer_ping(self):
+        reg = ConnectionRegistry()
+        reg.register_inspector("u1", _ws())
+
+        old = LocationOut(user_id="u1", lat=1, lng=1, ts=1000, ts_device=500)
+        new = LocationOut(user_id="u1", lat=2, lng=2, ts=2000, ts_device=1500)
+
+        reg.update_last_known("u1", old)
+        reg.update_last_known("u1", new)
+
+        assert reg.online_inspectors()[0][1] == new
+
 
 class TestConnectionRegistryAdmin:
     def test_register_unregister(self):
