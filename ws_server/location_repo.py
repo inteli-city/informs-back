@@ -12,6 +12,7 @@ individual porque ping é 1 a cada 60s por inspector, volume baixo.
 """
 
 import boto3
+from boto3.dynamodb.conditions import Key
 from decimal import Decimal
 from typing import Optional
 
@@ -44,3 +45,39 @@ class LocationRepository:
         if accuracy is not None:
             item["accuracy"] = Decimal(str(accuracy))
         self._table.put_item(Item=item)
+
+    def query_history(
+        self, *, user_id: str, since_ms: int, until_ms: int
+    ) -> list[dict]:
+        """Lê pings de um inspector entre [since_ms, until_ms] (ts_server).
+
+        Retorna items normalizados (Decimal → float, sem PK/SK) ordenados
+        ascendentemente por ts_server. Pagina automaticamente se passar de 1MB.
+        """
+        items: list[dict] = []
+        kwargs = {
+            "KeyConditionExpression": (
+                Key("PK").eq(f"user#{user_id}")
+                & Key("SK").between(f"ts#{since_ms}", f"ts#{until_ms}")
+            ),
+            "ScanIndexForward": True,  # ordem cronológica ascendente
+        }
+        while True:
+            resp = self._table.query(**kwargs)
+            items.extend(resp.get("Items", []))
+            if "LastEvaluatedKey" not in resp:
+                break
+            kwargs["ExclusiveStartKey"] = resp["LastEvaluatedKey"]
+
+        return [_normalize(item) for item in items]
+
+
+def _normalize(item: dict) -> dict:
+    """Decimal → float, extrai ts_server da SK, drop PK/SK."""
+    return {
+        "lat": float(item["lat"]),
+        "lng": float(item["lng"]),
+        "ts": int(item["SK"].removeprefix("ts#")),
+        "ts_device": int(item["ts_device"]),
+        "accuracy": float(item["accuracy"]) if "accuracy" in item else None,
+    }

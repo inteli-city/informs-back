@@ -89,6 +89,84 @@ class TestHealthEndpoint:
         assert resp.json()["status"] == "ok"
 
 
+class TestHistoryEndpoint:
+    """Endpoint /history: ADMIN lê rota completa de um inspector."""
+
+    def _seed_pings(self, ddb, user_id="u1", count=3):
+        from ws_server.location_repo import LocationRepository
+
+        repo = LocationRepository(
+            table_name=TABLE, region=REGION, dynamodb_resource=ddb
+        )
+        for i in range(count):
+            ts = 1000 + i * 1000
+            repo.put_ping(
+                user_id=user_id, lat=i, lng=-i, ts_server=ts, ts_device=ts - 50
+            )
+
+    def test_admin_reads_history(self, app_with_mocks):
+        client, ddb = app_with_mocks
+        self._seed_pings(ddb)
+
+        resp = client.get(
+            "/history",
+            params={"user_id": "u1", "since": 0, "until": 5000},
+            headers={"authorization": "Bearer admin1:ADMIN"},
+        )
+        assert resp.status_code == 200
+        items = resp.json()["items"]
+        assert len(items) == 3
+        assert [i["ts"] for i in items] == [1000, 2000, 3000]
+        assert items[0]["lat"] == pytest.approx(0.0)
+        assert items[1]["lng"] == pytest.approx(-1.0)
+
+    def test_history_filters_by_range(self, app_with_mocks):
+        client, ddb = app_with_mocks
+        self._seed_pings(ddb)
+
+        resp = client.get(
+            "/history",
+            params={"user_id": "u1", "since": 1500, "until": 2500},
+            headers={"authorization": "Bearer admin1:ADMIN"},
+        )
+        assert [i["ts"] for i in resp.json()["items"]] == [2000]
+
+    def test_history_rejects_inspector(self, app_with_mocks):
+        client, _ = app_with_mocks
+        resp = client.get(
+            "/history",
+            params={"user_id": "u1", "since": 0, "until": 5000},
+            headers={"authorization": "Bearer m1:INSPECTOR"},
+        )
+        assert resp.status_code == 403
+
+    def test_history_rejects_no_token(self, app_with_mocks):
+        client, _ = app_with_mocks
+        resp = client.get(
+            "/history", params={"user_id": "u1", "since": 0, "until": 5000}
+        )
+        assert resp.status_code == 401
+
+    def test_history_rejects_inverted_range(self, app_with_mocks):
+        client, _ = app_with_mocks
+        resp = client.get(
+            "/history",
+            params={"user_id": "u1", "since": 5000, "until": 1000},
+            headers={"authorization": "Bearer admin1:ADMIN"},
+        )
+        assert resp.status_code == 400
+
+    def test_history_returns_empty_when_no_pings(self, app_with_mocks):
+        client, _ = app_with_mocks
+        resp = client.get(
+            "/history",
+            params={"user_id": "ghost", "since": 0, "until": 5000},
+            headers={"authorization": "Bearer admin1:ADMIN"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["items"] == []
+
+
 class TestAuthFailureClosesSocket:
     def test_no_token_closes_with_4401(self, app_with_mocks):
         client, _ = app_with_mocks

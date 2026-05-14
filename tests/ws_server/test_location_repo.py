@@ -73,3 +73,34 @@ class TestLocationRepository:
             KeyConditionExpression=boto3.dynamodb.conditions.Key("PK").eq("user#u1")
         )
         assert resp["Count"] == 3
+
+    def test_query_history_returns_range_in_order(self, ddb):
+        repo = LocationRepository(table_name=TABLE, region=REGION, dynamodb_resource=ddb)
+        # Insere 5 pings em ordem cronológica.
+        for ts in (1000, 2000, 3000, 4000, 5000):
+            repo.put_ping(
+                user_id="u1", lat=ts / 1000, lng=ts / 2000,
+                ts_server=ts, ts_device=ts - 50,
+            )
+        # Insere ping de OUTRO user pra confirmar que filter por PK funciona.
+        repo.put_ping(user_id="u2", lat=99, lng=99, ts_server=2500, ts_device=2400)
+
+        items = repo.query_history(user_id="u1", since_ms=2000, until_ms=4000)
+        assert [i["ts"] for i in items] == [2000, 3000, 4000]
+        assert items[0]["lat"] == pytest.approx(2.0)
+        assert items[0]["ts_device"] == 1950
+        assert items[0]["accuracy"] is None
+
+    def test_query_history_includes_accuracy(self, ddb):
+        repo = LocationRepository(table_name=TABLE, region=REGION, dynamodb_resource=ddb)
+        repo.put_ping(
+            user_id="u1", lat=0, lng=0, ts_server=1000, ts_device=999, accuracy=7.5,
+        )
+        items = repo.query_history(user_id="u1", since_ms=0, until_ms=2000)
+        assert items[0]["accuracy"] == pytest.approx(7.5)
+
+    def test_query_history_empty_when_out_of_range(self, ddb):
+        repo = LocationRepository(table_name=TABLE, region=REGION, dynamodb_resource=ddb)
+        repo.put_ping(user_id="u1", lat=0, lng=0, ts_server=1000, ts_device=999)
+        assert repo.query_history(user_id="u1", since_ms=2000, until_ms=3000) == []
+        assert repo.query_history(user_id="ghost", since_ms=0, until_ms=9999) == []

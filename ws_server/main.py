@@ -13,8 +13,11 @@ Fluxo:
    inicial, escuta (sem ler nada — admin é read-only por enquanto).
 4. Disconnect → cleanup + broadcast presence:disconnect (se inspector).
 
-Health endpoint `/health` pra liveness/readiness probes (e também
-pro Caddy não bater 404 em GET / antes do TLS estar pronto).
+Endpoints REST adicionais:
+- `/health`: liveness/readiness probes.
+- `/history?user_id&since&until`: ADMIN lê rota completa de um inspector
+  no DDB Location (offline ou online, dia atual ou anterior). JWT no
+  header Authorization, mesmo padrão do /ws.
 """
 
 import asyncio
@@ -22,7 +25,8 @@ import logging
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 
 from . import config
@@ -63,10 +67,52 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+# CORS aberto: a página HTML de teste roda em localhost:8000 e bate em
+# wss://{stage}-IP.sslip.io. WS não exige CORS, mas REST /history sim.
+# Em produção a página é confiável (servida por nós), abrir tudo é OK
+# pra MVP. Restringir por origins se virar exposto a terceiros.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
+
 
 @app.get("/health")
 async def health():
     return {"status": "ok", "stage": app.state.settings.stage}
+
+
+@app.get("/history")
+async def history(
+    request: Request,
+    user_id: str = Query(..., description="user_id do inspector cuja rota será lida"),
+    since: int = Query(..., description="epoch ms, início do range (inclusive)"),
+    until: int = Query(..., description="epoch ms, fim do range (inclusive)"),
+):
+    """Lê histórico de pings de um inspector. Apenas ADMIN autenticado.
+
+    Query DDB Location por PK=user#{user_id} + SK between ts#since e ts#until.
+    Retorna {"items": [{lat, lng, ts, ts_device, accuracy?}, ...]}.
+    """
+    auth: Authenticator = request.app.state.authenticator
+    repo: LocationRepository = request.app.state.location_repo
+
+    token = extract_token_from_headers(dict(request.headers))
+    try:
+        user = await auth.authenticate(token)
+    except AuthError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+    if user.role != "ADMIN":
+        raise HTTPException(status_code=403, detail="apenas ADMIN pode ler histórico")
+
+    if since > until:
+        raise HTTPException(status_code=400, detail="since > until")
+
+    items = repo.query_history(user_id=user_id, since_ms=since, until_ms=until)
+    return {"items": items}
 
 
 @app.websocket("/ws")
