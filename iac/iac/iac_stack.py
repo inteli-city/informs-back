@@ -120,3 +120,10 @@ class IacStack(Stack):
 
         for f in self.lambda_stack.functions_that_need_dynamo_profiles_permissions:
             self.dynamo_stack.dynamo_table_profiles.grant_read_write_data(f)
+
+        # Tabela Location agora vive no IacStack (TrackingStack absorvida no
+        # PR #52). grant_read_data direto na tabela substituiu a antiga
+        # wildcard cross-stack policy. Read-only é suficiente — writes vêm
+        # do ws_server no Railway, não das Lambdas.
+        for f in self.lambda_stack.functions_that_need_dynamo_location_read_permissions:
+            self.dynamo_stack.dynamo_table_locations.grant_read_data(f)
