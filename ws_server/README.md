@@ -1,23 +1,20 @@
 # informs-ws-server
 
-Servidor WebSocket de tracking realtime de motoverificadores (Informs).
-Roda numa Lightsail compartilhada provisionada pelo `iac/iac/tracking_stack.py`
-(PR #45).
+Servidor WebSocket de tracking realtime de inspectors (Informs).
+Roda no **Railway** (build via Dockerfile) — ver [`RAILWAY.md`](./RAILWAY.md)
+pra setup completo.
 
 ## Arquitetura
 
 ```
-                          ┌─────────────────────────────┐
-                          │   Lightsail Debian 12 $5    │
-                          │                             │
-  inspector app  ─wss──┐     │  Caddy :443                 │
-                    └────►│   ├─ dev-IP.sslip.io  ─►:8001
-  admin web  ─wss──┐     │   ├─ homolog-IP...    ─►:8002
-                    └────►│   └─ prod-IP...       ─►:8003
-                          │                             │
-                          │  3× uvicorn (este código)   │
-                          └──────┬──────────────────────┘
-                                 │ boto3
+                          ┌─────────────────────────┐
+  inspector app  ─wss──┐  │  Railway service        │
+                       └─►│  (Dockerfile + uvicorn) │
+  admin web      ─wss──┐  │                         │
+                       └─►│  3 environments:        │
+                          │  - dev / homolog / prod │
+                          └──────┬──────────────────┘
+                                 │ boto3 (AWS access key via env)
                                  ▼
                           DynamoDB Location (FormulariosTrackingStack)
                           DynamoDB Profile  (FormulariosStack{stage})
@@ -60,15 +57,15 @@ Outras roles são rejeitadas no handshake.
 
 ```bash
 cd ws_server
-python3.11 -m venv venv && source venv/bin/activate
-pip install -e ".[dev]"
+uv sync --extra dev
 
 export STAGE=dev
 export AWS_REGION=sa-east-1
-export COGNITO_USER_POOL_ID=...
-export COGNITO_APP_CLIENT_ID=...
+export AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=...
+export COGNITO_USER_POOL_ID=... COGNITO_APP_CLIENT_ID=...
+export LOCATION_TABLE=... PROFILE_TABLE=...
 
-uvicorn main:app --host 127.0.0.1 --port 8001
+uv run uvicorn main:app --host 127.0.0.1 --port 8001
 ```
 
 ## Tests
@@ -77,4 +74,10 @@ uvicorn main:app --host 127.0.0.1 --port 8001
 pytest tests/ws_server -q   # da raiz do repo
 ```
 
-43 testes (unit + integração via TestClient + DDB via moto).
+46 testes (unit + integração via TestClient + DDB via moto).
+
+## Deploy
+
+Push em `dev`/`homolog`/`prod` → Railway detecta a mudança em
+`ws_server/**`, builda Docker, deploya no environment correspondente.
+Setup completo em [`RAILWAY.md`](./RAILWAY.md).
