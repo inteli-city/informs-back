@@ -1,6 +1,6 @@
 """
-TrackingStack — infraestrutura do serviço de tracking em tempo real
-(motoverificadores → gestores) via WebSocket.
+FormulariosTrackingStack — infraestrutura do serviço de tracking em tempo
+real (inspectors → admins) via WebSocket.
 
 Provisiona:
 - Tabela DynamoDB Location (histórico completo de pings, sem TTL).
@@ -17,7 +17,7 @@ e à tabela informs-tracking-profile (lookup de role no handshake).
 
 A separação por env das tabelas é controlada pelo nome
 (`informs-tracking-location-{env}`), não por stack — isso permite que UM único
-deploy do TrackingStack provisione as 3 tabelas Location de uma vez só.
+deploy desta stack provisione as 3 tabelas Location de uma vez só.
 """
 
 import os
@@ -49,7 +49,7 @@ LIGHTSAIL_BLUEPRINT_ID = "debian_12"
 _OPEN_INTERNET_CIDR = "0.0.0.0/0"
 
 
-class TrackingStack(Stack):
+class FormulariosTrackingStack(Stack):
     """Stack independente — não depende do IacStack principal."""
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:

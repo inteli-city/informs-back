@@ -1,6 +1,6 @@
 # Tracking WebSocket — Lightsail bootstrap
 
-Provisionado pelo `iac/iac/tracking_stack.py` (stack `InformsTrackingStack`).
+Provisionado pelo `iac/iac/tracking_stack.py` (stack `FormulariosTrackingStack`).
 
 ## O que essa pasta contém
 
@@ -20,7 +20,7 @@ cd iac
 AWS_REGION=sa-east-1 \
 AWS_ACCOUNT_ID=<conta> \
 GITHUB_REF_NAME=dev \
-npx cdk deploy InformsTrackingStack --app "python app.py"
+npx cdk deploy FormulariosTrackingStack --app "python app.py"
 ```
 
 Após o deploy:
