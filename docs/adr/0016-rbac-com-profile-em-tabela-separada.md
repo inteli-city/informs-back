@@ -20,7 +20,7 @@ Essa separação é RBAC clássico. As opções consideradas para implementar:
 
 1. **Cognito groups novos** — criar `ADMIN` e `INSPECTOR` no User Pool. Lê do JWT.
 2. **Cognito custom claims** — atributo `role` no atributo customizado do Cognito.
-3. **DynamoDB próprio** — tabela `informs-tracking-profile` independente.
+3. **DynamoDB próprio** — tabela tabela de Profiles (auto-gerada pela FormulariosStack) independente.
 
 A escolha precisava considerar:
 - Velocidade pra alterar a role de um usuário (sem precisar recadastrar no Cognito)
@@ -35,7 +35,7 @@ Adotamos a opção **(3) — tabela DynamoDB própria**, separando claramente:
 - **Cognito** = Identity Provider (autentica e diz "esse user existe")
 - **Profile na DynamoDB** = Authorization & Identity (diz "esse user é quem, com qual role")
 
-### Estrutura da tabela `informs-tracking-profile`
+### Estrutura da tabela tabela de Profiles (auto-gerada pela FormulariosStack)
 
 ```
 PK = user#{user_id}     (user_id é o Cognito sub)

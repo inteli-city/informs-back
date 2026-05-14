@@ -24,7 +24,7 @@ npx cdk deploy FormulariosTrackingStack --app "python app.py"
 ```
 
 Após o deploy:
-1. **DynamoDB**: tabelas `informs-tracking-location-{dev,homolog,prod}` criadas.
+1. **DynamoDB**: tabelas 3 tabelas Location (uma por env, nomes auto-gerados pela FormulariosTrackingStack) criadas.
 2. **Lightsail**: instância `informs-ws` rodando o bootstrap. Aguarde ~2min
    (acompanhe via Lightsail console → Manage instance → Connect → veja
    `/var/log/informs-ws-bootstrap.log`).

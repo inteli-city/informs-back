@@ -13,11 +13,13 @@ Provisiona:
 Uma única Lightsail compartilhada entre dev/homolog/prod, com 3 processos
 uvicorn (8001/8002/8003) atrás do Caddy roteando por hostname (sslip.io).
 A política de IAM da instância dá acesso às 3 tabelas Location (uma por env)
-e à tabela informs-tracking-profile (lookup de role no handshake).
+e às tabelas Profiles do IacStack (lookup de role no handshake).
 
-A separação por env das tabelas é controlada pelo nome
-(`informs-tracking-location-{env}`), não por stack — isso permite que UM único
-deploy desta stack provisione as 3 tabelas Location de uma vez só.
+A separação por env das tabelas Location é controlada pelo construct id
+(`Location_Table_{stage}`), não por stack — isso permite que UM único deploy
+desta stack provisione as 3 tabelas Location de uma vez só. Os nomes
+físicos são gerados pelo CFN seguindo o padrão da stack
+(FormulariosTrackingStack-LocationTable{stage}-...).
 """
 
 import os
@@ -67,12 +69,16 @@ class FormulariosTrackingStack(Stack):
         #   SK = ts#{epoch_ms}        (sortável cronologicamente)
         # Atributos: lat (N), lng (N), accuracy (N opc), ts_device (N opc).
         # Sem TTL: histórico completo retido por decisão do produto.
+        # SEM table_name explícito: deixa o CFN gerar o nome físico seguindo
+        # o padrão da stack (FormulariosTrackingStack-...-LocationTable{stage}...),
+        # consistente com a Formularios_Table do IacStack. ws_server lê o
+        # nome via env LOCATION_TABLE injetada pelo deploy (descoberto via
+        # cloudformation describe-stacks → Output LocationTableName_{stage}).
         self.location_tables: dict[str, aws_dynamodb.Table] = {}
         for stage in STAGES:
             table = aws_dynamodb.Table(
                 self,
                 f"Location_Table_{stage}",
-                table_name=f"informs-tracking-location-{stage}",
                 partition_key=aws_dynamodb.Attribute(
                     name="PK", type=aws_dynamodb.AttributeType.STRING
                 ),
@@ -91,7 +97,7 @@ class FormulariosTrackingStack(Stack):
                 self,
                 f"LocationTableName_{stage}",
                 value=table.table_name,
-                export_name=f"InformsLocationTable{stage}",
+                export_name=f"FormulariosTrackingLocationTable{stage}",
             )
 
         # ---------- Lightsail Key Pair (custom resource) ----------
@@ -190,16 +196,20 @@ class FormulariosTrackingStack(Stack):
             )
         )
         # Permite ler tabela de profiles (lookup de role no handshake).
-        # Nome segue convenção do DynamoStack existente.
-        profile_table_arns = [
-            f"arn:aws:dynamodb:{self.region}:{self.account}:table/informs-tracking-profile-{s}"
-            for s in STAGES
-        ]
+        # Tabela vive na FormulariosStack{stage} (IacStack), com nome físico
+        # auto-gerado pelo CFN. Pra evitar cross-stack ImportValue (acopla
+        # delete order), usamos wildcard restrito ao prefixo conhecido
+        # FormulariosStack*-FormulariosDynamoProfilesTable*. Continua sendo
+        # menor privilégio do que table/*.
+        profile_table_wildcard = (
+            f"arn:aws:dynamodb:{self.region}:{self.account}:"
+            f"table/FormulariosStack*-FormulariosDynamoProfilesTable*"
+        )
         self.ws_iam_user.add_to_policy(
             aws_iam.PolicyStatement(
                 effect=aws_iam.Effect.ALLOW,
                 actions=["dynamodb:GetItem"],
-                resources=profile_table_arns,
+                resources=[profile_table_wildcard],
             )
         )
 

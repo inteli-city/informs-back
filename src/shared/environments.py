@@ -68,7 +68,7 @@ class Environments:
             self.dynamo_table_name = "formularios-table"
             self.dynamo_partition_key = "PK"
             self.dynamo_sort_key = "SK"
-            self.dynamo_profile_table_name = "informs-tracking-profile"
+            self.dynamo_profile_table_name = "formularios-profile-test"
             self.dynamo_profile_partition_key = "PK"
             self.dynamo_profile_sort_key = "SK"
             self.client_id = "test"

@@ -14,9 +14,10 @@ class ProfileRepositoryDynamo(IProfileRepository):
     """
     Implementação DynamoDB do IProfileRepository.
 
-    Aponta para a tabela `informs-tracking-profile` (separada de
-    `formularios-table`) cujo nome vem das envs `DYNAMO_PROFILE_TABLE_NAME`,
-    `DYNAMO_PROFILE_PARTITION_KEY`, `DYNAMO_PROFILE_SORT_KEY`.
+    Aponta pra tabela de Profiles (separada da Formularios_Table). Nome
+    físico é gerado pelo CFN (FormulariosStack{stage}-...-ProfilesTable...)
+    e injetado via env `DYNAMO_PROFILE_TABLE_NAME`. Partition/sort keys
+    via `DYNAMO_PROFILE_PARTITION_KEY`/`DYNAMO_PROFILE_SORT_KEY`.
     """
 
     def __init__(self):
