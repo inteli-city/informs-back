@@ -148,7 +148,10 @@ class FormulariosTrackingStack(Stack):
             availability_zone=f"{self.region}a",
             blueprint_id=LIGHTSAIL_BLUEPRINT_ID,
             bundle_id=LIGHTSAIL_BUNDLE_ID,
-            # key_pair_name=None  # → usa default key da região
+            # Sem key_pair_name: Lightsail usa a default key da região
+            # (LightsailDefaultKey-{region}). Se quiser uma key dedicada,
+            # crie no console com nome "informs-ws-keypair" e adicione o
+            # parâmetro key_pair_name="informs-ws-keypair" abaixo.
             user_data=user_data,
             networking=aws_lightsail.CfnInstance.NetworkingProperty(
                 ports=[
