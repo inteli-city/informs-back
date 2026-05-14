@@ -1,50 +1,89 @@
-# IAM Policies pra feature de tracking
+# Setup de IAM e secrets pra feature de tracking
 
-Quando o PR #45 mergeou, ele subiu o **código** da `FormulariosTrackingStack`
-pro main — mas alguém (humano com creds admin) precisa rodar `cdk deploy`
-**uma vez** pra criar os recursos AWS reais (Lightsail, static IP, secrets,
-IAM user `informs-ws-server`, tabela Location, etc).
+A `FormulariosTrackingStack` foi propositalmente desenhada **sem criar
+nenhum recurso IAM** — assumimos que você (que vai rodar `cdk deploy`)
+não tem permissão de IAM no projeto.
 
-Esses 2 JSONs descrevem as permissões mínimas:
+## Recursos por responsável
 
-| Arquivo | Pra quem | Quando |
+| Recurso | Quem cria | Como |
 |---|---|---|
-| `tracking-stack-deploy-admin.json` | User humano que vai rodar `cdk deploy FormulariosTrackingStack` UMA vez | Antes do 1º deploy da TrackingStack |
-| `tracking-runtime-ci.json` | User do GitHub Actions (`AWS_ACCESS_KEY_ID` no repo) | Depois da TrackingStack existir, todo deploy do ws_server roda com isso |
+| 3 tabelas DynamoDB Location | CDK (você) | `cdk deploy FormulariosTrackingStack` |
+| Lightsail instance + static IP | CDK (você) | idem |
+| 2 SecretsManager secrets (vazios) | CDK (você) | idem |
+| **IAM user `informs-ws-server`** | **Infra (1 vez)** | console/CLI manual |
+| Conteúdo dos 2 secrets | **Você (1 vez)** | console/CLI após o deploy |
+| **`tracking-runtime-ci` policy no user do CI** | **Infra (1 vez)** | console/CLI manual |
 
-## Setup (uma vez)
+## Sequência completa de setup
 
-Com creds admin AWS configuradas localmente (alguém com permissão IAM:PutUserPolicy):
+### 1. Você roda o `cdk deploy` (sem IAM no caminho crítico)
+
+Pré-requisito: pedir pra infra anexar a `tracking-stack-deploy-admin.json`
+ao SEU user (uma vez, mas as actions cabem em Lightsail/SecretsManager/CFN/DynamoDB
+puros — sem IAM).
 
 ```bash
-ADMIN_USER_NAME=rodrigosiqueira CI_USER_NAME=ci-deploy-user \
-  bash scripts/setup_tracking_permissions.sh
+cd iac
+AWS_REGION=sa-east-1 \
+AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text) \
+STACK_NAME=FormulariosStackdev GITHUB_REF_NAME=dev \
+USER_POOL_ARN=<seu> USER_POOL_ID=<seu> APP_CLIENT_ID=<seu> BUCKET_NAME=<seu> \
+npx cdk deploy FormulariosTrackingStack --app "python app.py" --require-approval never
 ```
 
-Se admin e CI são o **mesmo user**, basta omitir os 2 vars (default ambos = `rodrigosiqueira`).
+Os env vars do Cognito não são realmente usadas pela TrackingStack — só
+precisam estar setadas porque o `app.py` instancia também o IacStack.
 
-## Próximos passos depois das policies aplicadas
+### 2. Pedir pra infra fazer 2 coisas (uma única vez na vida)
 
-1. **Deploy da TrackingStack** (uma vez):
-   ```bash
-   cd iac
-   AWS_REGION=sa-east-1 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text) \
-   STACK_NAME=FormulariosStackdev GITHUB_REF_NAME=dev \
-   USER_POOL_ARN=<seu> USER_POOL_ID=<seu> APP_CLIENT_ID=<seu> BUCKET_NAME=<seu> \
-   npx cdk deploy FormulariosTrackingStack --app "python app.py" --require-approval never
-   ```
-   (As env vars do Cognito não são realmente usadas pela TrackingStack — só
-   precisam estar setadas porque o `app.py` instancia também o IacStack
-   no mesmo synth.)
+a. **Criar o IAM user `informs-ws-server` + access key**, anexando a
+   policy `iac/policies/informs-ws-server-runtime.json` (DynamoDB Query/PutItem
+   na Location + GetItem na Profile, escopo restrito).
 
-2. **Anotar o static IP** que apareceu nos Outputs (ou via console).
+b. **Anexar policy `tracking-runtime-ci.json` ao user que está em
+   `AWS_ACCESS_KEY_ID` do GitHub repo** (3 actions mínimas pra CI ler
+   secrets/IP/CFN outputs).
 
-3. **Re-rodar o workflow GH Actions** — push em qualquer arquivo de
-   `ws_server/**` ou via `gh workflow run "Deploy WS Server" --ref dev`.
-   Agora deve passar até o final (rsync + restart + health check).
+### 3. Você popula os 2 secrets manualmente
 
-## Por que duas policies separadas
+Você tem `secretsmanager:PutSecretValue` em `informs-ws/*` (vem da
+`tracking-stack-deploy-admin.json`).
 
-A `deploy-admin` é **larga** (precisa criar/deletar tudo). Não queremos
-que isso fique permanentemente no user do CI — risco de blast radius. O
-CI só precisa **ler** 3 coisas (static IP, 2 secrets, outputs CFN).
+```bash
+# a) SSH key — baixar a "default key" Lightsail do console:
+#    Account → SSH keys → "LightsailDefaultKey-sa-east-1" → Download.
+#    Codificar em base64 e armazenar:
+base64 -w 0 LightsailDefaultKey-sa-east-1.pem | \
+  aws secretsmanager put-secret-value \
+    --secret-id informs-ws/lightsail-ssh-key \
+    --secret-string file:///dev/stdin \
+    --region sa-east-1
+
+# b) AWS credentials do informs-ws-server (que infra criou no passo 2a):
+aws secretsmanager put-secret-value \
+  --secret-id informs-ws/aws-credentials \
+  --secret-string '{"AccessKeyId":"AKIA...","SecretAccessKey":"..."}' \
+  --region sa-east-1
+```
+
+### 4. Re-rodar o workflow GH Actions
+
+```bash
+gh workflow run "Deploy WS Server" --ref dev
+```
+
+Agora deve passar até o final (`==> Deploy dev concluído com sucesso`).
+
+## As 3 policies em ação
+
+| Arquivo | Pra quem | Quem aplica |
+|---|---|---|
+| `tracking-stack-deploy-admin.json` | VOCÊ (que roda `cdk deploy`) | Infra anexa ao seu user |
+| `tracking-runtime-ci.json` | User do GH Actions (`AWS_ACCESS_KEY_ID` no repo) | Infra anexa |
+| `informs-ws-server-runtime.json` | IAM user `informs-ws-server` (consumido pelo WS server na Lightsail) | Infra cria o user e anexa |
+
+Nenhuma das 3 contém actions IAM — só DDB/Lightsail/SecretsManager/CFN.
+A criação do user `informs-ws-server` em si é o único passo IAM, mas é
+uma única chamada (`iam:CreateUser` + `iam:CreateAccessKey`) feita pela
+infra, sem código ou stack.

@@ -2,24 +2,29 @@
 FormulariosTrackingStack — infraestrutura do serviço de tracking em tempo
 real (inspectors → admins) via WebSocket.
 
-Provisiona:
-- Tabela DynamoDB Location (histórico completo de pings, sem TTL).
-- Lightsail instance (Debian 12, plano nano $5, sa-east-1).
-- Static IP atrelado à instância (necessário pro DNS sslip.io estabilizar).
-- Lightsail Key Pair (CDK gera, par privado vai pro Secrets Manager).
-- Firewall: 22 (SSH), 80 (HTTP-01 challenge do Caddy), 443 (wss://).
-- Snapshot automático diário (via add-on instanceSnapshot).
+Provisiona (sem nenhum recurso IAM):
+- 3 tabelas DynamoDB Location (uma por env: dev/homolog/prod).
+- 1 Lightsail instance Debian 12 nano $5/mês em sa-east-1.
+- Static IP atrelado.
+- Snapshot automático diário.
+- 2 SecretsManager Secrets vazios (placeholders pro user popular):
+    * informs-ws/lightsail-ssh-key  → PEM da chave SSH
+    * informs-ws/aws-credentials    → JSON {AccessKeyId, SecretAccessKey}
 
-Uma única Lightsail compartilhada entre dev/homolog/prod, com 3 processos
-uvicorn (8001/8002/8003) atrás do Caddy roteando por hostname (sslip.io).
-A política de IAM da instância dá acesso às 3 tabelas Location (uma por env)
-e às tabelas Profiles do IacStack (lookup de role no handshake).
+NÃO criamos:
+- IAM user `informs-ws-server`: precisa ser criado manualmente (ou via infra)
+  com policy mínima nas tabelas Location + Profile. Decisão consciente: o
+  user que roda esta stack tipicamente não tem permissão IAM no projeto.
+- Lightsail Key Pair: a Lightsail cria uma "default key" automaticamente
+  por região na primeira criação de instância (ou você pode criar uma
+  específica via console e referenciar pelo nome via env LIGHTSAIL_KEYPAIR_NAME).
 
-A separação por env das tabelas Location é controlada pelo construct id
-(`Location_Table_{stage}`), não por stack — isso permite que UM único deploy
-desta stack provisione as 3 tabelas Location de uma vez só. Os nomes
-físicos são gerados pelo CFN seguindo o padrão da stack
-(FormulariosTrackingStack-LocationTable{stage}-...).
+Setup pós-deploy (ver iac/policies/README.md):
+1. Pedir pra infra criar IAM user informs-ws-server + access key.
+2. Popular informs-ws/aws-credentials com o JSON da access key (você tem
+   permissão SecretsManager).
+3. Baixar PEM da default key Lightsail pelo console e popular
+   informs-ws/lightsail-ssh-key.
 """
 
 import os
@@ -28,10 +33,8 @@ from aws_cdk import (
     RemovalPolicy,
     Stack,
     aws_dynamodb,
-    aws_iam,
     aws_lightsail,
     aws_secretsmanager,
-    custom_resources,
 )
 from constructs import Construct
 
@@ -47,18 +50,21 @@ LIGHTSAIL_BUNDLE_ID = "nano_3_0"
 LIGHTSAIL_BLUEPRINT_ID = "debian_12"
 
 # Open-internet CIDR — usamos pra SSH (22), HTTP (80, Let's Encrypt) e WSS (443).
-# Extrair constante evita python:S1192 (literal duplicado).
 _OPEN_INTERNET_CIDR = "0.0.0.0/0"
+
+# Nomes "lógicos" dos secrets — populados manualmente pelo user pós-deploy.
+SSH_KEY_SECRET_NAME = "informs-ws/lightsail-ssh-key"
+AWS_CREDS_SECRET_NAME = "informs-ws/aws-credentials"
 
 
 class FormulariosTrackingStack(Stack):
-    """Stack independente — não depende do IacStack principal."""
+    """Stack independente — não depende do IacStack principal nem cria IAM."""
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         github_ref_name = os.environ.get("GITHUB_REF_NAME", "dev")
-        # Em prod retemos tabela; demais envs destroem junto com a stack.
+        # Em prod retemos tabelas; demais envs destroem junto com a stack.
         removal_policy = (
             RemovalPolicy.RETAIN if "prod" in github_ref_name else RemovalPolicy.DESTROY
         )
@@ -69,11 +75,8 @@ class FormulariosTrackingStack(Stack):
         #   SK = ts#{epoch_ms}        (sortável cronologicamente)
         # Atributos: lat (N), lng (N), accuracy (N opc), ts_device (N opc).
         # Sem TTL: histórico completo retido por decisão do produto.
-        # SEM table_name explícito: deixa o CFN gerar o nome físico seguindo
-        # o padrão da stack (FormulariosTrackingStack-...-LocationTable{stage}...),
-        # consistente com a Formularios_Table do IacStack. ws_server lê o
-        # nome via env LOCATION_TABLE injetada pelo deploy (descoberto via
-        # cloudformation describe-stacks → Output LocationTableName_{stage}).
+        # SEM table_name explícito: nome físico segue padrão da stack
+        # (FormulariosTrackingStack-LocationTable{stage}-...).
         self.location_tables: dict[str, aws_dynamodb.Table] = {}
         for stage in STAGES:
             table = aws_dynamodb.Table(
@@ -100,167 +103,38 @@ class FormulariosTrackingStack(Stack):
                 export_name=f"FormulariosTrackingLocationTable{stage}",
             )
 
-        # ---------- Lightsail Key Pair (custom resource) ----------
-        # aws-cdk-lib não expõe CfnKeyPair pro módulo Lightsail (só EC2 tem).
-        # Usamos AwsCustomResource pra chamar lightsail.CreateKeyPair direto
-        # via SDK no momento do deploy. A chave privada (PEM) volta no response
-        # e é gravada no Secrets Manager via outro AwsCustomResource em
-        # cascata (depende do primeiro pra extrair o PrivateKeyBase64).
-        key_pair_name = "informs-ws-keypair"
-        create_keypair = custom_resources.AwsCustomResource(
-            self,
-            "CreateWSKeyPair",
-            on_create=custom_resources.AwsSdkCall(
-                service="Lightsail",
-                action="createKeyPair",
-                parameters={"keyPairName": key_pair_name},
-                physical_resource_id=custom_resources.PhysicalResourceId.of(key_pair_name),
-            ),
-            on_delete=custom_resources.AwsSdkCall(
-                service="Lightsail",
-                action="deleteKeyPair",
-                parameters={"keyPairName": key_pair_name},
-            ),
-            policy=custom_resources.AwsCustomResourcePolicy.from_statements(
-                [
-                    aws_iam.PolicyStatement(
-                        effect=aws_iam.Effect.ALLOW,
-                        actions=["lightsail:CreateKeyPair", "lightsail:DeleteKeyPair"],
-                        # Restringe ao ARN do key pair específico —
-                        # silencia python:S6304 e dá menor privilégio real.
-                        resources=[
-                            f"arn:aws:lightsail:{self.region}:{self.account}:KeyPair/{key_pair_name}"
-                        ],
-                    )
-                ]
-            ),
-            install_latest_aws_sdk=False,
-        )
-        self.key_pair_name = key_pair_name
-
-        # Secret pra chave privada — populado no mesmo deploy via PutSecretValue.
-        # Marcamos RETAIN: se a stack for destruída, mantém-se o secret pra
-        # auditoria (mas a key pair em si some, então o conteúdo fica obsoleto).
+        # ---------- SecretsManager placeholders ----------
+        # Criados vazios pelo CFN. Você popula manualmente UMA vez via
+        # console/CLI (precisa de secretsmanager:PutSecretValue, que você tem).
         self.ssh_key_secret = aws_secretsmanager.Secret(
             self,
             "WSSSHKeySecret",
-            secret_name="informs-ws/lightsail-ssh-key",
-            description="Chave privada SSH (PEM) da Lightsail informs-ws.",
+            secret_name=SSH_KEY_SECRET_NAME,
+            description=(
+                "Chave privada SSH (PEM, base64) da Lightsail informs-ws. "
+                "Popular manualmente: baixe a default key Lightsail do console "
+                "(Account → SSH keys), base64-encode, e use put-secret-value."
+            ),
             removal_policy=RemovalPolicy.RETAIN,
         )
-        store_keypair = custom_resources.AwsCustomResource(
-            self,
-            "StoreWSKeyPairSecret",
-            on_create=custom_resources.AwsSdkCall(
-                service="SecretsManager",
-                action="putSecretValue",
-                parameters={
-                    "SecretId": self.ssh_key_secret.secret_name,
-                    "SecretString": create_keypair.get_response_field("privateKeyBase64"),
-                },
-                physical_resource_id=custom_resources.PhysicalResourceId.of(
-                    f"{key_pair_name}-secret"
-                ),
-            ),
-            policy=custom_resources.AwsCustomResourcePolicy.from_statements(
-                [
-                    aws_iam.PolicyStatement(
-                        effect=aws_iam.Effect.ALLOW,
-                        actions=["secretsmanager:PutSecretValue"],
-                        resources=[self.ssh_key_secret.secret_arn],
-                    )
-                ]
-            ),
-            install_latest_aws_sdk=False,
-        )
-        store_keypair.node.add_dependency(create_keypair)
-        store_keypair.node.add_dependency(self.ssh_key_secret)
-
-        # ---------- IAM user pra instância (Lightsail não tem instance role) ----------
-        # Lightsail é IaaS gerenciada e não suporta IAM Instance Profile como EC2.
-        # Solução: criamos um IAM user com política mínima e geramos
-        # access key, salva no Secrets Manager. O bootstrap.sh recupera e
-        # configura ~/.aws/credentials no usuário do serviço.
-        self.ws_iam_user = aws_iam.User(self, "WSServerUser", user_name="informs-ws-server")
-        location_arns = [t.table_arn for t in self.location_tables.values()]
-        self.ws_iam_user.add_to_policy(
-            aws_iam.PolicyStatement(
-                effect=aws_iam.Effect.ALLOW,
-                actions=[
-                    "dynamodb:PutItem",
-                    "dynamodb:Query",
-                    "dynamodb:GetItem",
-                    "dynamodb:BatchWriteItem",
-                ],
-                resources=location_arns,
-            )
-        )
-        # Permite ler tabela de profiles (lookup de role no handshake).
-        # Tabela vive na FormulariosStack{stage} (IacStack), com nome físico
-        # auto-gerado pelo CFN. Pra evitar cross-stack ImportValue (acopla
-        # delete order), usamos wildcard restrito ao prefixo conhecido
-        # FormulariosStack*-FormulariosDynamoProfilesTable*. Continua sendo
-        # menor privilégio do que table/*.
-        profile_table_wildcard = (
-            f"arn:aws:dynamodb:{self.region}:{self.account}:"
-            f"table/FormulariosStack*-FormulariosDynamoProfilesTable*"
-        )
-        self.ws_iam_user.add_to_policy(
-            aws_iam.PolicyStatement(
-                effect=aws_iam.Effect.ALLOW,
-                actions=["dynamodb:GetItem"],
-                resources=[profile_table_wildcard],
-            )
-        )
-
-        access_key = aws_iam.CfnAccessKey(
-            self, "WSServerAccessKey", user_name=self.ws_iam_user.user_name
-        )
-        # Secret pra credenciais AWS da instância (consumidas pelo boto3 do WS).
-        # Conteúdo: JSON {"AccessKeyId": "...", "SecretAccessKey": "..."}
-        # consumido pelo deploy (PR3) que escreve em ~/.aws/credentials.
         self.aws_creds_secret = aws_secretsmanager.Secret(
             self,
             "WSAWSCredsSecret",
-            secret_name="informs-ws/aws-credentials",
-            description="Access key do IAM user informs-ws-server (consumido pelo deploy).",
+            secret_name=AWS_CREDS_SECRET_NAME,
+            description=(
+                "Access key do IAM user informs-ws-server. "
+                "Conteúdo JSON: {\"AccessKeyId\":\"...\",\"SecretAccessKey\":\"...\"}. "
+                "User criado fora desta stack (peça pra infra)."
+            ),
             removal_policy=RemovalPolicy.RETAIN,
         )
-        # Popula o Secret no mesmo deploy via custom resource — assim
-        # o GH Actions já encontra o conteúdo pronto sem passo manual.
-        store_creds = custom_resources.AwsCustomResource(
-            self,
-            "StoreWSAWSCredsSecret",
-            on_create=custom_resources.AwsSdkCall(
-                service="SecretsManager",
-                action="putSecretValue",
-                parameters={
-                    "SecretId": self.aws_creds_secret.secret_name,
-                    "SecretString": (
-                        f'{{"AccessKeyId":"{access_key.ref}",'
-                        f'"SecretAccessKey":"{access_key.attr_secret_access_key}"}}'
-                    ),
-                },
-                physical_resource_id=custom_resources.PhysicalResourceId.of(
-                    "informs-ws-aws-creds-secret"
-                ),
-            ),
-            policy=custom_resources.AwsCustomResourcePolicy.from_statements(
-                [
-                    aws_iam.PolicyStatement(
-                        effect=aws_iam.Effect.ALLOW,
-                        actions=["secretsmanager:PutSecretValue"],
-                        resources=[self.aws_creds_secret.secret_arn],
-                    )
-                ]
-            ),
-            install_latest_aws_sdk=False,
-        )
-        store_creds.node.add_dependency(self.aws_creds_secret)
 
         # ---------- Lightsail instance ----------
         # User-data é lido de bootstrap.sh — instala python, caddy, swap e
-        # systemd units placeholder pros 3 envs.
+        # systemd units placeholder pros 3 envs. SEM key_pair_name: Lightsail
+        # cria uma default key automática por região, baixável pelo console.
+        # Se preferir uma key dedicada, crie no console com nome
+        # "informs-ws-keypair" e descomente a linha key_pair_name abaixo.
         bootstrap_path = os.path.join(
             os.path.dirname(__file__), "..", "ws_server_bootstrap", "bootstrap.sh"
         )
@@ -274,22 +148,27 @@ class FormulariosTrackingStack(Stack):
             availability_zone=f"{self.region}a",
             blueprint_id=LIGHTSAIL_BLUEPRINT_ID,
             bundle_id=LIGHTSAIL_BUNDLE_ID,
-            key_pair_name=self.key_pair_name,
+            # key_pair_name=None  # → usa default key da região
             user_data=user_data,
             networking=aws_lightsail.CfnInstance.NetworkingProperty(
                 ports=[
                     aws_lightsail.CfnInstance.PortProperty(
-                        from_port=22, to_port=22, protocol="tcp", access_from=_OPEN_INTERNET_CIDR,
-                        access_type="public", access_direction="inbound", common_name="SSH",
+                        from_port=22, to_port=22, protocol="tcp",
+                        access_from=_OPEN_INTERNET_CIDR,
+                        access_type="public", access_direction="inbound",
+                        common_name="SSH",
                     ),
                     aws_lightsail.CfnInstance.PortProperty(
-                        from_port=80, to_port=80, protocol="tcp", access_from=_OPEN_INTERNET_CIDR,
+                        from_port=80, to_port=80, protocol="tcp",
+                        access_from=_OPEN_INTERNET_CIDR,
                         access_type="public", access_direction="inbound",
                         common_name="HTTP (Let's Encrypt HTTP-01)",
                     ),
                     aws_lightsail.CfnInstance.PortProperty(
-                        from_port=443, to_port=443, protocol="tcp", access_from=_OPEN_INTERNET_CIDR,
-                        access_type="public", access_direction="inbound", common_name="WSS",
+                        from_port=443, to_port=443, protocol="tcp",
+                        access_from=_OPEN_INTERNET_CIDR,
+                        access_type="public", access_direction="inbound",
+                        common_name="WSS",
                     ),
                 ]
             ),
@@ -304,7 +183,6 @@ class FormulariosTrackingStack(Stack):
                 )
             ],
         )
-        self.instance.node.add_dependency(create_keypair)
 
         # ---------- Static IP ----------
         # Sem static IP, o IP público muda a cada stop/start, o que quebra

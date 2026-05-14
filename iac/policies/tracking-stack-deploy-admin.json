@@ -2,17 +2,13 @@
     "Version": "2012-10-17",
     "Statement": [
         {
-            "Sid": "LightsailAdmin",
+            "Sid": "LightsailForStack",
             "Effect": "Allow",
             "Action": [
                 "lightsail:CreateInstances",
                 "lightsail:DeleteInstance",
                 "lightsail:GetInstance",
                 "lightsail:GetInstances",
-                "lightsail:CreateKeyPair",
-                "lightsail:DeleteKeyPair",
-                "lightsail:GetKeyPair",
-                "lightsail:GetKeyPairs",
                 "lightsail:AllocateStaticIp",
                 "lightsail:ReleaseStaticIp",
                 "lightsail:AttachStaticIp",
@@ -25,19 +21,20 @@
                 "lightsail:EnableAddOn",
                 "lightsail:DisableAddOn",
                 "lightsail:GetBundles",
-                "lightsail:GetBlueprints"
+                "lightsail:GetBlueprints",
+                "lightsail:DownloadDefaultKeyPair"
             ],
             "Resource": "*"
         },
         {
-            "Sid": "SecretsManagerForTracking",
+            "Sid": "SecretsManagerPlaceholders",
             "Effect": "Allow",
             "Action": [
                 "secretsmanager:CreateSecret",
                 "secretsmanager:DeleteSecret",
                 "secretsmanager:DescribeSecret",
-                "secretsmanager:GetSecretValue",
                 "secretsmanager:PutSecretValue",
+                "secretsmanager:GetSecretValue",
                 "secretsmanager:TagResource",
                 "secretsmanager:UntagResource"
             ],
@@ -46,31 +43,7 @@
             ]
         },
         {
-            "Sid": "IamForWsServerUser",
-            "Effect": "Allow",
-            "Action": [
-                "iam:CreateUser",
-                "iam:DeleteUser",
-                "iam:GetUser",
-                "iam:CreateAccessKey",
-                "iam:DeleteAccessKey",
-                "iam:ListAccessKeys",
-                "iam:PutUserPolicy",
-                "iam:DeleteUserPolicy",
-                "iam:GetUserPolicy",
-                "iam:AttachUserPolicy",
-                "iam:DetachUserPolicy",
-                "iam:ListUserPolicies",
-                "iam:ListAttachedUserPolicies",
-                "iam:TagUser",
-                "iam:UntagUser"
-            ],
-            "Resource": [
-                "arn:aws:iam::*:user/informs-ws-server"
-            ]
-        },
-        {
-            "Sid": "DynamoForLocationTable",
+            "Sid": "DynamoForLocationTables",
             "Effect": "Allow",
             "Action": [
                 "dynamodb:CreateTable",
@@ -106,23 +79,6 @@
                 "cloudformation:DeleteChangeSet"
             ],
             "Resource": "*"
-        },
-        {
-            "Sid": "LambdaForCustomResource",
-            "Effect": "Allow",
-            "Action": [
-                "lambda:CreateFunction",
-                "lambda:DeleteFunction",
-                "lambda:GetFunction",
-                "lambda:UpdateFunctionCode",
-                "lambda:UpdateFunctionConfiguration",
-                "lambda:InvokeFunction",
-                "lambda:AddPermission",
-                "lambda:RemovePermission"
-            ],
-            "Resource": [
-                "arn:aws:lambda:*:*:function:FormulariosTrackingStack*"
-            ]
         }
     ]
 }
