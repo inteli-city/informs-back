@@ -9,7 +9,7 @@ from moto import mock_aws
 from ws_server.location_repo import LocationRepository
 
 
-TABLE = "informs-tracking-location-test"
+TABLE = "formularios-tracking-location-test"
 # Region puxa de env (cai pra default só quando rodando local sem AWS_REGION).
 # Resolve python:S6262 — Sonar não gosta de region literal hardcoded.
 REGION = os.environ.get("AWS_REGION", "sa-east-1")

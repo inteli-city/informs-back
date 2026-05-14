@@ -5,8 +5,8 @@ Fluxo:
    (ou `Sec-WebSocket-Protocol: Bearer.<token>` como fallback — alguns
    clientes browser não conseguem injetar Authorization em WS).
 2. Validamos a assinatura do JWT contra o JWKS do User Pool (cacheado).
-3. Extraímos `sub` (user_id) e buscamos role na tabela
-   `informs-tracking-profile-{stage}`.
+3. Extraímos `sub` (user_id) e buscamos role na tabela de Profiles
+   (nome injetado via env PROFILE_TABLE pelo deploy script).
 4. Validamos que a role é INSPECTOR (emite localizações) ou ADMIN
    (consome o stream realtime). Outras roles são rejeitadas.
 

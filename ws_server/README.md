@@ -19,8 +19,8 @@ Roda numa Lightsail compartilhada provisionada pelo `iac/iac/tracking_stack.py`
                           └──────┬──────────────────────┘
                                  │ boto3
                                  ▼
-                          DynamoDB (informs-tracking-location-{env})
-                          DynamoDB (informs-tracking-profile-{env})
+                          DynamoDB Location (FormulariosTrackingStack)
+                          DynamoDB Profile  (FormulariosStack{stage})
 ```
 
 ## Protocolo

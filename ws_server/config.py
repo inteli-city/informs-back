@@ -8,8 +8,12 @@ from dataclasses import dataclass
 class Settings:
     stage: str  # "dev" | "homolog" | "prod"
     aws_region: str
-    location_table: str  # informs-tracking-location-{stage}
-    profile_table: str  # informs-tracking-profile-{stage}
+    # Nomes físicos auto-gerados pelo CFN. Injetados pelo deploy script
+    # (scripts/deploy_ws_server.sh) via cloudformation describe-stacks:
+    #   LOCATION_TABLE → FormulariosTrackingStack:LocationTableName_{stage}
+    #   PROFILE_TABLE  → FormulariosStack{stage}:ProfileTableName
+    location_table: str
+    profile_table: str
     cognito_user_pool_id: str
     cognito_app_client_id: str  # validado contra o claim aud/client_id
 
@@ -30,16 +34,13 @@ class Settings:
 
 def load() -> Settings:
     """Carrega settings do environment. Falha cedo se variáveis essenciais faltam."""
-    stage = _required("STAGE")
     return Settings(
-        stage=stage,
+        stage=_required("STAGE"),
         aws_region=_required("AWS_REGION"),
-        location_table=os.environ.get(
-            "LOCATION_TABLE", f"informs-tracking-location-{stage}"
-        ),
-        profile_table=os.environ.get(
-            "PROFILE_TABLE", f"informs-tracking-profile-{stage}"
-        ),
+        # Required: nomes auto-gerados pelo CFN (sem fallback seguro porque
+        # o nome legado "informs-tracking-*" não existe mais).
+        location_table=_required("LOCATION_TABLE"),
+        profile_table=_required("PROFILE_TABLE"),
         cognito_user_pool_id=_required("COGNITO_USER_POOL_ID"),
         cognito_app_client_id=_required("COGNITO_APP_CLIENT_ID"),
     )

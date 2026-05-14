@@ -1,6 +1,7 @@
 """Persistência das localizações no DynamoDB.
 
-Schema da tabela `informs-tracking-location-{stage}`:
+Schema da tabela Location (nome físico auto-gerado pela
+FormulariosTrackingStack — passado via env LOCATION_TABLE):
 - PK = user#{user_id}
 - SK = ts#{ts_server_ms}    (server timestamp pra evitar colisão de ts_device)
 - atributos: lat, lng, ts_device, accuracy (opc)

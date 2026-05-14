@@ -22,7 +22,7 @@ from ws_server import config, main as main_module
 from ws_server.auth import AuthenticatedUser
 
 
-TABLE = "informs-tracking-location-test"
+TABLE = "formularios-tracking-location-test"
 REGION = os.environ.get("AWS_REGION", "sa-east-1")
 
 
