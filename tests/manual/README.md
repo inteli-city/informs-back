@@ -6,13 +6,16 @@ INSPECTOR (envia GPS) e modo ADMIN (vê live + histórico).
 ## Pré-requisitos
 
 1. PRs #45/#46/#47/#48/#49 mergeados e a Lightsail provisionada com o
-   ws_server rodando.
-2. Static IP da Lightsail anotado (ex: `54.232.10.5`).
-3. Cognito **App Client com `USER_PASSWORD_AUTH` habilitado**:
+   ws_server rodando (live via WS).
+2. PR #50 mergeado e o endpoint serverless `GET /mss-formularios/tracking/history`
+   deployado (necessário só pra carregar histórico).
+3. Static IP da Lightsail anotado (ex: `54.232.10.5`).
+4. URL base do API Gateway anotada (ex: `https://abc.execute-api.sa-east-1.amazonaws.com/dev/mss-formularios`).
+5. Cognito **App Client com `USER_PASSWORD_AUTH` habilitado**:
    - Console → User Pool → App integration → seu app client →
      "Authentication flows" → marcar `ALLOW_USER_PASSWORD_AUTH`.
-4. 1 user `INSPECTOR` (status CONFIRMED) e 1 user `ADMIN` cadastrados
-   no User Pool + Profile na tabela `informs-tracking-profile-{stage}`.
+6. 1 user `INSPECTOR` e 1 user `ADMIN` cadastrados no User Pool +
+   Profile registrado na tabela de Profiles.
 
 ## Como rodar
 
@@ -28,7 +31,8 @@ Browser geolocation API exige HTTPS **ou** localhost — `localhost:8000` funcio
 
 1. **Login** (na sidebar):
    - Stage: `dev`
-   - Static IP: o que você anotou
+   - Static IP: o que você anotou (usado pra `wss://...sslip.io`)
+   - API Gateway base URL: ex `https://abc.execute-api.sa-east-1.amazonaws.com/dev/mss-formularios` (usado pra `/tracking/history`)
    - Region: `sa-east-1`
    - Client ID: do app client Cognito
    - Email/senha do user INSPECTOR

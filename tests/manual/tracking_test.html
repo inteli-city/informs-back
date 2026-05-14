@@ -63,26 +63,29 @@ button.secondary { background:transparent; color:var(--fg); }
   <!-- ============ CONFIG ============ -->
   <div class="section" id="cfg-section">
     <h2>1. Configuração</h2>
-    <label>Stage</label>
+    <label for="stage">Stage</label>
     <select id="stage">
       <option value="dev">dev</option>
       <option value="homolog">homolog</option>
       <option value="prod">prod</option>
     </select>
 
-    <label>Static IP da Lightsail (ex: 54.232.10.5)</label>
+    <label for="static_ip">Static IP da Lightsail (ex: 54.232.10.5)</label>
     <input id="static_ip" placeholder="x.x.x.x" />
 
-    <label>AWS Region</label>
+    <label for="api_base">API Gateway base URL (ex: https://abc.execute-api.sa-east-1.amazonaws.com/dev/mss-formularios)</label>
+    <input id="api_base" placeholder="https://...amazonaws.com/{stage}/mss-formularios" />
+
+    <label for="region">AWS Region</label>
     <input id="region" value="sa-east-1" />
 
-    <label>Cognito App Client ID</label>
+    <label for="client_id">Cognito App Client ID</label>
     <input id="client_id" placeholder="abc123..." />
 
-    <label>Email</label>
+    <label for="email">Email</label>
     <input id="email" type="email" />
 
-    <label>Senha</label>
+    <label for="password">Senha</label>
     <input id="password" type="password" />
 
     <button id="login-btn">Login</button>
@@ -125,11 +128,11 @@ button.secondary { background:transparent; color:var(--fg); }
       <ul class="online-list" id="adm-online-list"></ul>
 
       <h2 style="margin-top:14px;">Histórico (rota do dia)</h2>
-      <label>user_id do inspector</label>
+      <label for="hist-user">user_id do inspector</label>
       <input id="hist-user" placeholder="cole o sub do Cognito" />
-      <label>Desde</label>
+      <label for="hist-since">Desde</label>
       <input id="hist-since" type="datetime-local" />
-      <label>Até</label>
+      <label for="hist-until">Até</label>
       <input id="hist-until" type="datetime-local" />
       <button id="hist-load-btn" class="secondary">📍 Carregar rota</button>
       <div id="hist-status" style="font-size:12px; color:var(--muted); margin-top:6px;"></div>
@@ -213,7 +216,7 @@ async function login() {
 }
 
 function parseJwt(token) {
-  const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+  const payload = token.split('.')[1].replaceAll('-', '+').replaceAll('_', '/');
   const padded = payload + '='.repeat((4 - payload.length % 4) % 4);
   return JSON.parse(atob(padded));
 }
@@ -230,9 +233,12 @@ function wsUrl() {
   return `wss://${stage}-${ip}.sslip.io/ws`;
 }
 function restUrl(path) {
-  const stage = $('stage').value;
-  const ip = $('static_ip').value.trim().replaceAll('.', '-');
-  return `https://${stage}-${ip}.sslip.io${path}`;
+  // Endpoint REST mora no API Gateway (Lambda do projeto), não no ws_server.
+  // Cliente cola a base URL completa na config (ex: https://abc.execute-api.
+  // sa-east-1.amazonaws.com/dev/mss-formularios). O path aqui é só o sufixo
+  // (ex: /tracking/history?...).
+  const base = $('api_base').value.trim().replace(/\/$/, '');
+  return `${base}${path}`;
 }
 
 // =================== INSPECTOR ========================
@@ -326,12 +332,12 @@ function adminHandle(msg) {
 }
 function adminUpsertMarker(userId, loc) {
   const latlng = [loc.lat, loc.lng];
-  if (!state.adm.markers[userId]) {
-    state.adm.markers[userId] = L.marker(latlng, { title: userId }).addTo(map);
-    state.adm.polylines[userId] = L.polyline([latlng], { color: colorFor(userId) }).addTo(map);
-  } else {
+  if (state.adm.markers[userId]) {
     state.adm.markers[userId].setLatLng(latlng);
     state.adm.polylines[userId].addLatLng(latlng);
+  } else {
+    state.adm.markers[userId] = L.marker(latlng, { title: userId }).addTo(map);
+    state.adm.polylines[userId] = L.polyline([latlng], { color: colorFor(userId) }).addTo(map);
   }
 }
 function refreshOnlineList(userIds) {
@@ -358,7 +364,7 @@ async function loadHistory() {
 
   $('hist-status').textContent = 'carregando…';
   try {
-    const url = `${restUrl('/history')}?user_id=${encodeURIComponent(userId)}&since=${since}&until=${until}`;
+    const url = `${restUrl('/tracking/history')}?user_id=${encodeURIComponent(userId)}&since=${since}&until=${until}`;
     const resp = await fetch(url, { headers: { 'Authorization': `Bearer ${state.idToken}` } });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.detail || JSON.stringify(data));
@@ -383,7 +389,7 @@ function setWsStatus(prefix, msg, on) {
 }
 function colorFor(uid) {
   // hash simples → cor
-  let h = 0; for (const c of uid) h = (h * 31 + c.charCodeAt(0)) & 0xffffff;
+  let h = 0; for (const c of uid) h = (h * 31 + c.codePointAt(0)) & 0xffffff;
   return `#${h.toString(16).padStart(6,'0')}`;
 }
 
