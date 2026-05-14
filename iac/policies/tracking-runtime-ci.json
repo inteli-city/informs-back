@@ -1,0 +1,34 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "ReadStaticIp",
+            "Effect": "Allow",
+            "Action": [
+                "lightsail:GetStaticIp"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "ReadInformsWsSecrets",
+            "Effect": "Allow",
+            "Action": [
+                "secretsmanager:GetSecretValue"
+            ],
+            "Resource": [
+                "arn:aws:secretsmanager:*:*:secret:informs-ws/*"
+            ]
+        },
+        {
+            "Sid": "ReadStackOutputs",
+            "Effect": "Allow",
+            "Action": [
+                "cloudformation:DescribeStacks"
+            ],
+            "Resource": [
+                "arn:aws:cloudformation:*:*:stack/FormulariosTrackingStack/*",
+                "arn:aws:cloudformation:*:*:stack/FormulariosStack*/*"
+            ]
+        }
+    ]
+}
