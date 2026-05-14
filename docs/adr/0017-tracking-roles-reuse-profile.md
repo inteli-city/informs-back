@@ -6,7 +6,7 @@
 
 ## Contexto
 
-A tabela `informs-tracking-profile-{stage}` (ADR #16) tem hoje dois papéis
+A tabela de Profiles (ADR #16, criada na FormulariosStack) tem hoje dois papéis
 aplicacionais: `ADMIN` e `INSPECTOR`. O serviço de tracking precisa
 diferenciar quem **emite** localizações (no campo) de quem **consome** o
 stream em tempo real (na operação).

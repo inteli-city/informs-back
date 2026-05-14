@@ -1,6 +1,6 @@
 # Deploy do WS server — guia rápido
 
-## Setup uma única vez (após PR #45 mergeado e `cdk deploy InformsTrackingStack` rodado)
+## Setup uma única vez (após PRs #45/#48/#49 mergeados e `cdk deploy FormulariosTrackingStack` + `cdk deploy FormulariosStack{stage}` rodados)
 
 1. Anote o IP estático da Lightsail:
    ```bash
@@ -33,7 +33,10 @@ dispara `.github/workflows/deploy-ws-server.yml`, que:
 2. Roda `scripts/deploy_ws_server.sh`:
    - Recupera IP estático e chave SSH (Secrets Manager)
    - Renderiza `Caddyfile` substituindo `{{IP_DASHED}}`
-   - Renderiza arquivo de env do systemd (Cognito + AWS creds da instância)
+   - **Descobre nomes auto-gerados das tabelas** via CFN Outputs:
+     - `LOCATION_TABLE` ← `FormulariosTrackingStack` Output `LocationTableName_{stage}`
+     - `PROFILE_TABLE` ← `FormulariosStack{stage}` Output `ProfileTableName`
+   - Renderiza arquivo de env do systemd (Cognito + AWS creds + nomes de tabela)
    - `rsync` do código pra `/opt/informs-ws/{stage}/code/`
    - Cria venv + `pip install -e .` (idempotente)
    - Reload do Caddy + restart do systemd unit do env

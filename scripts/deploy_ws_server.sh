@@ -59,6 +59,25 @@ AWS_CREDS_JSON=$(aws secretsmanager get-secret-value --secret-id "${AWS_CREDS_SE
 INSTANCE_AWS_KEY=$(echo "${AWS_CREDS_JSON}" | jq -r '.AccessKeyId')
 INSTANCE_AWS_SECRET=$(echo "${AWS_CREDS_JSON}" | jq -r '.SecretAccessKey')
 
+# Nomes físicos das tabelas DynamoDB são auto-gerados pelo CFN (PR #49).
+# Descobrimos via CFN Outputs:
+#   - LocationTableName_{stage} na FormulariosTrackingStack
+#   - ProfileTableName na FormulariosStack{stage}
+LOCATION_TABLE=$(aws cloudformation describe-stacks \
+    --stack-name FormulariosTrackingStack \
+    --query "Stacks[0].Outputs[?OutputKey=='LocationTableName_${STAGE}'].OutputValue" \
+    --output text)
+PROFILE_TABLE=$(aws cloudformation describe-stacks \
+    --stack-name "FormulariosStack${STAGE}" \
+    --query "Stacks[0].Outputs[?OutputKey=='ProfileTableName'].OutputValue" \
+    --output text)
+if [[ -z "${LOCATION_TABLE}" || -z "${PROFILE_TABLE}" ]]; then
+    echo "!! Não consegui descobrir nomes das tabelas via CFN Outputs."
+    echo "   LOCATION_TABLE=${LOCATION_TABLE} PROFILE_TABLE=${PROFILE_TABLE}"
+    echo "   Verifica se FormulariosTrackingStack e FormulariosStack${STAGE} já foram deployadas."
+    exit 1
+fi
+
 ENV_FILE_RENDERED=$(mktemp)
 cat > "${ENV_FILE_RENDERED}" <<EOF
 STAGE=${STAGE}
@@ -66,6 +85,8 @@ PORT=${PORT}
 AWS_REGION=${AWS_REGION:-sa-east-1}
 COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID:?}
 COGNITO_APP_CLIENT_ID=${COGNITO_APP_CLIENT_ID:?}
+LOCATION_TABLE=${LOCATION_TABLE}
+PROFILE_TABLE=${PROFILE_TABLE}
 AWS_ACCESS_KEY_ID=${INSTANCE_AWS_KEY}
 AWS_SECRET_ACCESS_KEY=${INSTANCE_AWS_SECRET}
 EOF
