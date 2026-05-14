@@ -6,6 +6,7 @@ Cobre status codes esperados (200 OK, 400 invalid range, 403 forbidden,
 
 import os
 import sys
+from typing import Optional
 
 sys.path.append(os.getcwd())
 
@@ -38,15 +39,21 @@ def _requester_user(sub: str = ADMIN_ID, groups: str = "FORMULARIOS,GAIA"):
     }
 
 
-def _request(*, requester_sub: str = ADMIN_ID, user_id: str = TARGET, since: int = 1, until: int = 10_000):
-    return HttpRequest(
-        body={
-            "requester_user": _requester_user(sub=requester_sub),
-            "user_id": user_id,
-            "since": since,
-            "until": until,
-        }
-    )
+def _request(
+    *,
+    requester_sub: str = ADMIN_ID,
+    user_id: Optional[str] = TARGET,
+    since: Optional[int] = 1,
+    until: Optional[int] = 10_000,
+):
+    body = {"requester_user": _requester_user(sub=requester_sub)}
+    if user_id is not None:
+        body["user_id"] = user_id
+    if since is not None:
+        body["since"] = since
+    if until is not None:
+        body["until"] = until
+    return HttpRequest(body=body)
 
 
 class TestGetLocationHistoryController:
@@ -79,15 +86,7 @@ class TestGetLocationHistoryController:
         assert resp.status_code == 400
 
     def test_missing_user_id_returns_400(self):
-        # Build manually pra omitir user_id.
-        req = HttpRequest(
-            body={
-                "requester_user": _requester_user(),
-                "since": 0,
-                "until": 1000,
-            }
-        )
-        resp = self.controller(req)
+        resp = self.controller(_request(user_id=None))
         assert resp.status_code == 400
 
     def test_zero_since_returns_400(self):
@@ -100,3 +99,29 @@ class TestGetLocationHistoryController:
         assert resp.status_code == 200
         assert resp.body["items"] == []
         assert resp.body["count"] == 0
+
+    def test_default_since_until_uses_today_brt_to_now(self, monkeypatch):
+        """Sem since/until, controller assume 00:00 BRT até agora.
+        Mocamos as funções de default pra passar valores controlados."""
+        from src.modules.get_location_history.app import (
+            get_location_history_controller as ctrl_module,
+        )
+        # Default cobre 100% do range do mock (1000..5000).
+        monkeypatch.setattr(ctrl_module, "_default_since_ms", lambda: 1)
+        monkeypatch.setattr(ctrl_module, "_default_until_ms", lambda: 9999)
+
+        resp = self.controller(_request(since=None, until=None))
+        assert resp.status_code == 200
+        assert resp.body["count"] == 5
+
+    def test_default_only_until(self, monkeypatch):
+        """Cliente passa só since; until vira agora."""
+        from src.modules.get_location_history.app import (
+            get_location_history_controller as ctrl_module,
+        )
+        monkeypatch.setattr(ctrl_module, "_default_until_ms", lambda: 9999)
+
+        resp = self.controller(_request(since=2000, until=None))
+        # Pega 2000..5000 (4 pings).
+        assert resp.status_code == 200
+        assert resp.body["count"] == 4

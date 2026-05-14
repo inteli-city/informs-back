@@ -1,3 +1,7 @@
+from datetime import datetime, time, timezone
+from typing import Optional
+from zoneinfo import ZoneInfo
+
 from pydantic import ValidationError
 
 from .get_location_history_usecase import GetLocationHistoryUsecase
@@ -28,6 +32,24 @@ from src.shared.helpers.functions.pydantic_error_parser import (
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 
 
+# Operação acontece no Brasil — "rota do dia" pro admin é o dia
+# operacional em São Paulo, não o dia UTC. Hardcoded propositalmente
+# (toda a base de inspectors está em território nacional).
+_OPERATION_TZ = ZoneInfo("America/Sao_Paulo")
+
+
+def _default_since_ms() -> int:
+    """00:00 do dia atual em America/Sao_Paulo, em epoch ms UTC."""
+    now_local = datetime.now(_OPERATION_TZ)
+    midnight_local = datetime.combine(now_local.date(), time.min, tzinfo=_OPERATION_TZ)
+    return int(midnight_local.timestamp() * 1000)
+
+
+def _default_until_ms() -> int:
+    """Agora, em epoch ms UTC."""
+    return int(datetime.now(timezone.utc).timestamp() * 1000)
+
+
 class GetLocationHistoryController:
     def __init__(self, usecase: GetLocationHistoryUsecase):
         self.usecase = usecase
@@ -41,11 +63,14 @@ class GetLocationHistoryController:
                 payload.requester_user.model_dump(by_alias=True)
             )
 
+            since_ms = payload.since if payload.since is not None else _default_since_ms()
+            until_ms = payload.until if payload.until is not None else _default_until_ms()
+
             pings = self.usecase(
                 requester_user_id=requester_user.user_id,
                 target_user_id=payload.user_id,
-                since_ms=payload.since,
-                until_ms=payload.until,
+                since_ms=since_ms,
+                until_ms=until_ms,
             )
 
             viewmodel = GetLocationHistoryViewmodel(pings=pings)
