@@ -69,9 +69,13 @@ class DynamoStack(Construct):
             # GSI ByRole: PK role#{role}, SK system#{system}#user#{user_id}
             #   Uso atual: contar admins ativos antes de DELETE (impede
             #   remoção do último admin). Permite no futuro listar perfis.
+            #
+            # SEM table_name explícito: deixa o CFN gerar o nome físico
+            # seguindo o padrão da stack (FormulariosStack{stage}-...-Profile...),
+            # consistente com a Formularios_Table acima. Lambdas recebem o
+            # nome via env DYNAMO_PROFILE_TABLE_NAME (já é table.table_name).
             self.dynamo_table_profiles = aws_dynamodb.Table(
                 self, "Profiles_Table",
-                table_name=f"informs-tracking-profile-{self.github_ref_name}",
                 partition_key=aws_dynamodb.Attribute(
                     name="PK",
                     type=aws_dynamodb.AttributeType.STRING
@@ -101,3 +105,11 @@ class DynamoStack(Construct):
             CfnOutput(self, 'DynamoProfilesRemovalPolicy',
                         value=REMOVAL_POLICY.value,
                         export_name=f'Profiles{self.github_ref_name}DynamoRemovalPolicyValue')
+
+            # Exporta o nome físico (auto-gerado) pra ser consumido por outras
+            # stacks/services. Ex: ws_server lê via aws cli no deploy:
+            #   aws cloudformation describe-stacks --stack-name FormulariosStack{stage} \
+            #       --query "Stacks[0].Outputs[?OutputKey=='ProfileTableName'].OutputValue"
+            CfnOutput(self, 'ProfileTableName',
+                        value=self.dynamo_table_profiles.table_name,
+                        export_name=f'Profiles{self.github_ref_name}TableName')
