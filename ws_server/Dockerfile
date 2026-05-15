@@ -29,7 +29,11 @@ ENV UV_CACHE_DIR=/app/.cache/uv
 # Copia manifestos primeiro pra cachear a layer de deps quando só o
 # código muda (Docker rebuild só refaz a partir daqui se um dos 2 mudar).
 COPY --chown=informsws:informsws pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev --no-install-project
+# uv sync roda como root durante o build e cria /app/.cache/uv com files
+# owned by root. Depois USER informsws não consegue ler/atualizar — uv run
+# crasha. Fix: chown -R do cache pro user de runtime no mesmo RUN.
+RUN uv sync --frozen --no-dev --no-install-project \
+ && chown -R informsws:informsws /app/.cache
 
 # Código da app.
 COPY --chown=informsws:informsws __init__.py auth.py config.py location_repo.py main.py messages.py presence.py ./
