@@ -37,8 +37,9 @@ como env var no Railway.
 
 ### 2. Garantir que a TrackingStack está deployada
 
-Provê as 3 tabelas Location. Já feito no PR #45 (mas se precisar
-re-deploy: `cdk deploy FormulariosTrackingStack` da pasta `iac/`).
+Provê as 3 tabelas Location. **Sai automaticamente no CD.yml** junto
+com o IacStack a cada push em `dev`/`homolog`/`prod`. Se ainda não
+rodou, dê um `git commit --allow-empty` + push numa das branches.
 
 ### 3. Criar projeto e service no Railway
 

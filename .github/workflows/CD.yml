@@ -54,7 +54,11 @@ jobs:
           cd iac
           cdk synth
           cdk bootstrap
-          cdk deploy "${{env.STACK_NAME}}" --require-approval never
+          # Deploy do IacStack (por env) + TrackingStack (compartilhada
+          # entre os 3 envs — provê as 3 tabelas Location). TrackingStack
+          # vira no-op quando o template não mudou (CFN compara), então é
+          # seguro rodar a cada push em qualquer branch.
+          cdk deploy "${{env.STACK_NAME}}" FormulariosTrackingStack --require-approval never
 
         env:
           AWS_REGION: ${{ secrets.AWS_REGION }}
