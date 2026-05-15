@@ -20,6 +20,12 @@ RUN useradd --system --no-create-home --uid 10001 informsws \
 
 WORKDIR /app
 
+# uv precisa de um cache dir gravável pelo user que roda o processo.
+# Como informsws foi criado sem home (--no-create-home), apontamos o
+# cache pra dentro de /app (que é dele). Evita erro de permissão em
+# /home/informsws/.cache/uv que crasha o startup.
+ENV UV_CACHE_DIR=/app/.cache/uv
+
 # Copia manifestos primeiro pra cachear a layer de deps quando só o
 # código muda (Docker rebuild só refaz a partir daqui se um dos 2 mudar).
 COPY --chown=informsws:informsws pyproject.toml uv.lock ./
