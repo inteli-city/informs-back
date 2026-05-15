@@ -35,8 +35,12 @@ COPY --chown=informsws:informsws pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project \
  && chown -R informsws:informsws /app/.cache
 
-# Código da app.
-COPY --chown=informsws:informsws __init__.py auth.py config.py location_repo.py main.py messages.py presence.py ./
+# Código da app — copia pra subpasta /app/ws_server/ pra preservar o
+# layout de package. main.py usa `from . import config`, etc — Python
+# relative imports só funcionam se o módulo for parte de um pacote.
+# Rodar como `uvicorn main:app` (sem package) crasha com
+# "ImportError: attempted relative import with no known parent package".
+COPY --chown=informsws:informsws __init__.py auth.py config.py location_repo.py main.py messages.py presence.py ws_server/
 
 USER informsws
 
@@ -46,4 +50,4 @@ USER informsws
 # variable expansion de $PORT em runtime — Railway define em deploy.
 ENV PORT=8080
 EXPOSE 8080
-CMD ["sh", "-c", "uv run --frozen --no-dev uvicorn main:app --host 0.0.0.0 --port ${PORT} --proxy-headers"]
+CMD ["sh", "-c", "uv run --frozen --no-dev uvicorn ws_server.main:app --host 0.0.0.0 --port ${PORT} --proxy-headers"]
