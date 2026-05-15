@@ -6,35 +6,11 @@ Setup feito uma vez. Depois é só `git push` na branch certa pra deploy automá
 
 ### 1. Provisionar IAM user na AWS (pedir pra infra, 1 vez)
 
-Crie um IAM user chamado `informs-ws-railway` com a policy abaixo e
+Crie um IAM user chamado `informs-ws-railway` com policy mínima
+(read+write nas tabelas DynamoDB Locations e Profiles do projeto) e
 gere uma access key. As 2 strings (AccessKeyId + SecretAccessKey) vão
-como env var no Railway.
-
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "ReadWriteLocationAndReadProfile",
-            "Effect": "Allow",
-            "Action": [
-                "dynamodb:PutItem",
-                "dynamodb:Query",
-                "dynamodb:GetItem",
-                "dynamodb:BatchWriteItem"
-            ],
-            "Resource": [
-                "arn:aws:dynamodb:*:*:table/FormulariosStack*-FormulariosDynamoLocationsTable*",
-                "arn:aws:dynamodb:*:*:table/FormulariosStack*-FormulariosDynamoProfilesTable*"
-            ]
-        }
-    ]
-}
-```
-
-(Profile só é GetItem, mas pra simplificar a policy reuni tudo num
-statement só com o mesmo set de actions — `dynamodb:GetItem` cobre
-o caso do Profile.)
+como env var no Railway. Detalhes da policy fora do repo — peça pro
+mantenedor (não fica versionada no projeto).
 
 ### 2. Garantir que o IacStack está deployado
 
