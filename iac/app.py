@@ -7,7 +7,6 @@ import aws_cdk as cdk
 
 from adjust_layer_directory import adjust_layer_directory
 from iac.iac_stack import IacStack
-from iac.tracking_stack import FormulariosTrackingStack
 
 print("Starting the CDK")
 
@@ -44,17 +43,5 @@ tags = {
 }
 
 IacStack(app, stack_name, env=cdk.Environment(account=aws_account_id, region=aws_region), tags=tags)
-
-# FormulariosTrackingStack — independente do IacStack. Provisiona uma única
-# vez (tabelas Location dev/homolog/prod + 1 Lightsail compartilhada). Deploy:
-#   cdk deploy FormulariosTrackingStack --app "python iac/app.py"
-# Não é parametrizado por GITHUB_REF_NAME — todos os branches "veem" a mesma
-# stack de tracking. Por convenção, fazer deploy só a partir de prod/main.
-FormulariosTrackingStack(
-    app,
-    "FormulariosTrackingStack",
-    env=cdk.Environment(account=aws_account_id, region=aws_region),
-    tags={**tags, "stack": "TRACKING"},
-)
 
 app.synth()

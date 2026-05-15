@@ -15,7 +15,7 @@ como env var no Railway.
     "Version": "2012-10-17",
     "Statement": [
         {
-            "Sid": "ReadWriteLocationTables",
+            "Sid": "ReadWriteLocationAndReadProfile",
             "Effect": "Allow",
             "Action": [
                 "dynamodb:PutItem",
@@ -23,23 +23,25 @@ como env var no Railway.
                 "dynamodb:GetItem",
                 "dynamodb:BatchWriteItem"
             ],
-            "Resource": "arn:aws:dynamodb:*:*:table/FormulariosTrackingStack-LocationTable*"
-        },
-        {
-            "Sid": "ReadProfileTables",
-            "Effect": "Allow",
-            "Action": ["dynamodb:GetItem"],
-            "Resource": "arn:aws:dynamodb:*:*:table/FormulariosStack*-FormulariosDynamoProfilesTable*"
+            "Resource": [
+                "arn:aws:dynamodb:*:*:table/FormulariosStack*-FormulariosDynamoLocationsTable*",
+                "arn:aws:dynamodb:*:*:table/FormulariosStack*-FormulariosDynamoProfilesTable*"
+            ]
         }
     ]
 }
 ```
 
-### 2. Garantir que a TrackingStack está deployada
+(Profile só é GetItem, mas pra simplificar a policy reuni tudo num
+statement só com o mesmo set de actions — `dynamodb:GetItem` cobre
+o caso do Profile.)
 
-Provê as 3 tabelas Location. **Sai automaticamente no CD.yml** junto
-com o IacStack a cada push em `dev`/`homolog`/`prod`. Se ainda não
-rodou, dê um `git commit --allow-empty` + push numa das branches.
+### 2. Garantir que o IacStack está deployado
+
+A tabela `Locations_Table` agora vive **dentro do IacStack** (1 por env,
+nome auto-gerado pelo CFN). Sai automaticamente no CD.yml a cada push
+em `dev`/`homolog`/`prod`. Se ainda não rodou, dê um
+`git commit --allow-empty` + push numa das branches.
 
 ### 3. Criar projeto e service no Railway
 
@@ -70,8 +72,8 @@ Em cada environment do service, defina:
 | `AWS_SECRET_ACCESS_KEY` | idem |
 | `COGNITO_USER_POOL_ID` | (mesmo do GH Environment dev) |
 | `COGNITO_APP_CLIENT_ID` | (mesmo do GH Environment dev) |
-| `LOCATION_TABLE` | nome físico da tabela DDB; descobre com `aws cloudformation describe-stacks --stack-name FormulariosTrackingStack --query "Stacks[0].Outputs[?OutputKey==\`LocationTableName_dev\`].OutputValue" --output text` |
-| `PROFILE_TABLE` | idem mas: `--stack-name FormulariosStackdev --query "Stacks[0].Outputs[?OutputKey==\`ProfileTableName\`].OutputValue"` |
+| `LOCATION_TABLE` | `aws cloudformation describe-stacks --stack-name FormulariosStackdev --query "Stacks[0].Outputs[?OutputKey=='LocationTableName'].OutputValue" --output text` |
+| `PROFILE_TABLE` | `aws cloudformation describe-stacks --stack-name FormulariosStackdev --query "Stacks[0].Outputs[?OutputKey=='ProfileTableName'].OutputValue" --output text` |
 
 (Repete pro homolog e prod com os respectivos valores.)
 
