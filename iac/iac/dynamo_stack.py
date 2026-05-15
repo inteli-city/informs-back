@@ -113,3 +113,36 @@ class DynamoStack(Construct):
             CfnOutput(self, 'ProfileTableName',
                         value=self.dynamo_table_profiles.table_name,
                         export_name=f'Profiles{self.github_ref_name}TableName')
+
+            # Tabela de Location (tracking realtime — pings de inspectors).
+            # Schema:
+            #   PK = user#{user_id}
+            #   SK = ts#{ts_server_ms}    (sortável cronologicamente)
+            # Atributos: lat (N), lng (N), ts_device (N), accuracy (N opc).
+            # Sem TTL: histórico completo retido pra auditoria de rota.
+            #
+            # Consumidores:
+            #   - ws_server no Railway (PutItem em runtime)
+            #   - Lambda GET /mss-formularios/locations/history (Query)
+            #
+            # Antes vivia numa stack separada (FormulariosTrackingStack),
+            # absorvida no IacStack após a migração pro Railway que tirou
+            # o resto da TrackingStack (Lightsail/Secrets/IAM).
+            self.dynamo_table_locations = aws_dynamodb.Table(
+                self, "Locations_Table",
+                partition_key=aws_dynamodb.Attribute(
+                    name="PK",
+                    type=aws_dynamodb.AttributeType.STRING
+                ),
+                sort_key=aws_dynamodb.Attribute(
+                    name="SK",
+                    type=aws_dynamodb.AttributeType.STRING
+                ),
+                point_in_time_recovery=True,
+                billing_mode=aws_dynamodb.BillingMode.PAY_PER_REQUEST,
+                removal_policy=REMOVAL_POLICY,
+            )
+
+            CfnOutput(self, 'LocationTableName',
+                        value=self.dynamo_table_locations.table_name,
+                        export_name=f'Locations{self.github_ref_name}TableName')
