@@ -13,6 +13,10 @@ from src.shared.helpers.contracts.endpoints.get_all_forms_contract import GetAll
 from src.shared.helpers.contracts.endpoints.get_all_templates_contract import GetAllTemplatesResponseSchema
 from src.shared.helpers.contracts.endpoints.get_form_contract import GetFormResponseSchema
 from src.shared.helpers.contracts.endpoints.get_template_contract import GetTemplateResponseSchema
+from src.shared.helpers.contracts.endpoints.location_history_contract import (
+    LocationHistoryRequestSchema,
+    LocationHistoryResponseSchema,
+)
 from src.shared.helpers.contracts.endpoints.plan_route_contract import (
     PlanRouteRequestSchema,
     PlanRouteResponseSchema,
@@ -174,6 +178,15 @@ _CONTRACTS = [
         success_status_code=200,
         request_model=SyncCallbackRequestSchema,
         response_model=SyncCallbackResponseSchema,
+    ),
+    EndpointContract(
+        path="/locations/history",
+        method="get",
+        tag="Locations",
+        summary="Histórico de localização de um inspector no período (admin)",
+        success_status_code=200,
+        request_model=LocationHistoryRequestSchema,
+        response_model=LocationHistoryResponseSchema,
     ),
 ]
 
