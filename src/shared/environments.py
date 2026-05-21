@@ -2,6 +2,7 @@ from enum import Enum
 from typing import Optional
 import os
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
+from src.shared.domain.repositories.location_repository_interface import ILocationRepository
 from src.shared.domain.repositories.origin_repository_interface import IOriginRepository
 from src.shared.domain.repositories.file_repository_interface import IFileRepository
 from src.shared.domain.repositories.profile_repository_interface import IProfileRepository
@@ -34,6 +35,9 @@ class Environments:
     dynamo_profile_table_name: str
     dynamo_profile_partition_key: str
     dynamo_profile_sort_key: str
+    dynamo_location_table_name: str
+    dynamo_location_partition_key: str
+    dynamo_location_sort_key: str
     client_id: str
     bucket_name: str
     sqs_endpoint_url: Optional[str]
@@ -71,6 +75,9 @@ class Environments:
             self.dynamo_profile_table_name = "formularios-profile-test"
             self.dynamo_profile_partition_key = "PK"
             self.dynamo_profile_sort_key = "SK"
+            self.dynamo_location_table_name = "formularios-tracking-location-test"
+            self.dynamo_location_partition_key = "PK"
+            self.dynamo_location_sort_key = "SK"
             self.client_id = "test"
             self.bucket_name = "test"
             self.sqs_endpoint_url = "http://localhost:4566"
@@ -87,6 +94,9 @@ class Environments:
             self.dynamo_profile_table_name = os.environ.get("DYNAMO_PROFILE_TABLE_NAME")
             self.dynamo_profile_partition_key = os.environ.get("DYNAMO_PROFILE_PARTITION_KEY", "PK")
             self.dynamo_profile_sort_key = os.environ.get("DYNAMO_PROFILE_SORT_KEY", "SK")
+            self.dynamo_location_table_name = os.environ.get("DYNAMO_LOCATION_TABLE_NAME")
+            self.dynamo_location_partition_key = os.environ.get("DYNAMO_LOCATION_PARTITION_KEY", "PK")
+            self.dynamo_location_sort_key = os.environ.get("DYNAMO_LOCATION_SORT_KEY", "SK")
             self.user_pool_id = os.environ.get("USER_POOL_ID")
             self.client_id = os.environ.get("APP_CLIENT_ID")
             self.bucket_name = os.environ.get("BUCKET_NAME")
@@ -126,6 +136,17 @@ class Environments:
         elif Environments.get_envs().stage in [Stage.PROD, Stage.DEV, Stage.HOMOLOG]:
             from src.shared.infra.repositories.profile_repository_dynamo import ProfileRepositoryDynamo
             return ProfileRepositoryDynamo()
+        else:
+            raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
+
+    @staticmethod
+    def get_location_repo() -> ILocationRepository:
+        if Environments.get_envs().stage in [Stage.TEST, Stage.DOTENV]:
+            from src.shared.infra.repositories.location_repository_mock import LocationRepositoryMock
+            return LocationRepositoryMock()
+        elif Environments.get_envs().stage in [Stage.PROD, Stage.DEV, Stage.HOMOLOG]:
+            from src.shared.infra.repositories.location_repository_dynamo import LocationRepositoryDynamo
+            return LocationRepositoryDynamo()
         else:
             raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
 

@@ -53,6 +53,8 @@ class LambdaStack(Construct):
         template_id_resource = templates_resource.add_resource("{template_id}")
         profiles_resource = api_gateway_resource.add_resource("profiles")
         profile_user_id_resource = profiles_resource.add_resource("{user_id}")
+        locations_resource = api_gateway_resource.add_resource("locations")
+        locations_history_resource = locations_resource.add_resource("history")
         docs_resource = api_gateway_resource.add_resource("docs")
 
         self.create_form = self.create_lambda_api_gateway_integration(
@@ -136,6 +138,14 @@ class LambdaStack(Construct):
             module_name="delete_profile",
             method="DELETE",
             api_resource=profile_user_id_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.get_location_history = self.create_lambda_api_gateway_integration(
+            module_name="get_location_history",
+            method="GET",
+            api_resource=locations_history_resource,
             environment_variables=environment_variables,
             authorizer=authorizer,
         )
@@ -263,4 +273,12 @@ class LambdaStack(Construct):
             self.create_profile,
             self.login_profile,
             self.delete_profile,
+            self.get_location_history,
+        ]
+
+        # Lambdas que precisam ler a tabela Location (provisionada na
+        # FormulariosTrackingStack — stack separada). IacStack atribui
+        # permissão via wildcard ARN.
+        self.functions_that_need_dynamo_location_read_permissions = [
+            self.get_location_history,
         ]
