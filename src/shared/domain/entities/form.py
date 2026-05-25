@@ -238,10 +238,13 @@ class Form(abc.ABC):
         if self.status is not FormStatus.IN_PROGRESS:
             raise ForbiddenAction("Formulário não está em andamento")
 
-    def _find_section(self, section_id: int) -> Section:
-        section = next((item for item in self.sections if item.section_id == section_id), None)
+    def _find_section(self, section_id: int, section_instance: int = 0) -> Section:
+        section = next(
+            (s for s in self.sections if s.section_id == section_id and s.section_instance == section_instance),
+            None,
+        )
         if section is None:
-            raise EntityError(f"Seção com ID {section_id} não encontrada no formulário")
+            raise EntityError(f"Seção {section_id} (instância {section_instance}) não encontrada no formulário")
         return section
 
     @staticmethod
@@ -279,9 +282,16 @@ class Form(abc.ABC):
             normalized_value.append(file_upload.to_dict())
         return normalized_uploads, normalized_value
 
-    def apply_field_values(self, fields: List[dict]) -> Dict[Tuple[int, str], List[FileUploadRequest]]:
+    def apply_field_values(self, fields: List[dict]) -> Dict[Tuple[int, int, str], List[FileUploadRequest]]:
+        import copy
+
         if not isinstance(fields, list):
             raise EntityError("Campos devem ser uma lista")
+
+        base_sections = {
+            s.section_id: copy.deepcopy(s)
+            for s in self.sections if s.section_instance == 0
+        }
 
         seen = set()
         file_uploads = {}
@@ -289,15 +299,31 @@ class Form(abc.ABC):
             if not isinstance(item, dict):
                 raise EntityError("Campo deve ser um objeto")
             section_id = item.get("section_id")
+            section_instance = item.get("section_instance", 0)
             field_key = item.get("field_key")
             value = item.get("value")
 
-            key = (section_id, field_key)
+            key = (section_id, section_instance, field_key)
             if key in seen:
-                raise EntityError(f"Campo '{field_key}' duplicado na seção {section_id}")
+                raise EntityError(f"Campo '{field_key}' duplicado na seção {section_id} instância {section_instance}")
             seen.add(key)
 
-            section = self._find_section(section_id)
+            if section_instance != 0:
+                exists = any(
+                    s.section_id == section_id and s.section_instance == section_instance
+                    for s in self.sections
+                )
+                if not exists:
+                    base = base_sections.get(section_id)
+                    if base is None:
+                        raise EntityError(f"Seção {section_id} não encontrada no formulário")
+                    if not base.is_duplicable:
+                        raise EntityError(f"Seção {section_id} não é duplicável")
+                    new_section = copy.deepcopy(base)
+                    new_section.section_instance = section_instance
+                    self.sections.append(new_section)
+
+            section = self._find_section(section_id, section_instance)
             field_index = self._find_field_index(section, field_key)
             existing_field = section.fields[field_index]
 
@@ -310,10 +336,10 @@ class Form(abc.ABC):
         self.ensure_required_fields_filled()
         return file_uploads
 
-    def set_file_field_urls(self, section_id: int, field_key: str, file_urls: List[str]):
+    def set_file_field_urls(self, section_id: int, field_key: str, file_urls: List[str], section_instance: int = 0):
         if not isinstance(file_urls, list) or not file_urls or not all(isinstance(url, str) for url in file_urls):
             raise EntityError("URLs de arquivo devem ser uma lista não vazia")
-        section = self._find_section(section_id)
+        section = self._find_section(section_id, section_instance)
         field_index = self._find_field_index(section, field_key)
         field = section.fields[field_index]
         if not isinstance(field, FileField):

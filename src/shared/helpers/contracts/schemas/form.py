@@ -7,6 +7,8 @@ from .justification import JustificationSchema
 class FormSectionSchema(RequestContractModel):
     section_id: int
     fields: list[GenericFieldSchema]
+    is_duplicable: bool = False
+    section_instance: int = 0
 
 
 class FormResponseSchema(ResponseContractModel):

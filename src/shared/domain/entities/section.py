@@ -8,8 +8,16 @@ from src.shared.helpers.errors.domain_errors import EntityError
 class Section(abc.ABC):
     section_id: int
     fields: List[Field]
+    is_duplicable: bool
+    section_instance: int
 
-    def __init__(self, section_id: int, fields: List[Field]):
+    def __init__(
+        self,
+        section_id: int,
+        fields: List[Field],
+        is_duplicable: bool = False,
+        section_instance: int = 0,
+    ):
         if not isinstance(section_id, int):
             raise EntityError('ID da seção deve ser um número inteiro')
         self.section_id = section_id
@@ -22,6 +30,14 @@ class Section(abc.ABC):
             raise EntityError('Todos os campos da seção devem ser instâncias válidas de Field')
         self._ensure_unique_field_keys(fields)
         self.fields = fields
+
+        if not isinstance(is_duplicable, bool):
+            raise EntityError('is_duplicable deve ser um booleano')
+        self.is_duplicable = is_duplicable
+
+        if not isinstance(section_instance, int) or section_instance < 0:
+            raise EntityError('section_instance deve ser um inteiro não negativo')
+        self.section_instance = section_instance
 
     def _ensure_unique_field_keys(self, fields: List[Field]) -> None:
         seen = set()

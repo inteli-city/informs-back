@@ -85,3 +85,81 @@ class Test_Form:
     def test_justification_type(self):
         with pytest.raises(EntityError):
             make_form(justification='not_valid')
+
+
+class Test_Form_ApplyFieldValues:
+
+    def _make_duplicable_form(self):
+        field_a = TextField(label='Nome', required=True, key='nome', order=1, max_length=50)
+        field_b = TextField(label='Obs', required=False, key='obs', order=2, max_length=50)
+        sec = Section(section_id=1, fields=[field_a, field_b], is_duplicable=True)
+        return make_form(sections=[sec], justification=justification)
+
+    def test_apply_field_values_single_instance(self):
+        form = self._make_duplicable_form()
+        form.status = FormStatus.IN_PROGRESS
+        form.apply_field_values([
+            {"section_id": 1, "section_instance": 0, "field_key": "nome", "value": "João"},
+            {"section_id": 1, "section_instance": 0, "field_key": "obs", "value": "ok"},
+        ])
+        assert len(form.sections) == 1
+        assert form.sections[0].fields[0].value == "João"
+
+    def test_apply_field_values_duplicate_instance_created(self):
+        form = self._make_duplicable_form()
+        form.status = FormStatus.IN_PROGRESS
+        form.apply_field_values([
+            {"section_id": 1, "section_instance": 0, "field_key": "nome", "value": "João"},
+            {"section_id": 1, "section_instance": 0, "field_key": "obs", "value": "ok"},
+            {"section_id": 1, "section_instance": 1, "field_key": "nome", "value": "Maria"},
+            {"section_id": 1, "section_instance": 1, "field_key": "obs", "value": "tb ok"},
+        ])
+        assert len(form.sections) == 2
+        instance_0 = next(s for s in form.sections if s.section_instance == 0)
+        instance_1 = next(s for s in form.sections if s.section_instance == 1)
+        assert instance_0.fields[0].value == "João"
+        assert instance_1.fields[0].value == "Maria"
+
+    def test_apply_field_values_duplicate_base_not_mutated(self):
+        """O snapshot da instância 0 deve ser limpo, mesmo se os campos de instance=0 chegarem antes."""
+        form = self._make_duplicable_form()
+        form.status = FormStatus.IN_PROGRESS
+        form.apply_field_values([
+            {"section_id": 1, "section_instance": 0, "field_key": "nome", "value": "João"},
+            {"section_id": 1, "section_instance": 0, "field_key": "obs", "value": "ok"},
+            {"section_id": 1, "section_instance": 1, "field_key": "nome", "value": "Maria"},
+            {"section_id": 1, "section_instance": 1, "field_key": "obs", "value": "tb ok"},
+        ])
+        instance_1 = next(s for s in form.sections if s.section_instance == 1)
+        assert instance_1.section_id == 1
+        assert instance_1.is_duplicable is True
+
+    def test_apply_field_values_not_duplicable_raises(self):
+        field_a = TextField(label='Nome', required=True, key='nome', order=1, max_length=50)
+        sec = Section(section_id=1, fields=[field_a], is_duplicable=False)
+        form = make_form(sections=[sec], justification=justification)
+        form.status = FormStatus.IN_PROGRESS
+        with pytest.raises(EntityError):
+            form.apply_field_values([
+                {"section_id": 1, "section_instance": 0, "field_key": "nome", "value": "João"},
+                {"section_id": 1, "section_instance": 1, "field_key": "nome", "value": "Maria"},
+            ])
+
+    def test_apply_field_values_duplicate_key_same_instance_raises(self):
+        form = self._make_duplicable_form()
+        form.status = FormStatus.IN_PROGRESS
+        with pytest.raises(EntityError):
+            form.apply_field_values([
+                {"section_id": 1, "section_instance": 0, "field_key": "nome", "value": "João"},
+                {"section_id": 1, "section_instance": 0, "field_key": "nome", "value": "duplicado"},
+            ])
+
+    def test_apply_field_values_section_instance_default_zero(self):
+        """Campos sem section_instance devem usar instância 0 (retrocompatibilidade)."""
+        form = self._make_duplicable_form()
+        form.status = FormStatus.IN_PROGRESS
+        form.apply_field_values([
+            {"section_id": 1, "field_key": "nome", "value": "João"},
+            {"section_id": 1, "field_key": "obs", "value": "ok"},
+        ])
+        assert form.sections[0].fields[0].value == "João"

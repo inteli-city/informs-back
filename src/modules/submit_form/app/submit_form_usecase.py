@@ -48,13 +48,13 @@ class SubmitFormUsecase:
         self,
         form: Form,
         form_id: str,
-        file_uploads: Dict[Tuple[int, str], List[FileUploadRequest]],
+        file_uploads: Dict[Tuple[int, int, str], List[FileUploadRequest]],
     ) -> list[FileUpload]:
         files: list[FileUpload] = []
         for section in form.sections:
             for field in section.fields:
                 if self._should_upload_file_field(field):
-                    files.extend(self._upload_file_field(form, form_id, section.section_id, field, file_uploads))
+                    files.extend(self._upload_file_field(form, form_id, section.section_id, section.section_instance, field, file_uploads))
         return files
 
     @classmethod
@@ -72,21 +72,22 @@ class SubmitFormUsecase:
         form: Form,
         form_id: str,
         section_id: int,
+        section_instance: int,
         field: FileField,
-        file_uploads: Dict[Tuple[int, str], List[FileUploadRequest]],
+        file_uploads: Dict[Tuple[int, int, str], List[FileUploadRequest]],
     ) -> list[FileUpload]:
-        uploads = file_uploads.get((section_id, field.key))
+        uploads = file_uploads.get((section_id, section_instance, field.key))
         if not uploads:
             raise EntityError("Uploads de arquivo não encontrados para o campo")
 
         files = []
         file_urls = []
         for idx, upload in enumerate(uploads):
-            file_upload = self._build_file_upload(form, form_id, section_id, field.key, idx, upload)
+            file_upload = self._build_file_upload(form, form_id, section_id, section_instance, field.key, idx, upload)
             files.append(file_upload)
             file_urls.append(file_upload.file_url)
 
-        form.set_file_field_urls(section_id, field.key, file_urls)
+        form.set_file_field_urls(section_id, field.key, file_urls, section_instance)
         return files
 
     def _build_file_upload(
@@ -94,12 +95,13 @@ class SubmitFormUsecase:
         form: Form,
         form_id: str,
         section_id: int,
+        section_instance: int,
         field_key: str,
         file_index: int,
         upload: FileUploadRequest,
     ) -> FileUpload:
         mimetype = upload.mimetype
-        file_path = f'{utc_year()}/{form.system}/{form_id}/sections/{section_id}/{str(uuid.uuid4())}.{mimetype.split("/")[-1]}'
+        file_path = f'{utc_year()}/{form.system}/{form_id}/sections/{section_id}/{section_instance}/{str(uuid.uuid4())}.{mimetype.split("/")[-1]}'
         presigned_url = self.file_repo.generate_presigned_url(file_path=file_path, mimetype=mimetype)
         file_url = build_s3_url(file_path)
 

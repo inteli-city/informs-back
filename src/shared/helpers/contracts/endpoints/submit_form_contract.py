@@ -8,6 +8,7 @@ from src.shared.helpers.contracts.schemas.file_upload import FileUploadSchema
 
 class SubmitFormFieldFlatSchema(RequestContractModel):
     section_id: int
+    section_instance: int = 0
     field_key: str
     value: Any | None = None
 

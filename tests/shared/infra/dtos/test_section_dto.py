@@ -663,4 +663,77 @@ class Test_SectionDTO:
         assert section.fields[0].formatting == 'formatting'
         assert section.fields[0].max_length == 10
         assert section.fields[0].value == None
-        
+
+    # --- Novos testes: is_duplicable e section_instance ---
+
+    def test_section_dto_from_request_is_duplicable_true(self):
+        section_dict = {
+            'section_id': '1',
+            'is_duplicable': True,
+            'fields': [{'field_type': 'TEXT_FIELD', 'placeholder': 'x', 'required': True, 'key': 'k', 'max_length': 10}],
+        }
+        dto = SectionDTO.from_request(section_dict)
+        assert dto.is_duplicable is True
+        assert dto.section_instance == 0
+
+    def test_section_dto_from_request_is_duplicable_default_false(self):
+        section_dict = {
+            'section_id': '1',
+            'fields': [{'field_type': 'TEXT_FIELD', 'placeholder': 'x', 'required': True, 'key': 'k', 'max_length': 10}],
+        }
+        dto = SectionDTO.from_request(section_dict)
+        assert dto.is_duplicable is False
+
+    def test_section_dto_from_entity_preserves_flags(self):
+        from src.shared.domain.entities.field import TextField as TF
+        section = Section(section_id=5, fields=[TF(label='l', required=True, key='k', order=1, max_length=5)], is_duplicable=True, section_instance=2)
+        dto = SectionDTO.from_entity(section)
+        assert dto.is_duplicable is True
+        assert dto.section_instance == 2
+
+    def test_section_dto_from_dynamo_defaults_when_missing(self):
+        """Retrocompatibilidade: seções antigas no DynamoDB sem esses campos."""
+        section_dict = {
+            'section_id': '1',
+            'fields': [{'field_type': 'TEXT_FIELD', 'placeholder': 'x', 'required': True, 'key': 'k', 'max_length': 10}],
+        }
+        dto = SectionDTO.from_dynamo(section_dict)
+        assert dto.is_duplicable is False
+        assert dto.section_instance == 0
+
+    def test_section_dto_from_dynamo_with_flags(self):
+        section_dict = {
+            'section_id': '1',
+            'is_duplicable': True,
+            'section_instance': 3,
+            'fields': [{'field_type': 'TEXT_FIELD', 'placeholder': 'x', 'required': True, 'key': 'k', 'max_length': 10}],
+        }
+        dto = SectionDTO.from_dynamo(section_dict)
+        assert dto.is_duplicable is True
+        assert dto.section_instance == 3
+
+    def test_section_dto_to_dynamo_includes_flags(self):
+        from src.shared.domain.entities.field import TextField as TF
+        dto = SectionDTO(
+            section_id='1',
+            fields=[TF(label='l', required=True, key='k', order=1, max_length=5)],
+            is_duplicable=True,
+            section_instance=1,
+        )
+        result = dto.to_dynamo()
+        assert result['is_duplicable'] is True
+        assert result['section_instance'] == 1
+
+    def test_section_dto_to_entity_preserves_flags(self):
+        from src.shared.domain.entities.field import TextField as TF
+        dto = SectionDTO(
+            section_id='7',
+            fields=[TF(label='l', required=True, key='k', order=1, max_length=5)],
+            is_duplicable=True,
+            section_instance=2,
+        )
+        entity = dto.to_entity()
+        assert entity.section_id == 7
+        assert entity.is_duplicable is True
+        assert entity.section_instance == 2
+

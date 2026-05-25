@@ -81,6 +81,8 @@ def build_field_dict(field: Field, *, include_dynamic_extras: bool = False) -> D
 def build_section_dict(section: Section, *, include_dynamic_extras: bool = False) -> Dict[str, Any]:
     return {
         "section_id": section.section_id,
+        "section_instance": section.section_instance,
+        "is_duplicable": section.is_duplicable,
         "fields": [
             build_field_dict(field, include_dynamic_extras=include_dynamic_extras)
             for field in section.fields

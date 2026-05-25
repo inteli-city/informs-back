@@ -5,6 +5,8 @@ from .field import GenericFieldSchema
 class TemplateSectionSchema(RequestContractModel):
     section_id: int
     fields: list[GenericFieldSchema]
+    is_duplicable: bool = False
+    section_instance: int = 0
 
 
 class TemplateSchema(ResponseContractModel):
