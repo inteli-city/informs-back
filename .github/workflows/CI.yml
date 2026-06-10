@@ -39,3 +39,26 @@ jobs:
         uses: codecov/codecov-action@v3
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  testWsServer:
+    # Testa o subprojeto ws_server (FastAPI + websockets) isoladamente.
+    # Roda em paralelo ao testApp com deps próprias (fastapi, httpx, moto)
+    # declaradas em ws_server/pyproject.toml + uv.lock. O testApp ignora
+    # tests/ws_server via pytest.ini (norecursedirs).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        run: pip install uv
+      - name: Install ws_server deps from lock
+        run: |
+          cd ws_server
+          uv sync --frozen --extra dev
+      - name: Run ws_server tests
+        run: |
+          cd ws_server
+          uv run --frozen pytest ../tests/ws_server -v

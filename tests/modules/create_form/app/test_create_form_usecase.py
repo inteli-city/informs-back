@@ -12,8 +12,8 @@ from src.shared.domain.entities.information_field import FileInformationField, T
 from src.shared.domain.entities.justification import Justification, JustificationOption
 from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.file_upload import FileUploadRequest
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
-from src.shared.domain.enums.priority_enum import PRIORITY
+from src.shared.domain.enums.form_status_enum import FormStatus
+from src.shared.domain.enums.priority_enum import Priority
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
@@ -50,7 +50,7 @@ def _make_usecase_and_payload():
         "city": '1',
         "latitude": 1.0,
         "longitude": 1.0,
-        "priority": PRIORITY.EMERGENCY,
+        "priority": Priority.EMERGENCY,
         "sections": [section],
         "justification": justification,
         "information_fields": [TextInformationField(value='info')],
@@ -68,8 +68,8 @@ class Test_CreateFormUsecase:
         form, files = usecase(**payload)
 
         assert len(form.id) == 36
-        assert form.status == FORM_STATUS.PENDING
-        assert form.priority == PRIORITY.EMERGENCY
+        assert form.status == FormStatus.PENDING
+        assert form.priority == Priority.EMERGENCY
         assert form.observation == 'obs'
         assert form.expiration_date == 946407600000
         assert form.sections[0].section_id == 1

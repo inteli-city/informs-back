@@ -6,8 +6,11 @@ from src.shared.helpers.contracts.base import RequestContractModel
 from src.shared.helpers.contracts.endpoints.cancel_form_contract import CancelFormRequestSchema
 from src.shared.helpers.contracts.endpoints.create_form_contract import CreateFormRequestSchema
 from src.shared.helpers.contracts.endpoints.create_template_contract import CreateTemplateRequestSchema
+from src.shared.helpers.contracts.endpoints.plan_route_contract import PlanRouteRequestSchema
+from src.shared.helpers.contracts.endpoints.profile_contract import CreateProfileRequestSchema
 from src.shared.helpers.contracts.endpoints.start_form_contract import StartFormRequestSchema
 from src.shared.helpers.contracts.endpoints.submit_form_contract import SubmitFormFieldFlatSchema, SubmitFormRequestSchema
+from src.shared.helpers.contracts.endpoints.location_history_contract import LocationHistoryRequestSchema
 from src.shared.helpers.contracts.schemas.template import TemplateSectionSchema
 
 
@@ -78,6 +81,27 @@ class SubmitFormControllerRequestSchema(SubmitFormRequestSchema):
     requester_user: RequesterUserSchema
     form_id: str
     fields: list[SubmitFormFieldFlatControllerSchema]
+
+
+class PlanRouteControllerRequestSchema(PlanRouteRequestSchema):
+    requester_user: RequesterUserSchema
+
+
+class CreateProfileControllerRequestSchema(CreateProfileRequestSchema):
+    requester_user: RequesterUserSchema
+
+
+class LoginProfileControllerRequestSchema(RequestContractModel):
+    requester_user: RequesterUserSchema
+
+
+class DeleteProfileControllerRequestSchema(RequestContractModel):
+    requester_user: RequesterUserSchema
+    user_id: str
+
+
+class GetLocationHistoryControllerRequestSchema(LocationHistoryRequestSchema):
+    requester_user: RequesterUserSchema
 
 
 class GetFormControllerRequestSchema(RequestContractModel):

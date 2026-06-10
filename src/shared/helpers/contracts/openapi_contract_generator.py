@@ -92,6 +92,21 @@ def build_openapi_from_contracts() -> dict:
             "title": "Informs API",
             "version": "1.0.0",
         },
+        # Server único com `stage` variável — Swagger UI mostra dropdown
+        # pra trocar entre dev/homolog/prod. Todos os curls gerados
+        # incluem o prefixo `/{stage}/mss-formularios` certo. Default `dev`
+        # pra não dar surpresa em ambiente errado durante teste rápido.
+        "servers": [
+            {
+                "url": "/{stage}/mss-formularios",
+                "variables": {
+                    "stage": {
+                        "default": "dev",
+                        "enum": ["dev", "homolog", "prod"],
+                    }
+                },
+            }
+        ],
         "paths": _build_paths(contracts),
         "components": _build_components(models),
     }

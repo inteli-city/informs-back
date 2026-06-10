@@ -6,7 +6,7 @@ from botocore.exceptions import ClientError
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import Section
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
+from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.environments import Environments
 from src.shared.infra.dtos.form_dynamo_dto import FormDynamoDTO
@@ -32,7 +32,7 @@ class FormRepositoryDynamo(IFormRepository):
         return f'user#{user_id}'
     
     @staticmethod
-    def form_gsi1_sort_key_format(priority: str, status: FORM_STATUS, created_at: int) -> str:
+    def form_gsi1_sort_key_format(priority: str, status: FormStatus, created_at: int) -> str:
         return f'priority#{priority}#status#{status.value}#created_at#{created_at}'
 
     @staticmethod
@@ -74,7 +74,7 @@ class FormRepositoryDynamo(IFormRepository):
         self,
         limit: Optional[int],
         exclusive_start_key: Optional[dict] = None,
-        status: Optional[Union[FORM_STATUS, List[FORM_STATUS]]] = None,
+        status: Optional[Union[FormStatus, List[FormStatus]]] = None,
         system: Optional[Union[str, List[str]]] = None,
         user_id: Optional[str] = None,
         created_at_start: Optional[int] = None,
@@ -182,7 +182,7 @@ class FormRepositoryDynamo(IFormRepository):
             ]
 
         def sort_key(f: Form):
-            is_open = f.status not in [FORM_STATUS.COMPLETED, FORM_STATUS.CANCELLED]
+            is_open = f.status not in [FormStatus.COMPLETED, FormStatus.CANCELLED]
             return (is_open, int(f.priority.value), f.created_at)
 
         forms.sort(key=sort_key, reverse=True)
@@ -212,14 +212,14 @@ class FormRepositoryDynamo(IFormRepository):
         self,
         user_id: str,
         form_id: str,
-        status: Optional[FORM_STATUS] = None,
+        status: Optional[FormStatus] = None,
         in_progress_at: Optional[int] = None,
         completed_at: Optional[int] = None,
         cancelled_at: Optional[int] = None,
         updated_at: Optional[int] = None,
         sections: Optional[List[Section]] = None,
         justification: Optional[Justification] = None,
-        expected_status: Optional[FORM_STATUS] = None,
+        expected_status: Optional[FormStatus] = None,
     ) -> Form:
         update_dict = {}
         current_form = self.get_form_by_id(user_id=user_id, form_id=form_id)
@@ -227,7 +227,7 @@ class FormRepositoryDynamo(IFormRepository):
         def _put(key, value):
             if value is None:
                 return
-            if isinstance(value, FORM_STATUS):
+            if isinstance(value, FormStatus):
                 update_dict[key] = value.value
             elif isinstance(value, Justification):
                 update_dict[key] = JustificationDTO.from_entity(value).to_dynamo()

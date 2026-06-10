@@ -1,6 +1,6 @@
 import pytest
 from src.modules.cancel_form.app.cancel_form_usecase import CancelFormUsecase
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
+from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
@@ -23,7 +23,7 @@ class Test_CancelFormUsecase:
         file_repo = FileRepositoryMock()
         usecase = CancelFormUsecase(form_repo, file_repo)
 
-        form_repo.forms[0].status = FORM_STATUS.IN_PROGRESS
+        form_repo.forms[0].status = FormStatus.IN_PROGRESS
         justification = make_justification_payload()
         file_upload = usecase(
             requester_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
@@ -36,7 +36,7 @@ class Test_CancelFormUsecase:
 
         form = form_repo.forms[0]
         assert form.id == form_repo.forms[0].id
-        assert form.status == FORM_STATUS.CANCELLED
+        assert form.status == FormStatus.CANCELLED
         assert form.justification.selected_option == 'option'
         assert form.justification.justification_text == 'text'
         assert form.justification.justification_image.startswith('https://test')
@@ -81,7 +81,7 @@ class Test_CancelFormUsecase:
         file_repo = FileRepositoryMock()
         usecase = CancelFormUsecase(form_repo, file_repo)
         justification = make_justification_payload()
-        form_repo.forms[0].status = FORM_STATUS.CANCELLED
+        form_repo.forms[0].status = FormStatus.CANCELLED
         
         with pytest.raises(ForbiddenAction):
             usecase(

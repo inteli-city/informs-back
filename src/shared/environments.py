@@ -2,13 +2,15 @@ from enum import Enum
 from typing import Optional
 import os
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
+from src.shared.domain.repositories.location_repository_interface import ILocationRepository
 from src.shared.domain.repositories.origin_repository_interface import IOriginRepository
 from src.shared.domain.repositories.file_repository_interface import IFileRepository
+from src.shared.domain.repositories.profile_repository_interface import IProfileRepository
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
 from src.shared.domain.repositories.sync_state_repository_interface import ISyncStateRepository
 from src.shared.domain.repositories.sync_error_form_repository_interface import ISyncErrorFormRepository
 
-class STAGE(Enum):
+class Stage(Enum):
     DOTENV = "DOTENV"
     DEV = "DEV"
     HOMOLOG = "HOMOLOG"
@@ -24,12 +26,18 @@ class Environments:
     """
     NO_REPOSITORY_FOUND_ERROR = "No repository found for this stage"
     
-    stage: STAGE
+    stage: Stage
     region: str
     endpoint_url: Optional[str]
     dynamo_table_name: str
     dynamo_partition_key: str
     dynamo_sort_key: str
+    dynamo_profile_table_name: str
+    dynamo_profile_partition_key: str
+    dynamo_profile_sort_key: str
+    dynamo_location_table_name: str
+    dynamo_location_partition_key: str
+    dynamo_location_sort_key: str
     client_id: str
     bucket_name: str
     sqs_endpoint_url: Optional[str]
@@ -50,20 +58,26 @@ class Environments:
     def _configure_local(self):
         from dotenv import load_dotenv
         load_dotenv()
-        os.environ["STAGE"] = os.environ.get("STAGE") or STAGE.DOTENV.value
+        os.environ["STAGE"] = os.environ.get("STAGE") or Stage.DOTENV.value
 
     def load_envs(self):
         if "STAGE" not in os.environ:
             self._configure_local()
 
-        self.stage = STAGE[os.environ.get("STAGE")]
+        self.stage = Stage[os.environ.get("STAGE")]
 
-        if self.stage == STAGE.TEST:
+        if self.stage == Stage.TEST:
             self.region = "sa-east-1"
             self.endpoint_url = "http://localhost:8000"
             self.dynamo_table_name = "formularios-table"
             self.dynamo_partition_key = "PK"
             self.dynamo_sort_key = "SK"
+            self.dynamo_profile_table_name = "formularios-profile-test"
+            self.dynamo_profile_partition_key = "PK"
+            self.dynamo_profile_sort_key = "SK"
+            self.dynamo_location_table_name = "formularios-tracking-location-test"
+            self.dynamo_location_partition_key = "PK"
+            self.dynamo_location_sort_key = "SK"
             self.client_id = "test"
             self.bucket_name = "test"
             self.sqs_endpoint_url = "http://localhost:4566"
@@ -77,6 +91,12 @@ class Environments:
             self.dynamo_table_name = os.environ.get("DYNAMO_TABLE_NAME")
             self.dynamo_partition_key = os.environ.get("DYNAMO_PARTITION_KEY")
             self.dynamo_sort_key = os.environ.get("DYNAMO_SORT_KEY")
+            self.dynamo_profile_table_name = os.environ.get("DYNAMO_PROFILE_TABLE_NAME")
+            self.dynamo_profile_partition_key = os.environ.get("DYNAMO_PROFILE_PARTITION_KEY", "PK")
+            self.dynamo_profile_sort_key = os.environ.get("DYNAMO_PROFILE_SORT_KEY", "SK")
+            self.dynamo_location_table_name = os.environ.get("DYNAMO_LOCATION_TABLE_NAME")
+            self.dynamo_location_partition_key = os.environ.get("DYNAMO_LOCATION_PARTITION_KEY", "PK")
+            self.dynamo_location_sort_key = os.environ.get("DYNAMO_LOCATION_SORT_KEY", "SK")
             self.user_pool_id = os.environ.get("USER_POOL_ID")
             self.client_id = os.environ.get("APP_CLIENT_ID")
             self.bucket_name = os.environ.get("BUCKET_NAME")
@@ -88,10 +108,10 @@ class Environments:
 
     @staticmethod
     def get_form_repo() -> IFormRepository:
-        if Environments.get_envs().stage in [STAGE.TEST, STAGE.DOTENV]:
+        if Environments.get_envs().stage in [Stage.TEST, Stage.DOTENV]:
             from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
             return FormRepositoryMock()
-        elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
+        elif Environments.get_envs().stage in [Stage.PROD, Stage.DEV, Stage.HOMOLOG]:
             from src.shared.infra.repositories.form_repository_dynamo import FormRepositoryDynamo
             return FormRepositoryDynamo()
         else:
@@ -99,21 +119,43 @@ class Environments:
     
     @staticmethod
     def get_file_repo() -> IFileRepository:
-        if Environments.get_envs().stage in [STAGE.TEST, STAGE.DOTENV]:
+        if Environments.get_envs().stage in [Stage.TEST, Stage.DOTENV]:
             from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
             return FileRepositoryMock()
-        elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
+        elif Environments.get_envs().stage in [Stage.PROD, Stage.DEV, Stage.HOMOLOG]:
             from src.shared.infra.repositories.file_repository_s3 import FileRepositoryS3
             return FileRepositoryS3()
         else:
             raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
 
     @staticmethod
+    def get_profile_repo() -> IProfileRepository:
+        if Environments.get_envs().stage in [Stage.TEST, Stage.DOTENV]:
+            from src.shared.infra.repositories.profile_repository_mock import ProfileRepositoryMock
+            return ProfileRepositoryMock()
+        elif Environments.get_envs().stage in [Stage.PROD, Stage.DEV, Stage.HOMOLOG]:
+            from src.shared.infra.repositories.profile_repository_dynamo import ProfileRepositoryDynamo
+            return ProfileRepositoryDynamo()
+        else:
+            raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
+
+    @staticmethod
+    def get_location_repo() -> ILocationRepository:
+        if Environments.get_envs().stage in [Stage.TEST, Stage.DOTENV]:
+            from src.shared.infra.repositories.location_repository_mock import LocationRepositoryMock
+            return LocationRepositoryMock()
+        elif Environments.get_envs().stage in [Stage.PROD, Stage.DEV, Stage.HOMOLOG]:
+            from src.shared.infra.repositories.location_repository_dynamo import LocationRepositoryDynamo
+            return LocationRepositoryDynamo()
+        else:
+            raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
+
+    @staticmethod
     def get_template_repo() -> ITemplateRepository:
-        if Environments.get_envs().stage in [STAGE.TEST, STAGE.DOTENV]:
+        if Environments.get_envs().stage in [Stage.TEST, Stage.DOTENV]:
             from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
             return TemplateRepositoryMock()
-        elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
+        elif Environments.get_envs().stage in [Stage.PROD, Stage.DEV, Stage.HOMOLOG]:
             from src.shared.infra.repositories.template_repository_dynamo import TemplateRepositoryDynamo
             return TemplateRepositoryDynamo()
         else:
@@ -121,10 +163,10 @@ class Environments:
 
     @staticmethod
     def get_origin_repo() -> IOriginRepository:
-        if Environments.get_envs().stage in [STAGE.TEST, STAGE.DOTENV]:
+        if Environments.get_envs().stage in [Stage.TEST, Stage.DOTENV]:
             from src.shared.infra.repositories.origin_repository_mock import OriginRepositoryMock
             return OriginRepositoryMock()
-        elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
+        elif Environments.get_envs().stage in [Stage.PROD, Stage.DEV, Stage.HOMOLOG]:
             from src.shared.infra.repositories.origin_repository_apex import OriginRepositoryApex
             return OriginRepositoryApex()
         else:
@@ -132,10 +174,10 @@ class Environments:
 
     @staticmethod
     def get_sync_state_repo() -> ISyncStateRepository:
-        if Environments.get_envs().stage in [STAGE.TEST, STAGE.DOTENV]:
+        if Environments.get_envs().stage in [Stage.TEST, Stage.DOTENV]:
             from src.shared.infra.repositories.sync_state_repository_mock import SyncStateRepositoryMock
             return SyncStateRepositoryMock()
-        elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
+        elif Environments.get_envs().stage in [Stage.PROD, Stage.DEV, Stage.HOMOLOG]:
             from src.shared.infra.repositories.sync_state_repository_dynamo import SyncStateRepositoryDynamo
             return SyncStateRepositoryDynamo()
         else:
@@ -143,10 +185,10 @@ class Environments:
 
     @staticmethod
     def get_sync_error_form_repo() -> ISyncErrorFormRepository:
-        if Environments.get_envs().stage in [STAGE.TEST, STAGE.DOTENV]:
+        if Environments.get_envs().stage in [Stage.TEST, Stage.DOTENV]:
             from src.shared.infra.repositories.sync_error_form_repository_mock import SyncErrorFormRepositoryMock
             return SyncErrorFormRepositoryMock()
-        elif Environments.get_envs().stage in [STAGE.PROD, STAGE.DEV, STAGE.HOMOLOG]:
+        elif Environments.get_envs().stage in [Stage.PROD, Stage.DEV, Stage.HOMOLOG]:
             from src.shared.infra.repositories.sync_error_form_repository_dynamo import SyncErrorFormRepositoryDynamo
             return SyncErrorFormRepositoryDynamo()
         else:

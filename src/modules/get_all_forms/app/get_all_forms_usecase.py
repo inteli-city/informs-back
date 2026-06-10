@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple, Union
 
 from src.shared.domain.entities.form import Form
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
+from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, InvalidPaginationToken
@@ -18,7 +18,7 @@ class GetAllFormsUsecase:
         requester: UserGatewayDTO,
         limit: Optional[int],
         exclusive_start_key: Optional[str] = None,
-        status: Optional[Union[FORM_STATUS, List[FORM_STATUS]]] = None,
+        status: Optional[Union[FormStatus, List[FormStatus]]] = None,
         system: Optional[List[str]] = None,
         created_at_start: Optional[int] = None,
         created_at_end: Optional[int] = None,

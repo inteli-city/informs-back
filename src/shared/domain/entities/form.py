@@ -7,8 +7,8 @@ from src.shared.domain.entities.file_upload import FileUploadRequest
 from src.shared.domain.entities.information_field import InformationField
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import Section
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
-from src.shared.domain.enums.priority_enum import PRIORITY
+from src.shared.domain.enums.form_status_enum import FormStatus
+from src.shared.domain.enums.priority_enum import Priority
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction
 
@@ -26,10 +26,10 @@ class Form(abc.ABC):
     number: Optional[int]
     latitude: float
     longitude: float
-    priority: PRIORITY
+    priority: Priority
     observation: Optional[str]
     expiration_date: Optional[int]
-    status: FORM_STATUS
+    status: FormStatus
     in_progress_at: Optional[int]
     cancelled_at: Optional[int]
     completed_at: Optional[int]
@@ -61,8 +61,8 @@ class Form(abc.ABC):
         street: str,
         latitude: float,
         longitude: float,
-        priority: PRIORITY,
-        status: FORM_STATUS,
+        priority: Priority,
+        status: FormStatus,
         created_at: int,
         updated_at: int,
         sections: List[Section],
@@ -131,7 +131,7 @@ class Form(abc.ABC):
             raise EntityError('Longitude deve estar entre -180 e 180')
         self.longitude = float(longitude)
 
-        if not isinstance(priority, PRIORITY):
+        if not isinstance(priority, Priority):
             raise EntityError('Prioridade inválida')
         self.priority = priority
 
@@ -143,7 +143,7 @@ class Form(abc.ABC):
             raise EntityError('Data de expiração deve ser um timestamp inteiro')
         self.expiration_date = expiration_date
 
-        if not isinstance(status, FORM_STATUS):
+        if not isinstance(status, FormStatus):
             raise EntityError('Status do formulário inválido')
         self.status = status
 
@@ -197,31 +197,31 @@ class Form(abc.ABC):
         if not isinstance(updated_at, int):
             raise EntityError('Timestamp de atualização deve ser um inteiro')
 
-        if self.status != FORM_STATUS.PENDING:
+        if self.status != FormStatus.PENDING:
             raise ForbiddenAction("Formulário não está aberto para início")
 
-        self.status = FORM_STATUS.IN_PROGRESS
+        self.status = FormStatus.IN_PROGRESS
         self.in_progress_at = in_progress_at
         self.updated_at = updated_at
 
-    def update_status(self, new_status: FORM_STATUS, updated_at: int):
-        if not isinstance(new_status, FORM_STATUS):
+    def update_status(self, new_status: FormStatus, updated_at: int):
+        if not isinstance(new_status, FormStatus):
             raise EntityError('Novo status inválido')
         if not isinstance(updated_at, int):
             raise EntityError('Timestamp de atualização deve ser um inteiro')
 
-        if new_status in [FORM_STATUS.CANCELLED, FORM_STATUS.COMPLETED]:
+        if new_status in [FormStatus.CANCELLED, FormStatus.COMPLETED]:
             raise ForbiddenAction("Não é possível alterar o status para cancelado ou concluído")
 
-        if self.status in [FORM_STATUS.CANCELLED, FORM_STATUS.COMPLETED]:
+        if self.status in [FormStatus.CANCELLED, FormStatus.COMPLETED]:
             raise ForbiddenAction("Formulário já finalizado")
 
         if new_status == self.status:
             raise DuplicatedItem("O status do formulário já é o mesmo que o informado")
 
-        if new_status is FORM_STATUS.PENDING and self.status is FORM_STATUS.IN_PROGRESS:
+        if new_status is FormStatus.PENDING and self.status is FormStatus.IN_PROGRESS:
             self.in_progress_at = None
-        elif new_status is FORM_STATUS.IN_PROGRESS:
+        elif new_status is FormStatus.IN_PROGRESS:
             self.in_progress_at = updated_at
 
         self.status = new_status
@@ -232,10 +232,10 @@ class Form(abc.ABC):
             raise ForbiddenAction(message)
 
     def is_finished(self) -> bool:
-        return self.status in [FORM_STATUS.CANCELLED, FORM_STATUS.COMPLETED]
+        return self.status in [FormStatus.CANCELLED, FormStatus.COMPLETED]
 
     def ensure_in_progress(self):
-        if self.status is not FORM_STATUS.IN_PROGRESS:
+        if self.status is not FormStatus.IN_PROGRESS:
             raise ForbiddenAction("Formulário não está em andamento")
 
     def _find_section(self, section_id: int) -> Section:
@@ -331,11 +331,11 @@ class Form(abc.ABC):
             raise EntityError('Timestamp de conclusão deve ser um inteiro')
         if not isinstance(updated_at, int):
             raise EntityError('Timestamp de atualização deve ser um inteiro')
-        if self.status is not FORM_STATUS.IN_PROGRESS:
+        if self.status is not FormStatus.IN_PROGRESS:
             raise ForbiddenAction("Formulário não está em andamento")
 
         self.ensure_required_fields_filled()
-        self.status = FORM_STATUS.COMPLETED
+        self.status = FormStatus.COMPLETED
         self.completed_at = completed_at
         self.updated_at = updated_at
 
@@ -371,6 +371,6 @@ class Form(abc.ABC):
             justification_image=justification_image
         )
 
-        self.status = FORM_STATUS.CANCELLED
+        self.status = FormStatus.CANCELLED
         self.cancelled_at = cancelled_at
         self.updated_at = updated_at

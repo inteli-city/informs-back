@@ -6,7 +6,7 @@ from botocore.exceptions import ClientError
 
 sys.path.append(os.getcwd())
 
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
+from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction
 from src.shared.helpers.functions.pagination_token import encode_pagination_token
 from src.shared.infra.dtos.form_dynamo_dto import FormDynamoDTO
@@ -128,7 +128,7 @@ def test_form_repository_dynamo_get_all_forms_query_path():
     forms, next_key = repo.get_all_forms(
         limit=1,
         exclusive_start_key=start_key,
-        status=FORM_STATUS.IN_PROGRESS,
+        status=FormStatus.IN_PROGRESS,
         system="GAIA",
         user_id=form.user_id,
         created_at_start=1,
@@ -150,7 +150,7 @@ def test_form_repository_dynamo_get_all_forms_keeps_querying_until_limit_after_f
 
     forms, next_key = repo.get_all_forms(
         limit=1,
-        status=FORM_STATUS.IN_PROGRESS,
+        status=FormStatus.IN_PROGRESS,
         system="GAIA",
         user_id=form.user_id,
     )
@@ -206,7 +206,7 @@ def test_form_repository_dynamo_update_and_cancel():
     updated = repo.update_form(
         user_id=form.user_id,
         form_id=form.id,
-        status=FORM_STATUS.COMPLETED,
+        status=FormStatus.COMPLETED,
         updated_at=123,
         sections=form.sections,
         justification=form.justification,
@@ -221,7 +221,7 @@ def test_form_repository_dynamo_update_and_cancel():
     cancelled = repo.update_form(
         user_id=form.user_id,
         form_id=form.id,
-        status=FORM_STATUS.CANCELLED,
+        status=FormStatus.CANCELLED,
         justification=form.justification,
         cancelled_at=1,
         updated_at=2,
@@ -237,9 +237,9 @@ def test_form_repository_dynamo_update_uses_expected_status_condition():
     repo.update_form(
         user_id=form.user_id,
         form_id=form.id,
-        status=FORM_STATUS.COMPLETED,
+        status=FormStatus.COMPLETED,
         updated_at=123,
-        expected_status=FORM_STATUS.IN_PROGRESS,
+        expected_status=FormStatus.IN_PROGRESS,
     )
 
     assert repo.dynamo.last_update["condition_expression"] is not None
@@ -257,9 +257,9 @@ def test_form_repository_dynamo_update_maps_conditional_check_failure():
         repo.update_form(
             user_id=form.user_id,
             form_id=form.id,
-            status=FORM_STATUS.COMPLETED,
+            status=FormStatus.COMPLETED,
             updated_at=123,
-            expected_status=FORM_STATUS.IN_PROGRESS,
+            expected_status=FormStatus.IN_PROGRESS,
         )
 
 
@@ -275,9 +275,9 @@ def test_form_repository_dynamo_update_reraises_unknown_client_error():
         repo.update_form(
             user_id=form.user_id,
             form_id=form.id,
-            status=FORM_STATUS.COMPLETED,
+            status=FormStatus.COMPLETED,
             updated_at=123,
-            expected_status=FORM_STATUS.IN_PROGRESS,
+            expected_status=FormStatus.IN_PROGRESS,
         )
 
 
@@ -287,7 +287,7 @@ def test_form_repository_dynamo_update_without_attributes():
     updated = repo.update_form(
         user_id=form.user_id,
         form_id=form.id,
-        status=FORM_STATUS.COMPLETED,
+        status=FormStatus.COMPLETED,
         updated_at=123,
     )
     assert updated is None

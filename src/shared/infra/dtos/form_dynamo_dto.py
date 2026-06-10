@@ -4,8 +4,8 @@ from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.information_field import InformationField
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import Section
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
-from src.shared.domain.enums.priority_enum import PRIORITY
+from src.shared.domain.enums.form_status_enum import FormStatus
+from src.shared.domain.enums.priority_enum import Priority
 from src.shared.infra.dtos.information_field_dto import InformationFieldDTO
 from src.shared.infra.dtos.justification_dto import JustificationDTO
 from src.shared.infra.dtos.section_dto import SectionDTO
@@ -25,8 +25,8 @@ class FormDynamoDTO:
     latitude: float
     longitude: float
     observation: Optional[str]
-    priority: PRIORITY
-    status: FORM_STATUS
+    priority: Priority
+    status: FormStatus
     expiration_date: Optional[int]
     created_at: int
     in_progress_at: Optional[int]
@@ -47,8 +47,8 @@ class FormDynamoDTO:
         city: str,
         latitude: float,
         longitude: float,
-        priority: PRIORITY,
-        status: FORM_STATUS,
+        priority: Priority,
+        status: FormStatus,
         sections: List[Section],
         created_by: Optional[str] = None,
         template: Optional[str] = None,
@@ -132,8 +132,8 @@ class FormDynamoDTO:
             "observation": self.observation,
             "latitude": self.latitude,
             "longitude": self.longitude,
-            "priority": self.priority.value if isinstance(self.priority, PRIORITY) else self.priority,
-            "status": self.status.value if isinstance(self.status, FORM_STATUS) else self.status,
+            "priority": self.priority.value if isinstance(self.priority, Priority) else self.priority,
+            "status": self.status.value if isinstance(self.status, FormStatus) else self.status,
             "expiration_date": self.expiration_date,
             "created_at": self.created_at,
             "in_progress_at": self.in_progress_at,
@@ -171,8 +171,8 @@ class FormDynamoDTO:
             latitude=float(data["latitude"]),
             longitude=float(data["longitude"]),
             observation=data.get("observation"),
-            priority=PRIORITY(data["priority"]),
-            status=FORM_STATUS(data["status"]),
+            priority=Priority(data["priority"]),
+            status=FormStatus(data["status"]),
             expiration_date=int(data["expiration_date"]) if data.get("expiration_date") is not None else None,
             created_at=int(data["created_at"]),
             in_progress_at=int(data["in_progress_at"]) if data.get("in_progress_at") is not None else None,
@@ -230,8 +230,8 @@ class FormDynamoDTO:
             "latitude": self.latitude,
             "longitude": self.longitude,
             "observation": self.observation,
-            "priority": self.priority.value if isinstance(self.priority, PRIORITY) else self.priority,
-            "status": self.status.value if isinstance(self.status, FORM_STATUS) else self.status,
+            "priority": self.priority.value if isinstance(self.priority, Priority) else self.priority,
+            "status": self.status.value if isinstance(self.status, FormStatus) else self.status,
             "expiration_date": self.expiration_date,
             "created_at": self.created_at,
             "in_progress_at": self.in_progress_at,

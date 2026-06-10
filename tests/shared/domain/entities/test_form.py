@@ -5,8 +5,8 @@ from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.information_field import FileInformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption, SelectedJustification
 from src.shared.domain.entities.section import Section
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
-from src.shared.domain.enums.priority_enum import PRIORITY
+from src.shared.domain.enums.form_status_enum import FormStatus
+from src.shared.domain.enums.priority_enum import Priority
 from src.shared.helpers.errors.domain_errors import EntityError
 
 
@@ -32,8 +32,8 @@ def make_form(**overrides):
         street='street',
         latitude=1.0,
         longitude=1.0,
-        priority=PRIORITY.LOW,
-        status=FORM_STATUS.PENDING,
+        priority=Priority.LOW,
+        status=FormStatus.PENDING,
         created_at=1,
         updated_at=1,
         sections=[section],
