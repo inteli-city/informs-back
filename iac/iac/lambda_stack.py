@@ -12,6 +12,7 @@ from aws_cdk.aws_apigateway import IAuthorizer, Resource, LambdaIntegration, Cog
 
 class LambdaStack(Construct):
     functions_that_need_dynamo_forms_permissions = []
+    functions_that_need_dynamo_profiles_permissions = []
     functions_that_need_cognito_permissions = []
 
     def create_lambda_api_gateway_integration(self, module_name: str, method: str, api_resource: Resource,
@@ -50,6 +51,10 @@ class LambdaStack(Construct):
         form_id_resource = forms_resource.add_resource("{form_id}")
         templates_resource = api_gateway_resource.add_resource("templates")
         template_id_resource = templates_resource.add_resource("{template_id}")
+        profiles_resource = api_gateway_resource.add_resource("profiles")
+        profile_user_id_resource = profiles_resource.add_resource("{user_id}")
+        locations_resource = api_gateway_resource.add_resource("locations")
+        locations_history_resource = locations_resource.add_resource("history")
         docs_resource = api_gateway_resource.add_resource("docs")
 
         self.create_form = self.create_lambda_api_gateway_integration(
@@ -99,6 +104,48 @@ class LambdaStack(Construct):
             method="POST",
             api_resource=form_id_resource,
             path="cancel",
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.plan_route = self.create_lambda_api_gateway_integration(
+            module_name="plan_route",
+            method="POST",
+            api_resource=forms_resource,
+            path="route-plan",
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.create_profile = self.create_lambda_api_gateway_integration(
+            module_name="create_profile",
+            method="POST",
+            api_resource=profiles_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.login_profile = self.create_lambda_api_gateway_integration(
+            module_name="login_profile",
+            method="POST",
+            api_resource=profiles_resource,
+            path="login",
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.delete_profile = self.create_lambda_api_gateway_integration(
+            module_name="delete_profile",
+            method="DELETE",
+            api_resource=profile_user_id_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.get_location_history = self.create_lambda_api_gateway_integration(
+            module_name="get_location_history",
+            method="GET",
+            api_resource=locations_history_resource,
             environment_variables=environment_variables,
             authorizer=authorizer,
         )
@@ -203,6 +250,7 @@ class LambdaStack(Construct):
             self.update_template,
             self.get_template,
             self.get_all_templates,
+            self.plan_route,
             self.sync_forms_origin,
             self.sync_forms_origin_callback,
         ]
@@ -217,5 +265,20 @@ class LambdaStack(Construct):
             self.create_template,
             self.update_template,
             self.get_template,
-            self.get_all_templates
+            self.get_all_templates,
+            self.plan_route,
+        ]
+
+        self.functions_that_need_dynamo_profiles_permissions = [
+            self.create_profile,
+            self.login_profile,
+            self.delete_profile,
+            self.get_location_history,
+        ]
+
+        # Lambdas que precisam ler a tabela Location (provisionada na
+        # FormulariosTrackingStack — stack separada). IacStack atribui
+        # permissão via wildcard ARN.
+        self.functions_that_need_dynamo_location_read_permissions = [
+            self.get_location_history,
         ]

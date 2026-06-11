@@ -1,8 +1,8 @@
 import pytest
 from src.shared.domain.entities.field import TextField
 from src.shared.domain.entities.section import Section
-from src.shared.domain.enums.fields_enum import FIELD_TYPE
-from src.shared.domain.enums.file_type_enum import FILE_TYPE
+from src.shared.domain.enums.fields_enum import FieldType
+from src.shared.domain.enums.file_type_enum import FileType
 from src.shared.helpers.errors.controller_errors import MissingParameters
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.infra.dtos.section_dto import SectionDTO
@@ -31,7 +31,7 @@ class Test_SectionDTO:
 
         assert section.section_id == '99999'
         assert len(section.fields) == 1
-        assert section.fields[0].field_type == FIELD_TYPE.TEXT_FIELD
+        assert section.fields[0].field_type == FieldType.TEXT_FIELD
         assert section.fields[0].placeholder == 'placeholder'
         assert section.fields[0].required == True
         assert section.fields[0].key == 'key'
@@ -60,7 +60,7 @@ class Test_SectionDTO:
 
         assert section.section_id == '99999'
         assert len(section.fields) == 1
-        assert section.fields[0].field_type == FIELD_TYPE.NUMBER_FIELD
+        assert section.fields[0].field_type == FieldType.NUMBER_FIELD
         assert section.fields[0].placeholder == 'placeholder'
         assert section.fields[0].required == True
         assert section.fields[0].key == 'key'
@@ -86,7 +86,7 @@ class Test_SectionDTO:
 
         assert section.section_id == '99999'
         assert len(section.fields) == 1
-        assert section.fields[0].field_type == FIELD_TYPE.DROPDOWN_FIELD
+        assert section.fields[0].field_type == FieldType.DROPDOWN_FIELD
         assert section.fields[0].placeholder == 'placeholder'
         assert section.fields[0].required == True
         assert section.fields[0].key == 'key'
@@ -110,7 +110,7 @@ class Test_SectionDTO:
 
         assert section.section_id == '99999'
         assert len(section.fields) == 1
-        assert section.fields[0].field_type == FIELD_TYPE.TYPEAHEAD_FIELD
+        assert section.fields[0].field_type == FieldType.TYPEAHEAD_FIELD
         assert section.fields[0].placeholder == 'placeholder'
         assert section.fields[0].required == True
         assert section.fields[0].key == 'key'
@@ -134,7 +134,7 @@ class Test_SectionDTO:
 
         assert section.section_id == '99999'
         assert len(section.fields) == 1
-        assert section.fields[0].field_type == FIELD_TYPE.RADIO_GROUP_FIELD
+        assert section.fields[0].field_type == FieldType.RADIO_GROUP_FIELD
         assert section.fields[0].placeholder == 'placeholder'
         assert section.fields[0].required == True
         assert section.fields[0].key == 'key'
@@ -160,7 +160,7 @@ class Test_SectionDTO:
 
         assert section.section_id == '99999'
         assert len(section.fields) == 1
-        assert section.fields[0].field_type == FIELD_TYPE.DATE_FIELD
+        assert section.fields[0].field_type == FieldType.DATE_FIELD
         assert section.fields[0].placeholder == 'placeholder'
         assert section.fields[0].required == True
         assert section.fields[0].key == 'key'
@@ -186,7 +186,7 @@ class Test_SectionDTO:
 
         assert section.section_id == '99999'
         assert len(section.fields) == 1
-        assert section.fields[0].field_type == FIELD_TYPE.CHECKBOX_FIELD
+        assert section.fields[0].field_type == FieldType.CHECKBOX_FIELD
         assert section.fields[0].placeholder == 'placeholder'
         assert section.fields[0].required == True
         assert section.fields[0].key == 'key'
@@ -211,7 +211,7 @@ class Test_SectionDTO:
 
         assert section.section_id == '99999'
         assert len(section.fields) == 1
-        assert section.fields[0].field_type == FIELD_TYPE.CHECKBOX_GROUP_FIELD
+        assert section.fields[0].field_type == FieldType.CHECKBOX_GROUP_FIELD
         assert section.fields[0].placeholder == 'placeholder'
         assert section.fields[0].required == True
         assert section.fields[0].key == 'key'
@@ -236,7 +236,7 @@ class Test_SectionDTO:
 
         assert section.section_id == '99999'
         assert len(section.fields) == 1
-        assert section.fields[0].field_type == FIELD_TYPE.SWITCH_BUTTON_FIELD
+        assert section.fields[0].field_type == FieldType.SWITCH_BUTTON_FIELD
         assert section.fields[0].placeholder == 'placeholder'
         assert section.fields[0].required == True
         assert section.fields[0].key == 'key'
@@ -262,11 +262,11 @@ class Test_SectionDTO:
 
         assert section.section_id == '99999'
         assert len(section.fields) == 1
-        assert section.fields[0].field_type == FIELD_TYPE.FILE_FIELD
+        assert section.fields[0].field_type == FieldType.FILE_FIELD
         assert section.fields[0].placeholder == 'placeholder'
         assert section.fields[0].required == True
         assert section.fields[0].key == 'key'
-        assert section.fields[0].file_type == FILE_TYPE.IMAGE
+        assert section.fields[0].file_type == FileType.IMAGE
         assert section.fields[0].min_quantity == 1
         assert section.fields[0].max_quantity == 10
     
@@ -565,7 +565,7 @@ class Test_SectionDTO:
 
         assert section_dto.section_id == '99999'
         assert len(section_dto.fields) == 1
-        assert section_dto.fields[0].field_type == FIELD_TYPE.TEXT_FIELD
+        assert section_dto.fields[0].field_type == FieldType.TEXT_FIELD
         assert section_dto.fields[0].placeholder == 'placeholder'
         assert section_dto.fields[0].required == True
         assert section_dto.fields[0].key == 'key'
@@ -595,7 +595,7 @@ class Test_SectionDTO:
 
         assert section.section_id == '99999'
         assert len(section.fields) == 1
-        assert section.fields[0].field_type == FIELD_TYPE.TEXT_FIELD
+        assert section.fields[0].field_type == FieldType.TEXT_FIELD
         assert section.fields[0].placeholder == 'placeholder'
         assert section.fields[0].required == True
         assert section.fields[0].key == 'key'
@@ -623,7 +623,7 @@ class Test_SectionDTO:
 
         assert section_dynamo['section_id'] == '99999'
         assert len(section_dynamo['fields']) == 1
-        assert section_dynamo['fields'][0]['field_type'] == FIELD_TYPE.TEXT_FIELD.name
+        assert section_dynamo['fields'][0]['field_type'] == FieldType.TEXT_FIELD.name
         assert section_dynamo['fields'][0]['label'] == 'placeholder'
         assert section_dynamo['fields'][0]['placeholder'] == 'placeholder'
         assert section_dynamo['fields'][0]['required'] == True
@@ -655,7 +655,7 @@ class Test_SectionDTO:
 
         assert section.section_id == 99999
         assert len(section.fields) == 1
-        assert section.fields[0].field_type == FIELD_TYPE.TEXT_FIELD
+        assert section.fields[0].field_type == FieldType.TEXT_FIELD
         assert section.fields[0].placeholder == 'placeholder'
         assert section.fields[0].required == True
         assert section.fields[0].key == 'key'

@@ -62,3 +62,87 @@ class DynamoStack(Construct):
             CfnOutput(self, 'DynamoFormulariosRemovalPolicy',
                         value=REMOVAL_POLICY.value,
                         export_name=f'Formularios{self.github_ref_name}DynamoRemovalPolicyValue')
+
+            # Tabela de Profiles (RBAC interno: ADMIN / INSPECTOR).
+            # Cognito autentica; esta tabela controla a role aplicacional.
+            # PK: user#{user_id} | SK: METADATA
+            # GSI ByRole: PK role#{role}, SK system#{system}#user#{user_id}
+            #   Uso atual: contar admins ativos antes de DELETE (impede
+            #   remoção do último admin). Permite no futuro listar perfis.
+            #
+            # SEM table_name explícito: deixa o CFN gerar o nome físico
+            # seguindo o padrão da stack (FormulariosStack{stage}-...-Profile...),
+            # consistente com a Formularios_Table acima. Lambdas recebem o
+            # nome via env DYNAMO_PROFILE_TABLE_NAME (já é table.table_name).
+            self.dynamo_table_profiles = aws_dynamodb.Table(
+                self, "Profiles_Table",
+                partition_key=aws_dynamodb.Attribute(
+                    name="PK",
+                    type=aws_dynamodb.AttributeType.STRING
+                ),
+                sort_key=aws_dynamodb.Attribute(
+                    name="SK",
+                    type=aws_dynamodb.AttributeType.STRING
+                ),
+                point_in_time_recovery=True,
+                billing_mode=aws_dynamodb.BillingMode.PAY_PER_REQUEST,
+                removal_policy=REMOVAL_POLICY,
+            )
+
+            self.gsi_profiles_by_role = self.dynamo_table_profiles.add_global_secondary_index(
+                index_name="ByRole",
+                partition_key=aws_dynamodb.Attribute(
+                    name="GSI1PK",
+                    type=aws_dynamodb.AttributeType.STRING
+                ),
+                sort_key=aws_dynamodb.Attribute(
+                    name="GSI1SK",
+                    type=aws_dynamodb.AttributeType.STRING
+                ),
+                projection_type=aws_dynamodb.ProjectionType.ALL
+            )
+
+            CfnOutput(self, 'DynamoProfilesRemovalPolicy',
+                        value=REMOVAL_POLICY.value,
+                        export_name=f'Profiles{self.github_ref_name}DynamoRemovalPolicyValue')
+
+            # Exporta o nome físico (auto-gerado) pra ser consumido por outras
+            # stacks/services. Ex: ws_server lê via aws cli no deploy:
+            #   aws cloudformation describe-stacks --stack-name FormulariosStack{stage} \
+            #       --query "Stacks[0].Outputs[?OutputKey=='ProfileTableName'].OutputValue"
+            CfnOutput(self, 'ProfileTableName',
+                        value=self.dynamo_table_profiles.table_name,
+                        export_name=f'Profiles{self.github_ref_name}TableName')
+
+            # Tabela de Location (tracking realtime — pings de inspectors).
+            # Schema:
+            #   PK = user#{user_id}
+            #   SK = ts#{ts_server_ms}    (sortável cronologicamente)
+            # Atributos: lat (N), lng (N), ts_device (N), accuracy (N opc).
+            # Sem TTL: histórico completo retido pra auditoria de rota.
+            #
+            # Consumidores:
+            #   - ws_server no Railway (PutItem em runtime)
+            #   - Lambda GET /mss-formularios/locations/history (Query)
+            #
+            # Antes vivia numa stack separada (FormulariosTrackingStack),
+            # absorvida no IacStack após a migração pro Railway que tirou
+            # o resto da TrackingStack (Lightsail/Secrets/IAM).
+            self.dynamo_table_locations = aws_dynamodb.Table(
+                self, "Locations_Table",
+                partition_key=aws_dynamodb.Attribute(
+                    name="PK",
+                    type=aws_dynamodb.AttributeType.STRING
+                ),
+                sort_key=aws_dynamodb.Attribute(
+                    name="SK",
+                    type=aws_dynamodb.AttributeType.STRING
+                ),
+                point_in_time_recovery=True,
+                billing_mode=aws_dynamodb.BillingMode.PAY_PER_REQUEST,
+                removal_policy=REMOVAL_POLICY,
+            )
+
+            CfnOutput(self, 'LocationTableName',
+                        value=self.dynamo_table_locations.table_name,
+                        export_name=f'Locations{self.github_ref_name}TableName')

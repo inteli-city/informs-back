@@ -5,7 +5,7 @@ sys.path.append(os.getcwd())
 
 from src.modules.start_form.app.start_form_controller import StartFormController
 from src.modules.start_form.app.start_form_usecase import StartFormUsecase
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
+from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.helpers.external_interfaces.http_models import HttpRequest
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 
@@ -17,7 +17,7 @@ class Test_StartFormController:
         self.controller = StartFormController(self.usecase)
         # Use the pending form fixture to keep tests isolated
         self.pending_form = self.repo.forms[2]
-        self.pending_form.status = FORM_STATUS.PENDING
+        self.pending_form.status = FormStatus.PENDING
 
     def test_start_form_controller_success(self):
         request = HttpRequest(body={
@@ -35,7 +35,7 @@ class Test_StartFormController:
 
         assert response.status_code == 204
         assert response.body == {}
-        assert self.pending_form.status == FORM_STATUS.IN_PROGRESS
+        assert self.pending_form.status == FormStatus.IN_PROGRESS
         assert self.pending_form.in_progress_at == 123456789
 
     def test_start_form_controller_missing_requester_user(self):

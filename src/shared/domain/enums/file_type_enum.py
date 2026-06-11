@@ -1,6 +1,6 @@
 from enum import Enum
 
 
-class FILE_TYPE(Enum):
+class FileType(Enum):
     IMAGE = 'IMAGE'
     DOCUMENT = 'DOCUMENT'

@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class FIELD_TYPE(Enum):
+class FieldType(Enum):
     TEXT_FIELD = 'TEXT_FIELD'
     NUMBER_FIELD = 'NUMBER_FIELD'
     DROPDOWN_FIELD = 'DROPDOWN_FIELD'

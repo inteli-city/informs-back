@@ -9,7 +9,7 @@ sys.path.append(os.getcwd())
 class Test_GetAllFormsPresenter:
     def test_get_all_forms_presenter(self):
         os.environ["STAGE"] = "TEST"
-        # ensure module picks STAGE=TEST
+        # ensure module picks Stage=TEST
         from src.modules.get_all_forms.app import get_all_forms_presenter
         importlib.reload(get_all_forms_presenter)
 

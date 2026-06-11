@@ -1,6 +1,6 @@
 from src.modules.cancel_form.app.cancel_form_controller import CancelFormController
 from src.modules.cancel_form.app.cancel_form_usecase import CancelFormUsecase
-from src.shared.domain.enums.form_status_enum import FORM_STATUS
+from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.helpers.external_interfaces.http_models import HttpRequest
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
@@ -15,7 +15,7 @@ class Test_CancelFormController:
 
         controller = CancelFormController(usecase)
 
-        form_repo.forms[0].status = FORM_STATUS.IN_PROGRESS
+        form_repo.forms[0].status = FormStatus.IN_PROGRESS
 
         data = HttpRequest(body={"requester_user": {
                 "sub": 'd61dbf66-a10f-11ed-a8fc-0242ac120001',
@@ -176,7 +176,7 @@ class Test_CancelFormController:
         usecase = CancelFormUsecase(form_repo, file_repo)
         controller = CancelFormController(usecase)
 
-        form_repo.forms[0].status = FORM_STATUS.IN_PROGRESS
+        form_repo.forms[0].status = FormStatus.IN_PROGRESS
 
         data = HttpRequest(body={
             "requester_user": {

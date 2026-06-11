@@ -1,4 +1,3 @@
-from enum import Enum
 from typing import List, Optional
 
 from src.shared.domain.entities.field import Field
@@ -6,8 +5,20 @@ from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.information_field import InformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption
 from src.shared.domain.entities.section import Section
-from src.shared.domain.enums.fields_enum import FIELD_TYPE
 from src.shared.helpers.contracts.endpoints.get_all_forms_contract import GetAllFormsResponseSchema
+from src.shared.helpers.viewmodels.form_dict_builders import (
+    build_field_dict,
+    build_form_dict,
+    build_information_field_dict,
+    build_justification_dict,
+    build_justification_option_dict,
+    build_section_dict,
+)
+
+
+# Wrappers finos sobre src.shared.helpers.viewmodels.form_dict_builders.
+# Mantemos as classes públicas para retro-compat com os testes que importam
+# FieldViewmodel/SectionViewmodel/etc diretamente.
 
 
 class FieldViewmodel:
@@ -15,43 +26,9 @@ class FieldViewmodel:
         self.field = field
 
     def to_dict(self):
-        base = {
-            'field_type': self.field.field_type.value,
-            'label': self.field.label,
-            'required': self.field.required,
-            'key': self.field.key,
-            'order': self.field.order,
-            'help_text': getattr(self.field, 'help_text', None)
-        }
-
-        if self.field.field_type == FIELD_TYPE.TEXT_FIELD:
-            base.update({
-                'regex': getattr(self.field, 'regex', None),
-                'max_length': getattr(self.field, 'max_length', None)
-            })
-        if hasattr(self.field, 'options'):
-            base['options'] = getattr(self.field, 'options')
-        if hasattr(self.field, 'max_value'):
-            base['max_value'] = getattr(self.field, 'max_value')
-        if hasattr(self.field, 'min_value'):
-            base['min_value'] = getattr(self.field, 'min_value')
-        if hasattr(self.field, 'decimal'):
-            base['decimal'] = getattr(self.field, 'decimal')
-        if hasattr(self.field, 'check_limit'):
-            base['check_limit'] = getattr(self.field, 'check_limit')
-        if hasattr(self.field, 'file_type'):
-            base['file_type'] = getattr(self.field.file_type, 'value', None)
-            base['min_quantity'] = getattr(self.field, 'min_quantity', None)
-            base['max_quantity'] = getattr(self.field, 'max_quantity', None)
-        if hasattr(self.field, 'min_date'):
-            base['min_date'] = getattr(self.field, 'min_date', None)
-        if hasattr(self.field, 'max_date'):
-            base['max_date'] = getattr(self.field, 'max_date', None)
-        if hasattr(self.field, 'value'):
-            value = getattr(self.field, 'value')
-            base['value'] = value.value if isinstance(value, Enum) else value
-
-        return base
+        # Listagem de forms já existentes: incluímos value/min_date/max_date
+        # quando aplicável (o form pode estar preenchido).
+        return build_field_dict(self.field, include_dynamic_extras=True)
 
 
 class SectionViewmodel:
@@ -59,10 +36,7 @@ class SectionViewmodel:
         self.section = section
 
     def to_dict(self):
-        return {
-            'section_id': self.section.section_id,
-            'fields': [FieldViewmodel(field).to_dict() for field in self.section.fields]
-        }
+        return build_section_dict(self.section, include_dynamic_extras=True)
 
 
 class JustificationOptionViewmodel:
@@ -70,11 +44,7 @@ class JustificationOptionViewmodel:
         self.justification_option = justification_option
 
     def to_dict(self):
-        return {
-            'option': self.justification_option.option,
-            'required_image': self.justification_option.required_image,
-            'required_text': self.justification_option.required_text
-        }
+        return build_justification_option_dict(self.justification_option)
 
 
 class JustificationViewmodel:
@@ -82,10 +52,9 @@ class JustificationViewmodel:
         self.justification = justification
 
     def to_dict(self):
-        return {
-            'options': [JustificationOptionViewmodel(option).to_dict() for option in self.justification.options],
-            'selected': self.justification.selected.__dict__ if self.justification.selected else None
-        }
+        # Quando há `selected`, expandimos seus campos para que o cliente
+        # tenha a justificativa real (não apenas a lista de opções).
+        return build_justification_dict(self.justification, expand_selected=True)
 
 
 class InformationFieldViewmodel:
@@ -93,10 +62,7 @@ class InformationFieldViewmodel:
         self.information_field = information_field
 
     def to_dict(self):
-        return {
-            attr: getattr(self.information_field, attr).value if isinstance(getattr(self.information_field, attr), Enum) else getattr(self.information_field, attr)
-            for attr in vars(self.information_field)
-        }
+        return build_information_field_dict(self.information_field)
 
 
 class FormItemViewmodel:
@@ -104,31 +70,9 @@ class FormItemViewmodel:
         self.form = form
 
     def to_dict(self):
-        return {
-            'id': self.form.id,
-            'status': self.form.status.value,
-            'form_title': self.form.form_title,
-            'user_id': self.form.user_id,
-            'area': self.form.area,
-            'system': self.form.system,
-            'city': self.form.city,
-            'street': self.form.street,
-            'latitude': self.form.latitude,
-            'longitude': self.form.longitude,
-            'priority': int(self.form.priority.value),
-            'observation': self.form.observation,
-            'expiration_date': self.form.expiration_date,
-            'justification': JustificationViewmodel(self.form.justification).to_dict(),
-            'sections': [SectionViewmodel(section).to_dict() for section in self.form.sections],
-            'in_progress_at': self.form.in_progress_at,
-            'cancelled_at': self.form.cancelled_at,
-            'completed_at': self.form.completed_at,
-            'created_by': self.form.created_by,
-            'created_at': self.form.created_at,
-            'updated_at': self.form.updated_at,
-            'information_fields': [InformationFieldViewmodel(info).to_dict() for info in self.form.information_fields] if self.form.information_fields else None,
-            'number': self.form.number
-        }
+        return build_form_dict(
+            self.form, include_dynamic_extras=True, expand_selected=True
+        )
 
 
 class GetAllFormsViewmodel:
@@ -139,8 +83,8 @@ class GetAllFormsViewmodel:
 
     def to_dict(self):
         payload = {
-            'forms': [FormItemViewmodel(form).to_dict() for form in self.forms],
-            'limit': self.limit,
-            'last_evaluated_key': self.last_evaluated_key
+            "forms": [FormItemViewmodel(form).to_dict() for form in self.forms],
+            "limit": self.limit,
+            "last_evaluated_key": self.last_evaluated_key,
         }
         return GetAllFormsResponseSchema.model_validate(payload).model_dump()

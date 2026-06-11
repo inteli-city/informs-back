@@ -1,6 +1,6 @@
 from src.shared.domain.entities.field import CheckBoxGroupField, CheckboxField, DateField, DropDownField, FileField, NumberField, RadioGroupField, SwitchButtonField, TextField, TypeAheadField
-from src.shared.domain.enums.fields_enum import FIELD_TYPE
-from src.shared.domain.enums.file_type_enum import FILE_TYPE
+from src.shared.domain.enums.fields_enum import FieldType
+from src.shared.domain.enums.file_type_enum import FileType
 from src.shared.infra.dtos.field_dto import FieldDTO
 
 
@@ -19,7 +19,7 @@ class Test_FieldDTO:
 
         field_dto = FieldDTO.from_dynamo(field_dict)
 
-        assert field_dto.field.field_type == FIELD_TYPE.TEXT_FIELD
+        assert field_dto.field.field_type == FieldType.TEXT_FIELD
         assert field_dto.field.placeholder == "placeholder"
         assert field_dto.field.required == True
         assert field_dto.field.key == "key"
@@ -42,7 +42,7 @@ class Test_FieldDTO:
 
         field_dto = FieldDTO.from_dynamo(field_dict)
 
-        assert field_dto.field.field_type == FIELD_TYPE.NUMBER_FIELD
+        assert field_dto.field.field_type == FieldType.NUMBER_FIELD
         assert field_dto.field.placeholder == "placeholder"
         assert field_dto.field.required == True
         assert field_dto.field.key == "key"
@@ -63,7 +63,7 @@ class Test_FieldDTO:
 
         field_dto = FieldDTO.from_dynamo(field_dict)
 
-        assert field_dto.field.field_type == FIELD_TYPE.DROPDOWN_FIELD
+        assert field_dto.field.field_type == FieldType.DROPDOWN_FIELD
         assert field_dto.field.placeholder == "placeholder"
         assert field_dto.field.required == True
         assert field_dto.field.key == "key"
@@ -83,7 +83,7 @@ class Test_FieldDTO:
 
         field_dto = FieldDTO.from_dynamo(field_dict)
 
-        assert field_dto.field.field_type == FIELD_TYPE.TYPEAHEAD_FIELD
+        assert field_dto.field.field_type == FieldType.TYPEAHEAD_FIELD
         assert field_dto.field.placeholder == "placeholder"
         assert field_dto.field.required == True
         assert field_dto.field.key == "key"
@@ -103,7 +103,7 @@ class Test_FieldDTO:
 
         field_dto = FieldDTO.from_dynamo(field_dict)
 
-        assert field_dto.field.field_type == FIELD_TYPE.RADIO_GROUP_FIELD
+        assert field_dto.field.field_type == FieldType.RADIO_GROUP_FIELD
         assert field_dto.field.placeholder == "placeholder"
         assert field_dto.field.required == True
         assert field_dto.field.key == "key"
@@ -123,7 +123,7 @@ class Test_FieldDTO:
 
         field_dto = FieldDTO.from_dynamo(field_dict)
 
-        assert field_dto.field.field_type == FIELD_TYPE.DATE_FIELD
+        assert field_dto.field.field_type == FieldType.DATE_FIELD
         assert field_dto.field.placeholder == "placeholder"
         assert field_dto.field.required == True
         assert field_dto.field.key == "key"
@@ -142,7 +142,7 @@ class Test_FieldDTO:
 
         field_dto = FieldDTO.from_dynamo(field_dict)
 
-        assert field_dto.field.field_type == FIELD_TYPE.CHECKBOX_FIELD
+        assert field_dto.field.field_type == FieldType.CHECKBOX_FIELD
         assert field_dto.field.placeholder == "placeholder"
         assert field_dto.field.required == True
         assert field_dto.field.key == "key"
@@ -161,7 +161,7 @@ class Test_FieldDTO:
 
         field_dto = FieldDTO.from_dynamo(field_dict)
 
-        assert field_dto.field.field_type == FIELD_TYPE.CHECKBOX_GROUP_FIELD
+        assert field_dto.field.field_type == FieldType.CHECKBOX_GROUP_FIELD
         assert field_dto.field.placeholder == "placeholder"
         assert field_dto.field.required == True
         assert field_dto.field.key == "key"
@@ -180,7 +180,7 @@ class Test_FieldDTO:
 
         field_dto = FieldDTO.from_dynamo(field_dict)
 
-        assert field_dto.field.field_type == FIELD_TYPE.SWITCH_BUTTON_FIELD
+        assert field_dto.field.field_type == FieldType.SWITCH_BUTTON_FIELD
         assert field_dto.field.placeholder == "placeholder"
         assert field_dto.field.required == True
         assert field_dto.field.key == "key"
@@ -200,12 +200,12 @@ class Test_FieldDTO:
 
         field_dto = FieldDTO.from_dynamo(field_dict)
 
-        assert field_dto.field.field_type == FIELD_TYPE.FILE_FIELD
+        assert field_dto.field.field_type == FieldType.FILE_FIELD
         assert field_dto.field.placeholder == "placeholder"
         assert field_dto.field.required == True
         assert field_dto.field.key == "key"
         assert field_dto.field.value == ["value"]
-        assert field_dto.field.file_type == FILE_TYPE.IMAGE
+        assert field_dto.field.file_type == FileType.IMAGE
         assert field_dto.field.min_quantity == 1
         assert field_dto.field.max_quantity == 2
 
@@ -406,7 +406,7 @@ class Test_FieldDTO:
         }
     
     def test_field_dto_to_dynamo_file_field(self):
-        field = FileField(placeholder='placeholder', required=True, key='key', file_type=FILE_TYPE.IMAGE, min_quantity=1, max_quantity=2, value=['value'])
+        field = FileField(placeholder='placeholder', required=True, key='key', file_type=FileType.IMAGE, min_quantity=1, max_quantity=2, value=['value'])
 
         field_dto = FieldDTO(field)
 

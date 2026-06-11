@@ -70,6 +70,12 @@ class IacStack(Stack):
             "DYNAMO_TABLE_NAME": self.dynamo_stack.dynamo_table_forms.table_name,
             "DYNAMO_PARTITION_KEY": "PK",
             "DYNAMO_SORT_KEY": "SK",
+            "DYNAMO_PROFILE_TABLE_NAME": self.dynamo_stack.dynamo_table_profiles.table_name,
+            "DYNAMO_PROFILE_PARTITION_KEY": "PK",
+            "DYNAMO_PROFILE_SORT_KEY": "SK",
+            "DYNAMO_LOCATION_TABLE_NAME": self.dynamo_stack.dynamo_table_locations.table_name,
+            "DYNAMO_LOCATION_PARTITION_KEY": "PK",
+            "DYNAMO_LOCATION_SORT_KEY": "SK",
             "REGION": self.region,
             "BUCKET_NAME": self.bucket_name,
             "SYNC_FORMS_PAGE_LIMIT": "100",
@@ -111,3 +117,13 @@ class IacStack(Stack):
         
         for f in self.lambda_stack.functions_that_need_dynamo_forms_permissions:
             self.dynamo_stack.dynamo_table_forms.grant_read_write_data(f)
+
+        for f in self.lambda_stack.functions_that_need_dynamo_profiles_permissions:
+            self.dynamo_stack.dynamo_table_profiles.grant_read_write_data(f)
+
+        # Tabela Location agora vive no IacStack (TrackingStack absorvida no
+        # PR #52). grant_read_data direto na tabela substituiu a antiga
+        # wildcard cross-stack policy. Read-only é suficiente — writes vêm
+        # do ws_server no Railway, não das Lambdas.
+        for f in self.lambda_stack.functions_that_need_dynamo_location_read_permissions:
+            self.dynamo_stack.dynamo_table_locations.grant_read_data(f)

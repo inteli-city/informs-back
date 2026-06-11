@@ -1,7 +1,7 @@
 import pytest
 from src.shared.domain.entities.field import CheckBoxGroupField, CheckboxField, DateField, DropDownField, FileField, Field, NumberField, RadioGroupField, SwitchButtonField, TextField, TypeAheadField
-from src.shared.domain.enums.fields_enum import FIELD_TYPE
-from src.shared.domain.enums.file_type_enum import FILE_TYPE
+from src.shared.domain.enums.fields_enum import FieldType
+from src.shared.domain.enums.file_type_enum import FileType
 from src.shared.helpers.errors.domain_errors import EntityError
 
 
@@ -9,7 +9,7 @@ class Test_Field:
 
     def test_field_cannot_be_instanciated(self):
         with pytest.raises(TypeError):
-            Field(field_type=FIELD_TYPE.TEXT_FIELD, label='label', required=True, key='key', order=1)
+            Field(field_type=FieldType.TEXT_FIELD, label='label', required=True, key='key', order=1)
 
     def test_field_label_is_none(self):
         with pytest.raises(EntityError):
@@ -48,7 +48,7 @@ class Test_Field:
     def test_text_field(self):
         text_field = TextField(label='label', required=True, key='key', order=1, max_length=10, value='value', regex='regex')
 
-        assert text_field.field_type == FIELD_TYPE.TEXT_FIELD
+        assert text_field.field_type == FieldType.TEXT_FIELD
     
     def test_text_field_max_length_is_not_int(self):
         with pytest.raises(EntityError):
@@ -63,7 +63,7 @@ class Test_Field:
     def test_number_field(self):
         number_field = NumberField(label='label', required=True, key='key', order=1, max_value=10, min_value=1, decimal=True, value=1.0)
 
-        assert number_field.field_type == FIELD_TYPE.NUMBER_FIELD
+        assert number_field.field_type == FieldType.NUMBER_FIELD
 
     def test_number_field_max_value_is_not_int(self):
         with pytest.raises(EntityError):
@@ -83,7 +83,7 @@ class Test_Field:
     def test_drop_down_field(self):
         dropdown_field = DropDownField(label='label', required=True, key='key', order=1, options=['option1', 'option2'], value='option1')
 
-        assert dropdown_field.field_type == FIELD_TYPE.DROPDOWN_FIELD
+        assert dropdown_field.field_type == FieldType.DROPDOWN_FIELD
 
     def test_drop_down_field_options_is_not_list(self):
         with pytest.raises(EntityError):
@@ -102,7 +102,7 @@ class Test_Field:
     def test_type_ahead_field(self):
         typeahead_field = TypeAheadField(label='label', required=True, key='key', order=1, options=['option1'], max_length=1, value='option1')
 
-        assert typeahead_field.field_type == FIELD_TYPE.TYPEAHEAD_FIELD
+        assert typeahead_field.field_type == FieldType.TYPEAHEAD_FIELD
     
     def test_type_ahead_field_options_is_not_list(self):
         with pytest.raises(EntityError):
@@ -121,7 +121,7 @@ class Test_Field:
     def test_radio_group_field(self):
         radio_group_field = RadioGroupField(label='label', required=True, key='key', order=1, options=['option1', 'option2'], value='option1')
 
-        assert radio_group_field.field_type == FIELD_TYPE.RADIO_GROUP_FIELD
+        assert radio_group_field.field_type == FieldType.RADIO_GROUP_FIELD
     
     def test_radio_group_field_options_is_not_list(self):
         with pytest.raises(EntityError):
@@ -140,7 +140,7 @@ class Test_Field:
     def test_date_field(self):
         date_field = DateField(label='label', required=True, key='key', order=1, min_date=946407600000, max_date=946407600000, value=946407600000)
 
-        assert date_field.field_type == FIELD_TYPE.DATE_FIELD
+        assert date_field.field_type == FieldType.DATE_FIELD
 
     def test_date_field_min_date_is_not_int(self):
         with pytest.raises(EntityError):
@@ -159,7 +159,7 @@ class Test_Field:
     def test_checkbox_field(self):
         checkbox_field = CheckboxField(label='label', required=True, key='key', order=1, value=True)
 
-        assert checkbox_field.field_type == FIELD_TYPE.CHECKBOX_FIELD
+        assert checkbox_field.field_type == FieldType.CHECKBOX_FIELD
     
     def test_checkbox_field_value_is_not_bool(self):
         with pytest.raises(EntityError):
@@ -170,7 +170,7 @@ class Test_Field:
     def test_checkbox_group_field(self):
         checkbox_group_field = CheckBoxGroupField(label='label', required=True, key='key', order=1, options=['option1', 'option2'], check_limit=1, value=[True, False])
 
-        assert checkbox_group_field.field_type == FIELD_TYPE.CHECKBOX_GROUP_FIELD
+        assert checkbox_group_field.field_type == FieldType.CHECKBOX_GROUP_FIELD
 
     def test_checkbox_group_field_options_is_not_list(self):
         with pytest.raises(EntityError):
@@ -197,7 +197,7 @@ class Test_Field:
     def test_switch_button_field(self):
         switch_button_field = SwitchButtonField(label='label', required=True, key='key', order=1, value=True)
     
-        assert switch_button_field.field_type == FIELD_TYPE.SWITCH_BUTTON_FIELD
+        assert switch_button_field.field_type == FieldType.SWITCH_BUTTON_FIELD
     
     def test_switch_button_field_value_is_not_bool(self):
         with pytest.raises(EntityError):
@@ -206,9 +206,9 @@ class Test_Field:
     # FileField
 
     def test_file_field(self):
-        file_field = FileField(label='label', required=True, key='key', order=1, file_type=FILE_TYPE.IMAGE, min_quantity=1, max_quantity=3, value=['file1', 'file2', 'file3'])
+        file_field = FileField(label='label', required=True, key='key', order=1, file_type=FileType.IMAGE, min_quantity=1, max_quantity=3, value=['file1', 'file2', 'file3'])
 
-        assert file_field.field_type == FIELD_TYPE.FILE_FIELD
+        assert file_field.field_type == FieldType.FILE_FIELD
     
     def test_file_field_file_type_is_not_str(self):
         with pytest.raises(EntityError):
@@ -216,27 +216,27 @@ class Test_Field:
     
     def test_file_field_min_quantity_is_not_int(self):
         with pytest.raises(EntityError):
-            FileField(label='label', required=True, key='key', order=1, file_type=FILE_TYPE.IMAGE, min_quantity='1', max_quantity=3, value=['file1'])
+            FileField(label='label', required=True, key='key', order=1, file_type=FileType.IMAGE, min_quantity='1', max_quantity=3, value=['file1'])
     
     def test_file_field_max_quantity_is_not_int(self):
         with pytest.raises(EntityError):
-            FileField(label='label', required=True, key='key', order=1, file_type=FILE_TYPE.IMAGE, min_quantity=1, max_quantity='3', value=['file1'])
+            FileField(label='label', required=True, key='key', order=1, file_type=FileType.IMAGE, min_quantity=1, max_quantity='3', value=['file1'])
     
     def test_file_field_value_is_not_list(self):
         with pytest.raises(EntityError):
-            FileField(label='label', required=True, key='key', order=1, file_type=FILE_TYPE.IMAGE, min_quantity=1, max_quantity=3, value=1)
+            FileField(label='label', required=True, key='key', order=1, file_type=FileType.IMAGE, min_quantity=1, max_quantity=3, value=1)
     
     def test_file_field_value_is_not_str(self):
         with pytest.raises(EntityError):
-            FileField(label='label', required=True, key='key', order=1, file_type=FILE_TYPE.IMAGE, min_quantity=1, max_quantity=3, value=[1])
+            FileField(label='label', required=True, key='key', order=1, file_type=FileType.IMAGE, min_quantity=1, max_quantity=3, value=[1])
     
     def test_file_field_value_is_not_min_quantity(self):
         with pytest.raises(EntityError):
-            FileField(label='label', required=True, key='key', order=1, file_type=FILE_TYPE.IMAGE, min_quantity=2, max_quantity=3, value=['file1'])
+            FileField(label='label', required=True, key='key', order=1, file_type=FileType.IMAGE, min_quantity=2, max_quantity=3, value=['file1'])
     
     def test_file_field_value_is_not_max_quantity(self):
         with pytest.raises(EntityError):
-            FileField(label='label', required=True, key='key', order=1, file_type=FILE_TYPE.IMAGE, min_quantity=1, max_quantity=2, value=['file1', 'file2', 'file3'])
+            FileField(label='label', required=True, key='key', order=1, file_type=FileType.IMAGE, min_quantity=1, max_quantity=2, value=['file1', 'file2', 'file3'])
 
     def test_text_field_with_value_validates_and_keeps_original(self):
         text_field = TextField(label='label', required=True, key='key', order=1, max_length=5, value='old')
@@ -254,7 +254,7 @@ class Test_Field:
 
         number_field.set_value('2')
 
-        assert number_field.value == 2.0
+        assert number_field.value == pytest.approx(2.0, abs=1e-9)
 
         with pytest.raises(EntityError):
             number_field.set_value('invalid')
@@ -305,7 +305,7 @@ class Test_Field:
             required=True,
             key='key',
             order=1,
-            file_type=FILE_TYPE.IMAGE,
+            file_type=FileType.IMAGE,
             min_quantity=1,
             max_quantity=2,
         )

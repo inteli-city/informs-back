@@ -13,6 +13,20 @@ from src.shared.helpers.contracts.endpoints.get_all_forms_contract import GetAll
 from src.shared.helpers.contracts.endpoints.get_all_templates_contract import GetAllTemplatesResponseSchema
 from src.shared.helpers.contracts.endpoints.get_form_contract import GetFormResponseSchema
 from src.shared.helpers.contracts.endpoints.get_template_contract import GetTemplateResponseSchema
+from src.shared.helpers.contracts.endpoints.location_history_contract import (
+    LocationHistoryRequestSchema,
+    LocationHistoryResponseSchema,
+)
+from src.shared.helpers.contracts.endpoints.plan_route_contract import (
+    PlanRouteRequestSchema,
+    PlanRouteResponseSchema,
+)
+from src.shared.helpers.contracts.endpoints.profile_contract import (
+    CreateProfileRequestSchema,
+    CreateProfileResponseSchema,
+    DeleteProfileResponseSchema,
+    LoginProfileResponseSchema,
+)
 from src.shared.helpers.contracts.endpoints.start_form_contract import StartFormRequestSchema
 from src.shared.helpers.contracts.endpoints.submit_form_contract import SubmitFormRequestSchema, SubmitFormResponseSchema
 from src.shared.helpers.contracts.endpoints.sync_origin_callback_contract import (
@@ -89,6 +103,40 @@ _CONTRACTS = [
         response_model=CancelFormResponseSchema,
     ),
     EndpointContract(
+        path="/forms/route-plan",
+        method="post",
+        tag="Forms",
+        summary="Planeja sequência de visita dos formulários PENDING do requester",
+        success_status_code=200,
+        request_model=PlanRouteRequestSchema,
+        response_model=PlanRouteResponseSchema,
+    ),
+    EndpointContract(
+        path="/profiles",
+        method="post",
+        tag="Profiles",
+        summary="Admin cria perfil (ADMIN ou INSPECTOR)",
+        success_status_code=201,
+        request_model=CreateProfileRequestSchema,
+        response_model=CreateProfileResponseSchema,
+    ),
+    EndpointContract(
+        path="/profiles/login",
+        method="post",
+        tag="Profiles",
+        summary="Login: retorna perfil do requester (auto-cria como INSPECTOR se não existir)",
+        success_status_code=200,
+        response_model=LoginProfileResponseSchema,
+    ),
+    EndpointContract(
+        path="/profiles/{user_id}",
+        method="delete",
+        tag="Profiles",
+        summary="Soft delete de perfil (admin)",
+        success_status_code=200,
+        response_model=DeleteProfileResponseSchema,
+    ),
+    EndpointContract(
         path="/templates",
         method="post",
         tag="Templates",
@@ -130,6 +178,15 @@ _CONTRACTS = [
         success_status_code=200,
         request_model=SyncCallbackRequestSchema,
         response_model=SyncCallbackResponseSchema,
+    ),
+    EndpointContract(
+        path="/locations/history",
+        method="get",
+        tag="Locations",
+        summary="Histórico de localização de um inspector no período (admin)",
+        success_status_code=200,
+        request_model=LocationHistoryRequestSchema,
+        response_model=LocationHistoryResponseSchema,
     ),
 ]
 
