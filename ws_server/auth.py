@@ -7,8 +7,9 @@ Fluxo:
 2. Validamos a assinatura do JWT contra o JWKS do User Pool (cacheado).
 3. Extraímos `sub` (user_id) e buscamos role na tabela de Profiles
    (nome injetado via env PROFILE_TABLE pelo deploy script).
-4. Validamos que a role é INSPECTOR (emite localizações) ou ADMIN
-   (consome o stream realtime). Outras roles são rejeitadas.
+4. Se não houver Profile, tratamos como INSPECTOR por padrão. ADMIN só
+   existe quando há Profile explícito com role ADMIN. Profile inativo é
+   rejeitado.
 
 Erros levantam `AuthError` que o caller transforma em close(code=4401).
 """
@@ -63,7 +64,7 @@ class Authenticator:
 
         role = self._lookup_role(user_id)
         if role is None:
-            raise AuthError(f"profile não encontrado pra user {user_id}")
+            raise AuthError(f"profile inativo ou inválido pra user {user_id}")
         if role not in _ALLOWED_ROLES:
             raise AuthError(f"role {role!r} não autorizada no tracking")
 
@@ -113,12 +114,15 @@ class Authenticator:
         SK = METADATA
         attrs = {role: 'ADMIN'|'INSPECTOR', active: bool, ...}
 
-        Retorna None se profile não existe ou está inativo.
+        Sem Profile explícito, o usuário autenticado vira INSPECTOR por padrão.
+        Retorna None apenas se o profile existe mas está inativo ou sem role.
         """
         table = self._dynamodb.Table(self._settings.profile_table)
         resp = table.get_item(Key={"PK": f"user#{user_id}", "SK": "METADATA"})
         item = resp.get("Item")
-        if not item or not item.get("active", True):
+        if item is None:
+            return "INSPECTOR"
+        if not item.get("active", True):
             return None
         return item.get("role")
 
