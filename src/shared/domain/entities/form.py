@@ -1,6 +1,6 @@
 import abc
 import copy
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID
 
 from src.shared.domain.entities.field import FileField
@@ -283,6 +283,33 @@ class Form(abc.ABC):
             normalized_value.append(file_upload.to_dict())
         return normalized_uploads, normalized_value
 
+    @staticmethod
+    def _parse_field_item(item: dict) -> Tuple[int, int, str, Any]:
+        if not isinstance(item, dict):
+            raise EntityError("Campo deve ser um objeto")
+        section_instance = item.get("section_instance", 0)
+        if not isinstance(section_instance, int) or isinstance(section_instance, bool) or section_instance < 0:
+            raise EntityError("section_instance deve ser um inteiro não negativo")
+        return item.get("section_id"), section_instance, item.get("field_key"), item.get("value")
+
+    def _materialize_section_instance(self, section_id: int, section_instance: int, base_sections: Dict[int, Section]):
+        if section_instance == 0:
+            return
+        already_exists = any(
+            s.section_id == section_id and s.section_instance == section_instance
+            for s in self.sections
+        )
+        if already_exists:
+            return
+        base = base_sections.get(section_id)
+        if base is None:
+            raise EntityError(f"Seção {section_id} não encontrada no formulário")
+        if not base.is_duplicable:
+            raise EntityError(f"Seção {section_id} não é duplicável")
+        new_section = copy.deepcopy(base)
+        new_section.section_instance = section_instance
+        self.sections.append(new_section)
+
     def apply_field_values(self, fields: List[dict]) -> Dict[Tuple[int, int, str], List[FileUploadRequest]]:
         if not isinstance(fields, list):
             raise EntityError("Campos devem ser uma lista")
@@ -295,34 +322,14 @@ class Form(abc.ABC):
         seen = set()
         file_uploads = {}
         for item in fields:
-            if not isinstance(item, dict):
-                raise EntityError("Campo deve ser um objeto")
-            section_id = item.get("section_id")
-            section_instance = item.get("section_instance", 0)
-            if not isinstance(section_instance, int) or isinstance(section_instance, bool) or section_instance < 0:
-                raise EntityError("section_instance deve ser um inteiro não negativo")
-            field_key = item.get("field_key")
-            value = item.get("value")
+            section_id, section_instance, field_key, value = self._parse_field_item(item)
 
             key = (section_id, section_instance, field_key)
             if key in seen:
                 raise EntityError(f"Campo '{field_key}' duplicado na seção {section_id} instância {section_instance}")
             seen.add(key)
 
-            if section_instance != 0:
-                exists = any(
-                    s.section_id == section_id and s.section_instance == section_instance
-                    for s in self.sections
-                )
-                if not exists:
-                    base = base_sections.get(section_id)
-                    if base is None:
-                        raise EntityError(f"Seção {section_id} não encontrada no formulário")
-                    if not base.is_duplicable:
-                        raise EntityError(f"Seção {section_id} não é duplicável")
-                    new_section = copy.deepcopy(base)
-                    new_section.section_instance = section_instance
-                    self.sections.append(new_section)
+            self._materialize_section_instance(section_id, section_instance, base_sections)
 
             section = self._find_section(section_id, section_instance)
             field_index = self._find_field_index(section, field_key)

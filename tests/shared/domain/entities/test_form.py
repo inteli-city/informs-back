@@ -87,7 +87,7 @@ class Test_Form:
             make_form(justification='not_valid')
 
 
-class Test_Form_ApplyFieldValues:
+class TestFormApplyFieldValues:
 
     def _make_duplicable_form(self):
         field_a = TextField(label='Nome', required=True, key='nome', order=1, max_length=50)
