@@ -4,7 +4,8 @@ Não testamos a verificação de assinatura JWT real — isso depende do JWKS
 do Cognito e não agrega valor unitário (jose já é testado).  Testamos:
 - extração de token dos headers (Authorization e Sec-WebSocket-Protocol)
 - mapeamento role Profile → role tracking
-- tratamento de profile inexistente / inativo / role desconhecida
+- fallback de profile inexistente para INSPECTOR
+- tratamento de profile inativo / role desconhecida
 """
 
 from unittest.mock import AsyncMock, MagicMock
@@ -75,9 +76,11 @@ class TestAuthenticatorLookupRole:
         auth = self._build({"role": "ADMIN", "active": False})
         assert auth._lookup_role("u1") is None
 
-    def test_returns_none_when_not_found(self):
+    def test_returns_inspector_when_not_found(self):
+        # Usuário comum autenticado no Cognito não precisa de Profile chumbado:
+        # na ausência de Profile explícito, o WS trata como INSPECTOR.
         auth = self._build(None)
-        assert auth._lookup_role("u1") is None
+        assert auth._lookup_role("u1") == "INSPECTOR"
 
 
 class TestAuthenticatorAuthenticate:
@@ -120,12 +123,56 @@ class TestAuthenticatorAuthenticate:
             await auth.authenticate("dummy")
 
     @pytest.mark.asyncio
-    async def test_profile_not_found_raises(self, monkeypatch):
+    async def test_profile_not_found_defaults_to_inspector(self, monkeypatch):
         ddb = MagicMock()
         ddb.Table.return_value.get_item.return_value = {}
         auth = Authenticator(_SETTINGS, dynamodb_resource=ddb)
         monkeypatch.setattr(auth, "_verify_jwt", AsyncMock(return_value={"sub": "ghost"}))
-        with pytest.raises(AuthError, match="profile"):
+
+        user = await auth.authenticate("dummy")
+
+        assert user.user_id == "ghost"
+        assert user.role == "INSPECTOR"
+
+    @pytest.mark.asyncio
+    async def test_cognito_admin_claim_without_profile_still_defaults_to_inspector(
+        self, monkeypatch
+    ):
+        ddb = MagicMock()
+        ddb.Table.return_value.get_item.return_value = {}
+        auth = Authenticator(_SETTINGS, dynamodb_resource=ddb)
+        monkeypatch.setattr(
+            auth,
+            "_verify_jwt",
+            AsyncMock(
+                return_value={"sub": "u1", "custom:general_role": "ADMIN_COLLABORATOR"}
+            ),
+        )
+
+        user = await auth.authenticate("dummy")
+
+        assert user.role == "INSPECTOR"
+
+    @pytest.mark.asyncio
+    async def test_inactive_inspector_profile_raises(self, monkeypatch):
+        ddb = MagicMock()
+        ddb.Table.return_value.get_item.return_value = {
+            "Item": {"role": "INSPECTOR", "active": False}
+        }
+        auth = Authenticator(_SETTINGS, dynamodb_resource=ddb)
+        monkeypatch.setattr(auth, "_verify_jwt", AsyncMock(return_value={"sub": "u1"}))
+        with pytest.raises(AuthError, match="inativo"):
+            await auth.authenticate("dummy")
+
+    @pytest.mark.asyncio
+    async def test_inactive_admin_profile_raises(self, monkeypatch):
+        ddb = MagicMock()
+        ddb.Table.return_value.get_item.return_value = {
+            "Item": {"role": "ADMIN", "active": False}
+        }
+        auth = Authenticator(_SETTINGS, dynamodb_resource=ddb)
+        monkeypatch.setattr(auth, "_verify_jwt", AsyncMock(return_value={"sub": "u1"}))
+        with pytest.raises(AuthError, match="inativo"):
             await auth.authenticate("dummy")
 
     @pytest.mark.asyncio
