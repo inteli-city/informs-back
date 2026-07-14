@@ -1,4 +1,5 @@
 import abc
+import copy
 from typing import Dict, List, Optional, Tuple
 from uuid import UUID
 
@@ -283,8 +284,6 @@ class Form(abc.ABC):
         return normalized_uploads, normalized_value
 
     def apply_field_values(self, fields: List[dict]) -> Dict[Tuple[int, int, str], List[FileUploadRequest]]:
-        import copy
-
         if not isinstance(fields, list):
             raise EntityError("Campos devem ser uma lista")
 
@@ -300,6 +299,8 @@ class Form(abc.ABC):
                 raise EntityError("Campo deve ser um objeto")
             section_id = item.get("section_id")
             section_instance = item.get("section_instance", 0)
+            if not isinstance(section_instance, int) or isinstance(section_instance, bool) or section_instance < 0:
+                raise EntityError("section_instance deve ser um inteiro não negativo")
             field_key = item.get("field_key")
             value = item.get("value")
 

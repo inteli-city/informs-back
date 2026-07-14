@@ -46,6 +46,7 @@ class FileUpload(FileUploadBase):
         section_id: Optional[int],
         field_key: Optional[str],
         file_index: Optional[int],
+        section_instance: Optional[int],
     ):
         if not isinstance(pre_signed_url, str) or not pre_signed_url:
             raise EntityError("URL pré-assinada deve ser uma string não vazia")
@@ -56,6 +57,7 @@ class FileUpload(FileUploadBase):
         FileUpload._validate_optional_int(section_id, "section_id")
         FileUpload._validate_optional_string(field_key, "field_key")
         FileUpload._validate_optional_int(file_index, "file_index")
+        FileUpload._validate_optional_int(section_instance, "section_instance")
 
     def __init__(
         self,
@@ -67,11 +69,12 @@ class FileUpload(FileUploadBase):
         section_id: Optional[int] = None,
         field_key: Optional[str] = None,
         file_index: Optional[int] = None,
+        section_instance: Optional[int] = None,
     ):
         super().__init__(filename=filename, mimetype=mimetype)
         self._validate_fields(
             pre_signed_url, file_path, file_url,
-            section_id, field_key, file_index
+            section_id, field_key, file_index, section_instance
         )
 
         self.pre_signed_url = pre_signed_url
@@ -80,6 +83,7 @@ class FileUpload(FileUploadBase):
         self.section_id = section_id
         self.field_key = field_key
         self.file_index = file_index
+        self.section_instance = section_instance
 
     def to_dict(self) -> dict:
         payload = super().to_dict()
@@ -88,6 +92,7 @@ class FileUpload(FileUploadBase):
             "file_path": self.file_path,
             "file_url": self.file_url,
             "section_id": self.section_id,
+            "section_instance": self.section_instance,
             "field_key": self.field_key,
             "file_index": self.file_index,
         })

@@ -29,6 +29,8 @@ class SectionViewmodel:
     def to_dict(self):
         return {
             "section_id": self.section.section_id,
+            "section_instance": self.section.section_instance,
+            "is_duplicable": self.section.is_duplicable,
             "fields": [FieldViewmodel(field).to_dict() for field in self.section.fields],
         }
 

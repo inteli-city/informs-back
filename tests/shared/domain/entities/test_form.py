@@ -154,6 +154,34 @@ class Test_Form_ApplyFieldValues:
                 {"section_id": 1, "section_instance": 0, "field_key": "nome", "value": "duplicado"},
             ])
 
+    def test_apply_field_values_section_instance_negative_raises(self):
+        form = self._make_duplicable_form()
+        form.status = FormStatus.IN_PROGRESS
+        with pytest.raises(EntityError):
+            form.apply_field_values([
+                {"section_id": 1, "section_instance": -1, "field_key": "nome", "value": "João"},
+            ])
+
+    def test_apply_field_values_section_instance_not_int_raises(self):
+        form = self._make_duplicable_form()
+        form.status = FormStatus.IN_PROGRESS
+        with pytest.raises(EntityError):
+            form.apply_field_values([
+                {"section_id": 1, "section_instance": "1", "field_key": "nome", "value": "João"},
+            ])
+
+    def test_apply_field_values_duplicate_instance_missing_required_raises(self):
+        """Instância duplicada deve ser validada como um adicional: obrigatórios preenchidos."""
+        form = self._make_duplicable_form()
+        form.status = FormStatus.IN_PROGRESS
+        with pytest.raises(EntityError):
+            form.apply_field_values([
+                {"section_id": 1, "section_instance": 0, "field_key": "nome", "value": "João"},
+                {"section_id": 1, "section_instance": 0, "field_key": "obs", "value": "ok"},
+                # instância 1 criada, mas campo obrigatório 'nome' não enviado
+                {"section_id": 1, "section_instance": 1, "field_key": "obs", "value": "tb ok"},
+            ])
+
     def test_apply_field_values_section_instance_default_zero(self):
         """Campos sem section_instance devem usar instância 0 (retrocompatibilidade)."""
         form = self._make_duplicable_form()

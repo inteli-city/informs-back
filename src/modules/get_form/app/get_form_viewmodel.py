@@ -21,11 +21,15 @@ class FieldViewmodel:
 class SectionViewmodel:
     def __init__(self, section: Section):
         self.section_id = section.section_id
+        self.section_instance = section.section_instance
+        self.is_duplicable = section.is_duplicable
         self.fields = section.fields
 
     def to_dict(self):
         return {
             "section_id": self.section_id,
+            "section_instance": self.section_instance,
+            "is_duplicable": self.is_duplicable,
             "fields": [FieldViewmodel(field).to_dict() for field in self.fields],
         }
 
