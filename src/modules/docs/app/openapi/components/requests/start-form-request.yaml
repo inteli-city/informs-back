@@ -1,5 +1,0 @@
-type: object
-required:
-  - in_progress_at
-properties:
-  in_progress_at: { type: integer, format: int64, description: "Timestamp em ms" }

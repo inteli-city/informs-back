@@ -35,7 +35,7 @@ class Section(abc.ABC):
             raise EntityError('is_duplicable deve ser um booleano')
         self.is_duplicable = is_duplicable
 
-        if not isinstance(section_instance, int) or section_instance < 0:
+        if not isinstance(section_instance, int) or isinstance(section_instance, bool) or section_instance < 0:
             raise EntityError('section_instance deve ser um inteiro não negativo')
         self.section_instance = section_instance
 

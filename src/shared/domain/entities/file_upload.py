@@ -35,7 +35,7 @@ class FileUpload(FileUploadBase):
 
     @staticmethod
     def _validate_optional_int(value: Optional[int], field_name: str):
-        if value is not None and not isinstance(value, int):
+        if value is not None and (not isinstance(value, int) or isinstance(value, bool)):
             raise EntityError(f"Campo '{field_name}' deve ser um inteiro")
 
     @staticmethod
@@ -58,6 +58,8 @@ class FileUpload(FileUploadBase):
         FileUpload._validate_optional_string(field_key, "field_key")
         FileUpload._validate_optional_int(file_index, "file_index")
         FileUpload._validate_optional_int(section_instance, "section_instance")
+        if section_instance is not None and section_instance < 0:
+            raise EntityError("Campo 'section_instance' deve ser um inteiro não negativo")
 
     def __init__(
         self,

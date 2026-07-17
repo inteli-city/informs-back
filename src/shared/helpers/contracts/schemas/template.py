@@ -1,3 +1,5 @@
+from pydantic import Field, StrictInt
+
 from src.shared.helpers.contracts.base import RequestContractModel, ResponseContractModel
 from .field import GenericFieldSchema
 
@@ -6,7 +8,7 @@ class TemplateSectionSchema(RequestContractModel):
     section_id: int
     fields: list[GenericFieldSchema]
     is_duplicable: bool = False
-    section_instance: int = 0
+    section_instance: StrictInt = Field(default=0, ge=0)
 
 
 class TemplateSchema(ResponseContractModel):

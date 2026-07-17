@@ -1,8 +1,0 @@
-type: object
-properties:
-  forms:
-    type: array
-    items: { $ref: "../entities/docs/form.yaml#/Form" }
-  limit: { type: integer, nullable: true }
-  last_evaluated_key: { type: string, nullable: true }
-required: [forms, limit, last_evaluated_key]
