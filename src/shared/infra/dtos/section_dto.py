@@ -3,6 +3,7 @@ from typing import List
 from src.shared.domain.entities.field import Field
 from src.shared.domain.entities.section import Section
 from src.shared.helpers.errors.controller_errors import MissingParameters
+from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.infra.dtos.field_dto import FieldDTO
 
 class SectionDTO:
@@ -29,10 +30,22 @@ class SectionDTO:
 
         fields = [FieldDTO.from_dynamo(field_dict=field_data).to_entity() for field_data in fields_data]
 
+        # section_instance só é criado via submissão (Form._materialize_section_instance).
+        # Aceitar um valor diferente de 0 aqui daria a impressão de que a criação
+        # controla a instância, mas quebraria a suposição de apply_field_values de
+        # que toda seção base (usada para clonar instâncias novas) está em instância 0.
+        section_instance = section_dict.get('section_instance', 0)
+        if section_instance != 0:
+            raise EntityError(
+                "section_instance deve ser 0 na criação/atualização — "
+                "instâncias duplicadas são criadas apenas na submissão do formulário"
+            )
+
         return SectionDTO(
             section_id=section_id,
             fields=fields,
             is_duplicable=section_dict.get('is_duplicable', False),
+            section_instance=section_instance,
         )
 
     @staticmethod

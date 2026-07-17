@@ -308,6 +308,12 @@ class Form(abc.ABC):
             raise EntityError(f"Seção {section_id} não é duplicável")
         new_section = copy.deepcopy(base)
         new_section.section_instance = section_instance
+        # Instância nova começa vazia: sem isso, ela herdaria qualquer valor
+        # que a seção base já tivesse (ex.: default gravado na criação),
+        # satisfazendo campos obrigatórios sem o cliente ter preenchido nada
+        # para esta instância específica.
+        for field in new_section.fields:
+            field.set_value(None)
         self.sections.append(new_section)
 
     def apply_field_values(self, fields: List[dict]) -> Dict[Tuple[int, int, str], List[FileUploadRequest]]:

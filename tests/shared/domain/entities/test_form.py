@@ -182,6 +182,38 @@ class TestFormApplyFieldValues:
                 {"section_id": 1, "section_instance": 1, "field_key": "obs", "value": "tb ok"},
             ])
 
+    def test_apply_field_values_duplicate_instance_does_not_inherit_base_value(self):
+        """Instância nova não deve herdar valor que a seção base já tinha antes deste submit
+        (ex.: default gravado na criação) — senão o obrigatório passaria sem o cliente
+        ter preenchido nada para esta instância específica."""
+        field_a = TextField(label='Nome', required=True, key='nome', order=1, max_length=50, value='Default')
+        field_b = TextField(label='Obs', required=False, key='obs', order=2, max_length=50)
+        sec = Section(section_id=1, fields=[field_a, field_b], is_duplicable=True)
+        form = make_form(sections=[sec], justification=justification)
+        form.status = FormStatus.IN_PROGRESS
+        with pytest.raises(EntityError):
+            form.apply_field_values([
+                # instância 1 criada, mas 'nome' (obrigatório, com valor 'Default' herdado
+                # da base) não é enviado para esta instância
+                {"section_id": 1, "section_instance": 1, "field_key": "obs", "value": "tb ok"},
+            ])
+
+    def test_apply_field_values_duplicate_instance_clears_inherited_value(self):
+        """Confirma que o clone realmente zera o valor herdado (não só que a validação falha).
+        'nome' não é enviado para a instância 1 — sem o fix, ficaria com 'Default' herdado."""
+        field_a = TextField(label='Nome', required=False, key='nome', order=1, max_length=50, value='Default')
+        field_b = TextField(label='Obs', required=False, key='obs', order=2, max_length=50)
+        sec = Section(section_id=1, fields=[field_a, field_b], is_duplicable=True)
+        form = make_form(sections=[sec], justification=justification)
+        form.status = FormStatus.IN_PROGRESS
+        form.apply_field_values([
+            {"section_id": 1, "section_instance": 1, "field_key": "obs", "value": "novo"},
+        ])
+        instance_0 = next(s for s in form.sections if s.section_instance == 0)
+        instance_1 = next(s for s in form.sections if s.section_instance == 1)
+        assert instance_0.fields[0].value == "Default"
+        assert instance_1.fields[0].value is None
+
     def test_apply_field_values_section_instance_default_zero(self):
         """Campos sem section_instance devem usar instância 0 (retrocompatibilidade)."""
         form = self._make_duplicable_form()

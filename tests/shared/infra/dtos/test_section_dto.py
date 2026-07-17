@@ -676,6 +676,18 @@ class Test_SectionDTO:
         assert dto.is_duplicable is True
         assert dto.section_instance == 0
 
+    def test_section_dto_from_request_section_instance_nonzero_raises(self):
+        """section_instance só é materializado na submissão (Form._materialize_section_instance);
+        aceitar um valor != 0 na criação/atualização deixaria a seção sem instância 0 correspondente."""
+        section_dict = {
+            'section_id': '1',
+            'is_duplicable': True,
+            'section_instance': 3,
+            'fields': [{'field_type': 'TEXT_FIELD', 'placeholder': 'x', 'required': True, 'key': 'k', 'max_length': 10}],
+        }
+        with pytest.raises(EntityError):
+            SectionDTO.from_request(section_dict)
+
     def test_section_dto_from_request_is_duplicable_default_false(self):
         section_dict = {
             'section_id': '1',
