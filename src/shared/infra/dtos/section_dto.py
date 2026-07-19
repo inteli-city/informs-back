@@ -62,8 +62,11 @@ class SectionDTO:
         return SectionDTO(
             section_id=section_dict['section_id'],
             fields=[FieldDTO.from_dynamo(field_dict=field_data).to_entity() for field_data in section_dict['fields']],
-            is_duplicable=section_dict.get('is_duplicable', False),
-            section_instance=section_dict.get('section_instance', 0),
+            is_duplicable=bool(section_dict.get('is_duplicable', False)),
+            # boto3 devolve números do DynamoDB como decimal.Decimal; sem o cast,
+            # Section rejeitaria o valor (validação estrita de int) e o formulário
+            # gravado ficaria ilegível.
+            section_instance=int(section_dict.get('section_instance', 0)),
         )
 
     def to_dynamo(self) -> dict:

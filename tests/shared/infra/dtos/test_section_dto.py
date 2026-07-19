@@ -724,6 +724,21 @@ class Test_SectionDTO:
         assert dto.is_duplicable is True
         assert dto.section_instance == 3
 
+    def test_section_dto_from_dynamo_decimal_section_instance(self):
+        """boto3 devolve números do DynamoDB como decimal.Decimal; o round-trip
+        até a entidade (validação estrita de int) não pode quebrar — senão todo
+        formulário gravado com section_instance vira ilegível na leitura."""
+        from decimal import Decimal
+        section_dict = {
+            'section_id': '1',
+            'is_duplicable': True,
+            'section_instance': Decimal('3'),
+            'fields': [{'field_type': 'TEXT_FIELD', 'placeholder': 'x', 'required': True, 'key': 'k', 'max_length': 10}],
+        }
+        entity = SectionDTO.from_dynamo(section_dict).to_entity()
+        assert entity.section_instance == 3
+        assert isinstance(entity.section_instance, int)
+
     def test_section_dto_to_dynamo_includes_flags(self):
         from src.shared.domain.entities.field import TextField as TF
         dto = SectionDTO(
