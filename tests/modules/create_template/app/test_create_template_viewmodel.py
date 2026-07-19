@@ -3,10 +3,11 @@ import sys
 
 sys.path.append(os.getcwd())
 
-from src.modules.create_template.app.create_template_viewmodel import FieldViewmodel, SectionViewmodel, TemplateViewmodel
+from src.modules.create_template.app.create_template_viewmodel import TemplateViewmodel
 from src.shared.domain.entities.field import TextField
 from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.template import Template
+from src.shared.helpers.viewmodels.form_dict_builders import build_field_vars_dict, build_section_dict
 
 
 class TestCreateTemplateViewmodel:
@@ -26,19 +27,17 @@ class TestCreateTemplateViewmodel:
             sections=[section],
         )
 
-    def test_field_viewmodel(self):
+    def test_field_vars_dict(self):
         field = TextField(label="Name", required=True, key="name", order=0)
-        vm = FieldViewmodel(field)
-        result = vm.to_dict()
+        result = build_field_vars_dict(field)
         assert result["field_type"] == "TEXT_FIELD"
         assert result["label"] == "Name"
         assert result["required"] is True
 
-    def test_section_viewmodel(self):
+    def test_section_dict_with_vars_serializer(self):
         field = TextField(label="Name", required=True, key="name", order=0)
         section = Section(section_id=1, fields=[field])
-        vm = SectionViewmodel(section)
-        result = vm.to_dict()
+        result = build_section_dict(section, field_serializer=build_field_vars_dict)
         assert result["section_id"] == 1
         assert len(result["fields"]) == 1
 
