@@ -1,37 +1,9 @@
-from enum import Enum
-from typing import List, Optional
-
-from src.shared.domain.entities.field import Field
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.justification import Justification, JustificationOption, SelectedJustification
-from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.enums.priority_enum import Priority
 from src.shared.helpers.contracts.endpoints.get_form_contract import GetFormResponseSchema
-
-
-class FieldViewmodel:
-    def __init__(self, field: Field):
-        self.field = field
-
-    def to_dict(self):
-        return {attr: getattr(self.field, attr).value if isinstance(getattr(self.field, attr), Enum) else getattr(self.field, attr) for attr in vars(self.field)}
-
-
-class SectionViewmodel:
-    def __init__(self, section: Section):
-        self.section_id = section.section_id
-        self.section_instance = section.section_instance
-        self.is_duplicable = section.is_duplicable
-        self.fields = section.fields
-
-    def to_dict(self):
-        return {
-            "section_id": self.section_id,
-            "section_instance": self.section_instance,
-            "is_duplicable": self.is_duplicable,
-            "fields": [FieldViewmodel(field).to_dict() for field in self.fields],
-        }
+from src.shared.helpers.viewmodels.form_dict_builders import build_field_vars_dict, build_section_dict
 
 
 class JustificationOptionViewmodel:
@@ -120,7 +92,10 @@ class GetFormViewmodel:
             "observation": self.observation,
             "expiration_date": self.expiration_date,
             "justification": JustificationViewmodel(self.justification).to_dict(),
-            "sections": [SectionViewmodel(section).to_dict() for section in self.sections],
+            "sections": [
+                build_section_dict(section, field_serializer=build_field_vars_dict)
+                for section in self.sections
+            ],
             "in_progress_at": self.in_progress_at,
             "cancelled_at": self.cancelled_at,
             "completed_at": self.completed_at,

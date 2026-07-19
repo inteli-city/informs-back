@@ -1,8 +1,15 @@
 import abc
+import copy
 from typing import List
 
 from src.shared.domain.entities.field import Field
+from src.shared.domain.validators import ensure_non_negative_int
 from src.shared.helpers.errors.domain_errors import EntityError
+
+# Teto de instâncias duplicadas por seção. Cada instância clona a seção base
+# inteira e é persistida no mesmo item do DynamoDB (limite de 400KB), então
+# sem teto uma única submissão poderia inflar o item até falhar a persistência.
+MAX_SECTION_INSTANCE = 50
 
 
 class Section(abc.ABC):
@@ -35,9 +42,22 @@ class Section(abc.ABC):
             raise EntityError('is_duplicable deve ser um booleano')
         self.is_duplicable = is_duplicable
 
-        if not isinstance(section_instance, int) or isinstance(section_instance, bool) or section_instance < 0:
-            raise EntityError('section_instance deve ser um inteiro não negativo')
+        ensure_non_negative_int(section_instance, 'section_instance')
         self.section_instance = section_instance
+
+    def with_instance(self, section_instance: int) -> "Section":
+        """Clona a seção como uma nova instância duplicada.
+
+        A instância nova começa com todos os campos vazios: sem isso, ela
+        herdaria qualquer valor que a seção base já tivesse (ex.: default
+        gravado na criação do form), satisfazendo campos obrigatórios sem o
+        preenchedor ter tocado nesta instância específica.
+        """
+        section = copy.deepcopy(self)
+        section.section_instance = section_instance
+        for field in section.fields:
+            field.set_value(None)
+        return section
 
     def _ensure_unique_field_keys(self, fields: List[Field]) -> None:
         seen = set()

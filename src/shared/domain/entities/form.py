@@ -7,9 +7,10 @@ from src.shared.domain.entities.field import FileField
 from src.shared.domain.entities.file_upload import FileUploadRequest
 from src.shared.domain.entities.information_field import InformationField
 from src.shared.domain.entities.justification import Justification
-from src.shared.domain.entities.section import Section
+from src.shared.domain.entities.section import MAX_SECTION_INSTANCE, Section
 from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.enums.priority_enum import Priority
+from src.shared.domain.validators import ensure_non_negative_int
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction
 
@@ -288,33 +289,28 @@ class Form(abc.ABC):
         if not isinstance(item, dict):
             raise EntityError("Campo deve ser um objeto")
         section_instance = item.get("section_instance", 0)
-        if not isinstance(section_instance, int) or isinstance(section_instance, bool) or section_instance < 0:
-            raise EntityError("section_instance deve ser um inteiro não negativo")
+        ensure_non_negative_int(section_instance, "section_instance")
+        if section_instance > MAX_SECTION_INSTANCE:
+            raise EntityError(f"section_instance deve ser no máximo {MAX_SECTION_INSTANCE}")
         return item.get("section_id"), section_instance, item.get("field_key"), item.get("value")
 
-    def _materialize_section_instance(self, section_id: int, section_instance: int, base_sections: Dict[int, Section]):
-        if section_instance == 0:
-            return
-        already_exists = any(
-            s.section_id == section_id and s.section_instance == section_instance
-            for s in self.sections
+    def _get_or_materialize_section(self, section_id: int, section_instance: int, base_sections: Dict[int, Section]) -> Section:
+        section = next(
+            (s for s in self.sections if s.section_id == section_id and s.section_instance == section_instance),
+            None,
         )
-        if already_exists:
-            return
+        if section is not None:
+            return section
+        if section_instance == 0:
+            raise EntityError(f"Seção {section_id} (instância {section_instance}) não encontrada no formulário")
         base = base_sections.get(section_id)
         if base is None:
             raise EntityError(f"Seção {section_id} não encontrada no formulário")
         if not base.is_duplicable:
             raise EntityError(f"Seção {section_id} não é duplicável")
-        new_section = copy.deepcopy(base)
-        new_section.section_instance = section_instance
-        # Instância nova começa vazia: sem isso, ela herdaria qualquer valor
-        # que a seção base já tivesse (ex.: default gravado na criação),
-        # satisfazendo campos obrigatórios sem o cliente ter preenchido nada
-        # para esta instância específica.
-        for field in new_section.fields:
-            field.set_value(None)
+        new_section = base.with_instance(section_instance)
         self.sections.append(new_section)
+        return new_section
 
     def apply_field_values(self, fields: List[dict]) -> Dict[Tuple[int, int, str], List[FileUploadRequest]]:
         if not isinstance(fields, list):
@@ -335,9 +331,7 @@ class Form(abc.ABC):
                 raise EntityError(f"Campo '{field_key}' duplicado na seção {section_id} instância {section_instance}")
             seen.add(key)
 
-            self._materialize_section_instance(section_id, section_instance, base_sections)
-
-            section = self._find_section(section_id, section_instance)
+            section = self._get_or_materialize_section(section_id, section_instance, base_sections)
             field_index = self._find_field_index(section, field_key)
             existing_field = section.fields[field_index]
 

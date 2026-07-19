@@ -677,7 +677,7 @@ class Test_SectionDTO:
         assert dto.section_instance == 0
 
     def test_section_dto_from_request_section_instance_nonzero_raises(self):
-        """section_instance só é materializado na submissão (Form._materialize_section_instance);
+        """section_instance só é materializado na submissão (Form._get_or_materialize_section);
         aceitar um valor != 0 na criação/atualização deixaria a seção sem instância 0 correspondente."""
         section_dict = {
             'section_id': '1',

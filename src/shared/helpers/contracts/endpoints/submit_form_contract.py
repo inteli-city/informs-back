@@ -1,14 +1,15 @@
 from typing import Any
 
-from pydantic import Field, StrictInt
+from pydantic import Field
 
-from src.shared.helpers.contracts.base import RequestContractModel, ResponseContractModel
+from src.shared.domain.entities.section import MAX_SECTION_INSTANCE
+from src.shared.helpers.contracts.base import NonNegativeStrictInt, RequestContractModel, ResponseContractModel
 from src.shared.helpers.contracts.schemas.file_upload import FileUploadSchema
 
 
 class SubmitFormFieldFlatSchema(RequestContractModel):
     section_id: int
-    section_instance: StrictInt = Field(default=0, ge=0)
+    section_instance: NonNegativeStrictInt = Field(default=0, le=MAX_SECTION_INSTANCE)
     field_key: str
     value: Any | None = None
 

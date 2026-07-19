@@ -1,6 +1,7 @@
 from abc import ABC
 from typing import Optional
 
+from src.shared.domain.validators import ensure_non_negative_int
 from src.shared.helpers.errors.domain_errors import EntityError
 
 
@@ -57,9 +58,7 @@ class FileUpload(FileUploadBase):
         FileUpload._validate_optional_int(section_id, "section_id")
         FileUpload._validate_optional_string(field_key, "field_key")
         FileUpload._validate_optional_int(file_index, "file_index")
-        FileUpload._validate_optional_int(section_instance, "section_instance")
-        if section_instance is not None and section_instance < 0:
-            raise EntityError("Campo 'section_instance' deve ser um inteiro não negativo")
+        ensure_non_negative_int(section_instance, "Campo 'section_instance'", allow_none=True)
 
     def __init__(
         self,

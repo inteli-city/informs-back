@@ -4,7 +4,7 @@ from src.shared.domain.entities.field import TextField
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.information_field import FileInformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption, SelectedJustification
-from src.shared.domain.entities.section import Section
+from src.shared.domain.entities.section import MAX_SECTION_INSTANCE, Section
 from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.enums.priority_enum import Priority
 from src.shared.helpers.errors.domain_errors import EntityError
@@ -168,6 +168,16 @@ class TestFormApplyFieldValues:
         with pytest.raises(EntityError):
             form.apply_field_values([
                 {"section_id": 1, "section_instance": "1", "field_key": "nome", "value": "João"},
+            ])
+
+    def test_apply_field_values_section_instance_above_max_raises(self):
+        """Defesa no domínio (além do contrato): teto evita deepcopies em série e
+        item do DynamoDB inflado além do limite de 400KB."""
+        form = self._make_duplicable_form()
+        form.status = FormStatus.IN_PROGRESS
+        with pytest.raises(EntityError):
+            form.apply_field_values([
+                {"section_id": 1, "section_instance": MAX_SECTION_INSTANCE + 1, "field_key": "nome", "value": "João"},
             ])
 
     def test_apply_field_values_duplicate_instance_missing_required_raises(self):
