@@ -1,5 +1,4 @@
 import abc
-import copy
 from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID
 
@@ -316,8 +315,12 @@ class Form(abc.ABC):
         if not isinstance(fields, list):
             raise EntityError("Campos devem ser uma lista")
 
+        # Referências diretas, sem snapshot: Section.with_instance() já clona a
+        # base e zera os valores, então clonar da seção viva (mesmo mutada por
+        # este submit) produz o mesmo resultado — sem pagar deepcopy de todas
+        # as seções em toda submissão.
         base_sections = {
-            s.section_id: copy.deepcopy(s)
+            s.section_id: s
             for s in self.sections if s.section_instance == 0
         }
 

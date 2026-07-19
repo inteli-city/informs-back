@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from src.shared.helpers.contracts.base import NonNegativeStrictInt, RequestContractModel, ResponseContractModel
 from .field import GenericFieldSchema
 from .information_field import InformationFieldSchema
@@ -8,7 +10,14 @@ class FormSectionSchema(RequestContractModel):
     section_id: int
     fields: list[GenericFieldSchema]
     is_duplicable: bool = False
-    section_instance: NonNegativeStrictInt = 0
+    section_instance: NonNegativeStrictInt = Field(
+        default=0,
+        description=(
+            "Somente leitura: preenchido nas respostas para identificar instâncias "
+            "duplicadas (0 = seção original). Na criação do formulário deve ser 0 "
+            "(default) — instâncias novas são criadas apenas na submissão."
+        ),
+    )
 
 
 class FormResponseSchema(ResponseContractModel):
