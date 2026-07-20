@@ -36,6 +36,35 @@ class Test_InformationFieldDTO:
         assert information_field_dto.information_field.file_path == 'file_path'
         assert information_field_dto.information_field.information_field_type == InformationFieldType.FILE_INFORMATION_FIELD
     
+    def test_information_field_from_request_url(self):
+        information_field_dict = {
+            'information_field_type': 'URL_INFORMATION_FIELD',
+            'url': 'https://example.com/photo.jpg',
+            'mimetype': 'image/jpeg'
+        }
+        information_field_dto = InformationFieldDTO.from_request(information_field_dict)
+        assert information_field_dto.information_field.url == 'https://example.com/photo.jpg'
+        assert information_field_dto.information_field.mimetype == 'image/jpeg'
+        assert information_field_dto.information_field.information_field_type == InformationFieldType.URL_INFORMATION_FIELD
+
+    def test_information_field_from_request_url_missing_url(self):
+        information_field_dict = {
+            'information_field_type': 'URL_INFORMATION_FIELD',
+            'mimetype': 'image/jpeg'
+        }
+
+        with pytest.raises(MissingParameters):
+            InformationFieldDTO.from_request(information_field_dict)
+
+    def test_information_field_from_request_url_missing_mimetype(self):
+        information_field_dict = {
+            'information_field_type': 'URL_INFORMATION_FIELD',
+            'url': 'https://example.com/photo.jpg'
+        }
+
+        with pytest.raises(MissingParameters):
+            InformationFieldDTO.from_request(information_field_dict)
+
     def test_information_field_from_request_missing_information_field_type(self):
         information_field_dict = {
             'value': 'value'
@@ -120,6 +149,29 @@ class Test_InformationFieldDTO:
         assert dynamo_dict['file_path'] == 'file_path'
         assert dynamo_dict['information_field_type'] == InformationFieldType.FILE_INFORMATION_FIELD.value
     
+    def test_information_field_to_dynamo_url(self):
+        information_field_dict = {
+            'information_field_type': 'URL_INFORMATION_FIELD',
+            'url': 'https://example.com/photo.jpg',
+            'mimetype': 'image/jpeg'
+        }
+        information_field_dto = InformationFieldDTO.from_request(information_field_dict)
+        dynamo_dict = information_field_dto.to_dynamo()
+        assert dynamo_dict['url'] == 'https://example.com/photo.jpg'
+        assert dynamo_dict['mimetype'] == 'image/jpeg'
+        assert dynamo_dict['information_field_type'] == InformationFieldType.URL_INFORMATION_FIELD.value
+
+    def test_information_field_from_dynamo_url(self):
+        information_field_dict = {
+            'information_field_type': 'URL_INFORMATION_FIELD',
+            'url': 'https://example.com/photo.jpg',
+            'mimetype': 'image/jpeg'
+        }
+        information_field_dto = InformationFieldDTO.from_dynamo(information_field_dict)
+        assert information_field_dto.information_field.url == 'https://example.com/photo.jpg'
+        assert information_field_dto.information_field.mimetype == 'image/jpeg'
+        assert information_field_dto.information_field.information_field_type == InformationFieldType.URL_INFORMATION_FIELD
+
     def test_information_field_from_dynamo_text(self):
         information_field_dict = {
             'information_field_type': 'TEXT_INFORMATION_FIELD',

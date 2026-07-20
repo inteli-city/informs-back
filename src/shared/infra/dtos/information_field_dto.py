@@ -1,5 +1,5 @@
 from decimal import Decimal
-from src.shared.domain.entities.information_field import FileInformationField, InformationField, MapInformationField, TextInformationField
+from src.shared.domain.entities.information_field import FileInformationField, InformationField, MapInformationField, TextInformationField, UrlInformationField
 from src.shared.domain.enums.file_type_enum import FileType
 from src.shared.domain.enums.information_field_type_enum import InformationFieldType
 from src.shared.helpers.errors.controller_errors import MissingParameters
@@ -44,7 +44,14 @@ class InformationFieldDTO():
             else:
                 file_type = None
             return InformationFieldDTO(FileInformationField(file_path=information_field_dict.get('file_path'), file_type=file_type))
-        
+
+        if information_field_type == InformationFieldType.URL_INFORMATION_FIELD:
+            if information_field_dict.get('url') is None:
+                raise MissingParameters('url')
+            if information_field_dict.get('mimetype') is None:
+                raise MissingParameters('mimetype')
+            return InformationFieldDTO(UrlInformationField(url=information_field_dict.get('url'), mimetype=information_field_dict.get('mimetype')))
+
         raise EntityError('information_field_type')
     
     @staticmethod
@@ -71,6 +78,12 @@ class InformationFieldDTO():
             if self.information_field.file_type is not None:
                 payload["file_type"] = self.information_field.file_type.value
             return payload
+        if isinstance(self.information_field, UrlInformationField):
+            return {
+                "information_field_type": self.information_field.information_field_type.value,
+                "url": self.information_field.url,
+                "mimetype": self.information_field.mimetype,
+            }
         raise EntityError('information_field_type')
     
     @staticmethod
@@ -92,8 +105,10 @@ class InformationFieldDTO():
             file_type_raw = information_field_dict.get("file_type")
             file_type = FileType(file_type_raw) if file_type_raw in [ft.value for ft in FileType] else None
             return InformationFieldDTO(FileInformationField(file_path=information_field_dict.get('file_path'), file_type=file_type))
+        if information_field_type == InformationFieldType.URL_INFORMATION_FIELD:
+            return InformationFieldDTO(UrlInformationField(url=information_field_dict.get('url'), mimetype=information_field_dict.get('mimetype')))
         raise EntityError('information_field_type')
-    
+
     def to_entity(self) -> InformationField:
         return self.information_field
     

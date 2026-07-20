@@ -23,8 +23,17 @@ class FileInformationFieldInputSchema(RequestContractModel):
     file_type: Literal["IMAGE", "DOCUMENT"] | None = None
 
 
+class UrlInformationFieldInputSchema(RequestContractModel):
+    information_field_type: Literal["URL_INFORMATION_FIELD"]
+    url: str
+    mimetype: str
+
+
 InformationFieldInputSchema = Annotated[
-    TextInformationFieldInputSchema | MapInformationFieldInputSchema | FileInformationFieldInputSchema,
+    TextInformationFieldInputSchema
+    | MapInformationFieldInputSchema
+    | FileInformationFieldInputSchema
+    | UrlInformationFieldInputSchema,
     Field(discriminator="information_field_type"),
 ]
 
@@ -46,7 +55,16 @@ class FileInformationFieldSchema(ResponseContractModel):
     file_type: Literal["IMAGE", "DOCUMENT"] | None = None
 
 
+class UrlInformationFieldSchema(ResponseContractModel):
+    information_field_type: Literal["URL_INFORMATION_FIELD"]
+    url: str
+    mimetype: str
+
+
 InformationFieldSchema = Annotated[
-    TextInformationFieldSchema | MapInformationFieldSchema | FileInformationFieldSchema,
+    TextInformationFieldSchema
+    | MapInformationFieldSchema
+    | FileInformationFieldSchema
+    | UrlInformationFieldSchema,
     Field(discriminator="information_field_type"),
 ]
