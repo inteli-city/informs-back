@@ -156,22 +156,37 @@ class FormRepositoryMock(IFormRepository):
         created_at_end: Optional[int] = None,
         search: Optional[str] = None,
     ) -> tuple[List[Form], Optional[str]]:
-        forms = self.forms
+        forms = self._filter_forms(
+            self.forms, user_id, status, system, created_at_start, created_at_end, search
+        )
 
+        def sort_key(f: Form):
+            is_open = f.status not in [FormStatus.COMPLETED, FormStatus.CANCELLED]
+            return (is_open, int(f.priority.value), f.created_at)
+
+        forms = sorted(forms, key=sort_key, reverse=True)
+
+        start = self._parse_start_index(forms, exclusive_start_key)
+        if limit is None:
+            return deepcopy(forms[start:]), None
+
+        end = start + limit
+        page = forms[start:end]
+        next_key = self._build_next_key(forms, end)
+        return deepcopy(page), next_key
+
+    @staticmethod
+    def _filter_forms(forms, user_id, status, system, created_at_start, created_at_end, search):
         if user_id is not None:
             forms = [form for form in forms if form.user_id == user_id]
 
         if status is not None:
-            if isinstance(status, list):
-                forms = [form for form in forms if form.status in status]
-            else:
-                forms = [form for form in forms if form.status == status]
+            statuses = status if isinstance(status, list) else [status]
+            forms = [form for form in forms if form.status in statuses]
 
         if system is not None:
-            if isinstance(system, list):
-                forms = [form for form in forms if form.system in system]
-            else:
-                forms = [form for form in forms if form.system == system]
+            systems = system if isinstance(system, list) else [system]
+            forms = [form for form in forms if form.system in systems]
 
         if created_at_start is not None:
             forms = [form for form in forms if form.created_at >= created_at_start]
@@ -184,34 +199,21 @@ class FormRepositoryMock(IFormRepository):
                 form for form in forms
                 if search_lower in form.form_title.lower() or (form.observation or "").lower().find(search_lower) != -1
             ]
+        return forms
 
-        def sort_key(f: Form):
-            is_open = f.status not in [FormStatus.COMPLETED, FormStatus.CANCELLED]
-            return (is_open, int(f.priority.value), f.created_at)
-
-        forms = sorted(forms, key=sort_key, reverse=True)
-
-        start_key_dict = exclusive_start_key
-        start = self._parse_start_index(forms, start_key_dict)
-        if limit is None:
-            return deepcopy(forms[start:]), None
-
-        end = start + limit
-        page = forms[start:end]
-
-        next_key = None
-        if end < len(forms):
-            next_form = forms[end - 1]
-            next_key = {
-                "PK": f"form#{next_form.id}",
-                "SK": "METADATA",
-                "GSI1PK": f"user#{next_form.user_id}",
-                "GSI1SK": f"priority#{next_form.priority.value}#status#{next_form.status.value}#created_at#{next_form.created_at}",
-                "id": next_form.id,
-            }
-            next_key = encode_pagination_token(next_key)
-
-        return deepcopy(page), next_key
+    @staticmethod
+    def _build_next_key(forms: List[Form], end: int) -> Optional[str]:
+        if end >= len(forms):
+            return None
+        next_form = forms[end - 1]
+        next_key = {
+            "PK": f"form#{next_form.id}",
+            "SK": "METADATA",
+            "GSI1PK": f"user#{next_form.user_id}",
+            "GSI1SK": f"priority#{next_form.priority.value}#status#{next_form.status.value}#created_at#{next_form.created_at}",
+            "id": next_form.id,
+        }
+        return encode_pagination_token(next_key)
     
     def create_form(self, form: Form) -> Form:
         for item in self.forms:
@@ -233,26 +235,25 @@ class FormRepositoryMock(IFormRepository):
         justification: Optional[Justification] = None,
         expected_status: Optional[FormStatus] = None,
     ) -> Optional[Form]:
-        for form in self.forms:
-            if form.id == form_id:
-                if expected_status is not None and form.status != expected_status:
-                    raise ForbiddenAction("Formulário foi atualizado por outra operação")
-                if status is not None:
-                    form.status = status
-                if in_progress_at is not None:
-                    form.in_progress_at = in_progress_at
-                if completed_at is not None:
-                    form.completed_at = completed_at
-                if cancelled_at is not None:
-                    form.cancelled_at = cancelled_at
-                if updated_at is not None:
-                    form.updated_at = updated_at
-                if sections is not None:
-                    form.sections = sections
-                if justification is not None:
-                    form.justification = justification
-                return form
-        return None
+        form = next((f for f in self.forms if f.id == form_id), None)
+        if form is None:
+            return None
+        if expected_status is not None and form.status != expected_status:
+            raise ForbiddenAction("Formulário foi atualizado por outra operação")
+
+        updates = {
+            "status": status,
+            "in_progress_at": in_progress_at,
+            "completed_at": completed_at,
+            "cancelled_at": cancelled_at,
+            "updated_at": updated_at,
+            "sections": sections,
+            "justification": justification,
+        }
+        for attr, new_value in updates.items():
+            if new_value is not None:
+                setattr(form, attr, new_value)
+        return form
 
     def get_forms_updated_since(
         self,
