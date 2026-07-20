@@ -1,6 +1,8 @@
 import os
 import sys
 
+import pytest
+
 sys.path.append(os.getcwd())
 
 from src.shared.infra.repositories.location_repository_dynamo import LocationRepositoryDynamo
@@ -53,7 +55,7 @@ class TestLocationRepositoryDynamo:
         assert pings[0].user_id == USER_ID
         assert pings[0].ts == 1000
         assert pings[0].ts_device == 950
-        assert pings[0].accuracy == 5.0
+        assert pings[0].accuracy == pytest.approx(5.0)
 
     def test_query_history_paginates(self):
         repo = _repo()

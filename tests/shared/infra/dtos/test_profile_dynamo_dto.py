@@ -14,17 +14,17 @@ USER_ID = "d61dbf66-a10f-11ed-a8fc-0242ac120001"
 
 
 def _profile(**overrides) -> Profile:
-    base = dict(
-        user_id=USER_ID,
-        role=ProfileRole.ADMIN,
-        name="Admin",
-        email="admin@example.com",
-        system="GAIA",
-        active=True,
-        created_at=946684800000,
-        updated_at=946684800000,
-        vehicle_plate=None,
-    )
+    base = {
+        "user_id": USER_ID,
+        "role": ProfileRole.ADMIN,
+        "name": "Admin",
+        "email": "admin@example.com",
+        "system": "GAIA",
+        "active": True,
+        "created_at": 946684800000,
+        "updated_at": 946684800000,
+        "vehicle_plate": None,
+    }
     base.update(overrides)
     return Profile(**base)
 

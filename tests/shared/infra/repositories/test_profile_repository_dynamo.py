@@ -1,5 +1,6 @@
 import os
 import sys
+from types import SimpleNamespace
 
 import pytest
 
@@ -19,27 +20,17 @@ class _ConditionalCheckFailed(Exception):
     pass
 
 
-class _FakeClientExceptions:
-    ConditionalCheckFailedException = _ConditionalCheckFailed
-
-
-class _FakeMetaClient:
-    exceptions = _FakeClientExceptions()
-
-
-class _FakeMeta:
-    client = _FakeMetaClient()
-
-
-class _FakeTable:
-    meta = _FakeMeta()
-
-
 class FakeProfileDynamo:
     """Fake do DynamoDatasource para ProfileRepositoryDynamo (sem AWS)."""
 
     def __init__(self):
-        self.dynamo_table = _FakeTable()
+        # Espelha o caminho boto3 dynamo_table.meta.client.exceptions.<Name>.
+        # SimpleNamespace evita declarar um campo com nome PascalCase (imposto
+        # pela API do boto3, não renomeável).
+        exceptions = SimpleNamespace(ConditionalCheckFailedException=_ConditionalCheckFailed)
+        self.dynamo_table = SimpleNamespace(
+            meta=SimpleNamespace(client=SimpleNamespace(exceptions=exceptions))
+        )
         self.get_item_response = {}
         self.put_should_conflict = False
         self.put_calls = []
@@ -72,17 +63,17 @@ def _repo() -> ProfileRepositoryDynamo:
 
 
 def _profile(**overrides) -> Profile:
-    base = dict(
-        user_id=USER_ID,
-        role=ProfileRole.ADMIN,
-        name="Admin",
-        email="admin@example.com",
-        system="GAIA",
-        active=True,
-        created_at=1,
-        updated_at=1,
-        vehicle_plate=None,
-    )
+    base = {
+        "user_id": USER_ID,
+        "role": ProfileRole.ADMIN,
+        "name": "Admin",
+        "email": "admin@example.com",
+        "system": "GAIA",
+        "active": True,
+        "created_at": 1,
+        "updated_at": 1,
+        "vehicle_plate": None,
+    }
     base.update(overrides)
     return Profile(**base)
 
@@ -115,7 +106,7 @@ class TestProfileRepositoryDynamo:
         result = repo.create(profile)
 
         assert result.user_id == USER_ID
-        item, pk, sk, kwargs = repo.dynamo.put_calls[0]
+        _, pk, sk, kwargs = repo.dynamo.put_calls[0]
         assert pk == ProfileDynamoDTO.build_pk(USER_ID)
         assert sk == "METADATA"
         assert kwargs["ConditionExpression"] == "attribute_not_exists(PK)"
@@ -123,8 +114,9 @@ class TestProfileRepositoryDynamo:
     def test_create_duplicate_raises(self):
         repo = _repo()
         repo.dynamo.put_should_conflict = True
+        profile = _profile()
         with pytest.raises(DuplicatedItem):
-            repo.create(_profile())
+            repo.create(profile)
 
     def test_soft_delete_success(self):
         repo = _repo()
