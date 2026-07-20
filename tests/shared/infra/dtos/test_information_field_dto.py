@@ -5,7 +5,7 @@ from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.infra.dtos.information_field_dto import InformationFieldDTO
 
 
-class Test_InformationFieldDTO:
+class TestInformationFieldDTO:
 
     def test_information_field_from_request_text(self):
         information_field_dict = {
@@ -23,8 +23,8 @@ class Test_InformationFieldDTO:
             'longitude': 0.0
         }
         information_field_dto = InformationFieldDTO.from_request(information_field_dict)
-        assert information_field_dto.information_field.latitude == 0.0
-        assert information_field_dto.information_field.longitude == 0.0
+        assert information_field_dto.information_field.latitude == pytest.approx(0.0)
+        assert information_field_dto.information_field.longitude == pytest.approx(0.0)
         assert information_field_dto.information_field.information_field_type == InformationFieldType.MAP_INFORMATION_FIELD
     
     def test_information_field_from_request_file(self):
@@ -135,8 +135,8 @@ class Test_InformationFieldDTO:
         }
         information_field_dto = InformationFieldDTO.from_request(information_field_dict)
         dynamo_dict = information_field_dto.to_dynamo()
-        assert dynamo_dict['latitude'] == 0.0
-        assert dynamo_dict['longitude'] == 0.0
+        assert dynamo_dict['latitude'] == pytest.approx(0.0)
+        assert dynamo_dict['longitude'] == pytest.approx(0.0)
         assert dynamo_dict['information_field_type'] == InformationFieldType.MAP_INFORMATION_FIELD.value
     
     def test_information_field_to_dynamo_file(self):
@@ -188,8 +188,8 @@ class Test_InformationFieldDTO:
             'longitude': 0.0
         }
         information_field_dto = InformationFieldDTO.from_dynamo(information_field_dict)
-        assert information_field_dto.information_field.latitude == 0.0
-        assert information_field_dto.information_field.longitude == 0.0
+        assert information_field_dto.information_field.latitude == pytest.approx(0.0)
+        assert information_field_dto.information_field.longitude == pytest.approx(0.0)
         assert information_field_dto.information_field.information_field_type == InformationFieldType.MAP_INFORMATION_FIELD
     
     def test_information_field_from_dynamo_file(self):

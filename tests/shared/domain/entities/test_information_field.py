@@ -5,7 +5,7 @@ from src.shared.domain.enums.information_field_type_enum import InformationField
 from src.shared.helpers.errors.domain_errors import EntityError
 
 
-class Test_InformationField:
+class TestInformationField:
 
     def test_information_field_cannot_be_instanciated(self):
         with pytest.raises(TypeError):
@@ -31,8 +31,8 @@ class Test_InformationField:
     def test_map_information_field(self):
         map_information_field = MapInformationField(latitude=1.0, longitude=1.0)
         assert map_information_field.information_field_type == InformationFieldType.MAP_INFORMATION_FIELD
-        assert map_information_field.latitude == 1.0
-        assert map_information_field.longitude == 1.0
+        assert map_information_field.latitude == pytest.approx(1.0)
+        assert map_information_field.longitude == pytest.approx(1.0)
     
     def test_map_information_field_latitude_is_none(self):
         with pytest.raises(EntityError):

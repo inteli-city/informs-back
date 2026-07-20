@@ -7,7 +7,7 @@ from src.modules.get_all_forms.app.get_all_forms_viewmodel import GetAllFormsVie
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 
 
-class Test_GetAllFormsViewmodel:
+class TestGetAllFormsViewmodel:
     def test_get_all_forms_viewmodel(self):
         repo = FormRepositoryMock()
         form = repo.forms[0]

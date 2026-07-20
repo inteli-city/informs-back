@@ -61,7 +61,7 @@ def _make_usecase_and_payload():
     return usecase, payload, template_repo
 
 
-class Test_CreateFormUsecase:
+class TestCreateFormUsecase:
     def test_create_form_usecase(self):
         usecase, payload, _ = _make_usecase_and_payload()
 

@@ -14,7 +14,7 @@ from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.enums.priority_enum import Priority
 
 
-class Test_CreateFormViewmodel:
+class TestCreateFormViewmodel:
     def _make_form(self):
         field = TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='value')
         section = Section(section_id=1, fields=[field])

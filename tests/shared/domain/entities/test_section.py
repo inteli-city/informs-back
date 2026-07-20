@@ -5,7 +5,7 @@ from src.shared.helpers.errors.domain_errors import EntityError
 
 text_field = TextField(label='label', required=True, key='key', order=1, regex='regex', max_length=10, value='value')
 text_field_2 = TextField(label='label 2', required=True, key='key_2', order=2, regex='regex', max_length=10, value='value')
-class Test_Section:
+class TestSection:
 
     def test_section(self):
         Section(section_id=1, fields=[text_field, text_field_2])

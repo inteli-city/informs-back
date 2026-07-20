@@ -6,7 +6,7 @@ from src.shared.infra.repositories.form_repository_mock import FormRepositoryMoc
 from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
 
 
-class Test_CancelFormController:
+class TestCancelFormController:
 
     def test_cancel_form_controller(self):
         form_repo = FormRepositoryMock()

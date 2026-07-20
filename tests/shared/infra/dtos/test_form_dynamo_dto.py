@@ -205,7 +205,7 @@ def _assert_dynamo_dict(form_dict: dict):
     assert form_dict["information_fields"][0]["value"] == "value"
 
 
-class Test_FormDynamoDTO:
+class TestFormDynamoDTO:
     def test_from_entity(self):
         form_dto = FormDynamoDTO.from_entity(_build_form())
         _assert_object_attrs(form_dto)

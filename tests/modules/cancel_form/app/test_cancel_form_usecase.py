@@ -14,7 +14,7 @@ def make_justification_payload():
         "justification_image": FileUploadRequest(filename="a.jpg", mimetype="image/jpeg"),
     }
 
-class Test_CancelFormUsecase:
+class TestCancelFormUsecase:
 
     def test_cancel_form_usecase(self):
         import os

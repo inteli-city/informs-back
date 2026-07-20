@@ -10,7 +10,7 @@ from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFou
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 
 
-class Test_StartFormUsecase:
+class TestStartFormUsecase:
     def test_start_form_success(self):
         repo = FormRepositoryMock()
         usecase = StartFormUsecase(repo)

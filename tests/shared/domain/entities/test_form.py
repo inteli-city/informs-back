@@ -42,7 +42,7 @@ def make_form(**overrides):
     return Form(**base)
 
 
-class Test_Form:
+class TestForm:
 
     def test_form_valid(self):
         make_form(

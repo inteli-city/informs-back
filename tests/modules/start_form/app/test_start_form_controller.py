@@ -10,7 +10,7 @@ from src.shared.helpers.external_interfaces.http_models import HttpRequest
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 
 
-class Test_StartFormController:
+class TestStartFormController:
     def setup_method(self):
         self.repo = FormRepositoryMock()
         self.usecase = StartFormUsecase(self.repo)

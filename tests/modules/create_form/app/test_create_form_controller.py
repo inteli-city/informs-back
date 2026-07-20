@@ -11,7 +11,7 @@ from src.shared.infra.repositories.file_repository_mock import FileRepositoryMoc
 from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
 
 
-class Test_CreateFormController:
+class TestCreateFormController:
     def _make_base_body(self):
         return {
             "requester_user": {
