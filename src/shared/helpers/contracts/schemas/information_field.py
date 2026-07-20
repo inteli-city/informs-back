@@ -25,8 +25,12 @@ class FileInformationFieldInputSchema(RequestContractModel):
 
 class UrlInformationFieldInputSchema(RequestContractModel):
     information_field_type: Literal["URL_INFORMATION_FIELD"]
-    url: str
-    mimetype: str
+    # Quando um campo URL é enviado, url/mimetype são obrigatórios e não-vazios:
+    # min_length=1 alinha o contrato à validação do domínio (UrlInformationField)
+    # e documenta a restrição no OpenAPI, falhando já na camada de contrato em vez
+    # de só depois como EntityError.
+    url: str = Field(min_length=1)
+    mimetype: str = Field(min_length=1)
 
 
 InformationFieldInputSchema = Annotated[
