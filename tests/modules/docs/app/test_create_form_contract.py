@@ -82,6 +82,36 @@ def test_create_form_request_contract_rejects_missing_sections_without_uuid_temp
         CreateFormRequestSchema.model_validate(payload)
 
 
+def test_create_form_request_contract_accepts_url_information_field():
+    payload = _base_create_form_request()
+    payload["information_fields"] = [
+        {
+            "information_field_type": "URL_INFORMATION_FIELD",
+            "url": "https://example.com/photo.jpg",
+            "mimetype": "image/jpeg",
+        }
+    ]
+    parsed = CreateFormRequestSchema.model_validate(payload)
+    assert parsed.information_fields[0].url == "https://example.com/photo.jpg"
+    assert parsed.information_fields[0].mimetype == "image/jpeg"
+
+
+def test_create_form_request_contract_rejects_empty_url_and_mimetype():
+    # url/mimetype vazios falham já na camada de contrato (min_length=1),
+    # não só depois como EntityError no domínio.
+    for field in ("url", "mimetype"):
+        payload = _base_create_form_request()
+        info = {
+            "information_field_type": "URL_INFORMATION_FIELD",
+            "url": "https://example.com/photo.jpg",
+            "mimetype": "image/jpeg",
+        }
+        info[field] = ""
+        payload["information_fields"] = [info]
+        with pytest.raises(ValidationError):
+            CreateFormRequestSchema.model_validate(payload)
+
+
 def test_create_form_response_contract_matches_controller_output():
     repo = FormRepositoryMock()
     file_repo = FileRepositoryMock()

@@ -87,6 +87,30 @@ class Test_CreateFormController:
         assert len(response.body["files"]) == 1
         assert response.body["files"][0]["filename"] == "a.jpg"
 
+    def test_create_form_controller_with_url_information_field(self):
+        repo = FormRepositoryMock()
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
+
+        body = self._make_base_body()
+        body["information_fields"] = [
+            {
+                "information_field_type": "URL_INFORMATION_FIELD",
+                "url": "https://example.com/photo.jpg",
+                "mimetype": "image/jpeg"
+            }
+        ]
+        request = HttpRequest(body=body)
+        response = controller(request)
+
+        assert response.status_code == 201
+        # URL não gera upload/presigned URL: aponta para um recurso já existente.
+        assert response.body["files"] == []
+        info = response.body["information_fields"][0]
+        assert info["information_field_type"] == "URL_INFORMATION_FIELD"
+        assert info["url"] == "https://example.com/photo.jpg"
+        assert info["mimetype"] == "image/jpeg"
+
     def test_create_form_controller_without_information_fields(self):
         repo = FormRepositoryMock()
         file_repo = FileRepositoryMock()
