@@ -6,3 +6,8 @@ aws-lambda-powertools==2.9.0
 aws_xray_sdk==2.11.0
 pydantic==2.9.2
 pyyaml==6.0.1
+# Backport do módulo stdlib `cgi`, removido no Python 3.13 (PEP 594). botocore
+# e aws_xray_sdk ainda importam `cgi`, então sem isto a suíte de testes que
+# toca boto3 (repos DynamoDB, presenter de sync) não coleta em ambientes 3.13.
+# Inerte em Python <=3.12 (o cgi da stdlib tem precedência).
+legacy-cgi==2.6.4
