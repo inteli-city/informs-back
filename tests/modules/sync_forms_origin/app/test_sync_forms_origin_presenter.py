@@ -3,8 +3,6 @@ import json
 import os
 import sys
 
-import pytest
-
 sys.path.append(os.getcwd())
 
 
@@ -18,15 +16,12 @@ class TestSyncFormsOriginPresenter:
     def _handler(self):
         os.environ["STAGE"] = "TEST"
         os.environ.setdefault("POWERTOOLS_TRACE_DISABLED", "1")
-        try:
-            from src.modules.sync_forms_origin.app import sync_forms_origin_presenter
-            importlib.reload(sync_forms_origin_presenter)
-        except ModuleNotFoundError as err:
-            # O presenter importa aws_lambda_powertools.Tracer -> aws_xray_sdk ->
-            # botocore.docs -> cgi (removido no Python 3.13). Fora do runtime
-            # Lambda (ex.: dev local em 3.13) o módulo não importa; no CI
-            # (Python 3.10) roda normalmente.
-            pytest.skip(f"ambiente sem suporte a import do presenter: {err}")
+        # O presenter importa aws_lambda_powertools.Tracer -> aws_xray_sdk ->
+        # botocore -> cgi, removido no Python 3.13 (PEP 594). O backport
+        # legacy-cgi (em requirements.txt) restaura o módulo; sem ele, o import
+        # falha de propósito em vez de pular silenciosamente.
+        from src.modules.sync_forms_origin.app import sync_forms_origin_presenter
+        importlib.reload(sync_forms_origin_presenter)
         return sync_forms_origin_presenter.lambda_handler
 
     def test_scheduled_event_runs_and_returns_200(self):
