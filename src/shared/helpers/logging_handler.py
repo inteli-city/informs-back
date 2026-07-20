@@ -1,6 +1,5 @@
 import json
 import logging
-import traceback
 from functools import wraps
 from json import JSONDecodeError
 from typing import Any, Callable, Dict
@@ -36,12 +35,7 @@ def lambda_logging_handler(fn: Callable[[Dict[str, Any], Any], Dict[str, Any]]):
         try:
             response = fn(event, context)
         except Exception:
-            logger.error(
-                "Exceção não tratada em %s %s\n%s",
-                method,
-                path,
-                traceback.format_exc(),
-            )
+            logger.exception("Exceção não tratada em %s %s", method, path)
             raise
 
         status_code = response.get("statusCode") if isinstance(response, dict) else None

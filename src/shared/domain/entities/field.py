@@ -6,6 +6,10 @@ from src.shared.domain.enums.fields_enum import FieldType
 from src.shared.domain.enums.file_type_enum import FileType
 from src.shared.helpers.errors.domain_errors import EntityError
 
+_ERR_NUMBER_MUST_BE_NUMERIC = 'Valor numérico deve ser um número'
+_ERR_OPTIONS_MUST_BE_NONEMPTY_LIST = 'Opções devem ser uma lista não vazia de strings'
+_ERR_DATE_MUST_BE_INT_TIMESTAMP = 'Data deve ser um timestamp inteiro'
+
 
 class Field(abc.ABC):
     field_type: FieldType
@@ -129,15 +133,8 @@ class NumberField(Field):
             raise EntityError('Valor mínimo deve ser um número')
         self.min_value = min_value
 
-        if value is not None:
-            if not isinstance(value, (int, float)):
-                raise EntityError('Valor numérico deve ser um número')
-            if min_value is not None and value < min_value:
-                raise EntityError(f'Valor {value} é menor que o mínimo permitido ({min_value})')
-            if max_value is not None and value > max_value:
-                raise EntityError(f'Valor {value} é maior que o máximo permitido ({max_value})')
-            if decimal is False and isinstance(value, float) and not value.is_integer():
-                raise EntityError('Valor não pode ser decimal para este campo')
+        # Mesma validação de _validate_value (atributos já atribuídos acima).
+        self._validate_value(value)
         self.value = value
 
     def normalize_value(self, value):
@@ -146,14 +143,14 @@ class NumberField(Field):
         try:
             normalized_value = float(value)
         except (TypeError, ValueError):
-            raise EntityError('Valor numérico deve ser um número')
+            raise EntityError(_ERR_NUMBER_MUST_BE_NUMERIC)
         self._validate_value(normalized_value)
         return normalized_value
 
     def _validate_value(self, value):
         if value is not None:
             if not isinstance(value, (int, float)):
-                raise EntityError('Valor numérico deve ser um número')
+                raise EntityError(_ERR_NUMBER_MUST_BE_NUMERIC)
             if self.min_value is not None and value < self.min_value:
                 raise EntityError(f'Valor {value} é menor que o mínimo permitido ({self.min_value})')
             if self.max_value is not None and value > self.max_value:
@@ -179,7 +176,7 @@ class DropDownField(Field):
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, options: List[str] = None, value: Optional[str] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
         super().__init__(FieldType.DROPDOWN_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if not isinstance(options, list) or not options or not all(isinstance(option, str) for option in options):
-            raise EntityError('Opções devem ser uma lista não vazia de strings')
+            raise EntityError(_ERR_OPTIONS_MUST_BE_NONEMPTY_LIST)
         self.options = options
 
         if value is not None and (not isinstance(value, str) or value not in options):
@@ -207,7 +204,7 @@ class TypeAheadField(Field):
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, options: List[str] = None, max_length: Optional[int] = None, value: Optional[str] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
         super().__init__(FieldType.TYPEAHEAD_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if not isinstance(options, list) or not options or not all(isinstance(option, str) for option in options):
-            raise EntityError('Opções devem ser uma lista não vazia de strings')
+            raise EntityError(_ERR_OPTIONS_MUST_BE_NONEMPTY_LIST)
         self.options = options
 
         if max_length is not None and not isinstance(max_length, int):
@@ -239,7 +236,7 @@ class RadioGroupField(Field):
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, options: List[str] = None, value: Optional[str] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
         super().__init__(FieldType.RADIO_GROUP_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if not isinstance(options, list) or not options or not all(isinstance(option, str) for option in options):
-            raise EntityError('Opções devem ser uma lista não vazia de strings')
+            raise EntityError(_ERR_OPTIONS_MUST_BE_NONEMPTY_LIST)
         self.options = options
 
         if value is not None and (not isinstance(value, str) or value not in options):
@@ -276,7 +273,7 @@ class DateField(Field):
 
         if value is not None:
             if not isinstance(value, int):
-                raise EntityError('Data deve ser um timestamp inteiro')
+                raise EntityError(_ERR_DATE_MUST_BE_INT_TIMESTAMP)
             if min_date is not None and value < min_date:
                 raise EntityError(f'Data {value} é anterior à data mínima permitida ({min_date})')
             if max_date is not None and value > max_date:
@@ -289,14 +286,14 @@ class DateField(Field):
         try:
             normalized_value = int(value)
         except (TypeError, ValueError):
-            raise EntityError('Data deve ser um timestamp inteiro')
+            raise EntityError(_ERR_DATE_MUST_BE_INT_TIMESTAMP)
         self._validate_value(normalized_value)
         return normalized_value
 
     def _validate_value(self, value):
         if value is not None:
             if not isinstance(value, int):
-                raise EntityError('Data deve ser um timestamp inteiro')
+                raise EntityError(_ERR_DATE_MUST_BE_INT_TIMESTAMP)
             if self.min_date is not None and value < self.min_date:
                 raise EntityError(f'Data {value} é anterior à data mínima permitida ({self.min_date})')
             if self.max_date is not None and value > self.max_date:
@@ -342,7 +339,7 @@ class CheckBoxGroupField(Field):
     def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, options: List[str] = None, check_limit: Optional[int] = None, value: Optional[List[bool]] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
         super().__init__(FieldType.CHECKBOX_GROUP_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if not isinstance(options, list) or not options or not all(isinstance(option, str) for option in options):
-            raise EntityError('Opções devem ser uma lista não vazia de strings')
+            raise EntityError(_ERR_OPTIONS_MUST_BE_NONEMPTY_LIST)
         self.options = options
 
         if check_limit is not None:
@@ -360,36 +357,45 @@ class CheckBoxGroupField(Field):
         self.value = value
 
     def normalize_value(self, value):
-        normalized_value = None
-        if value is not None:
-            if isinstance(value, dict):
-                unknown_keys = [key for key in value.keys() if key not in self.options]
-                if unknown_keys:
-                    raise EntityError(f"Chaves desconhecidas no valor do checkbox: {unknown_keys}")
-                normalized_value = []
-                for option in self.options:
-                    entry = value.get(option)
-                    if entry is None:
-                        entry = False
-                    if isinstance(entry, (int, float)) and entry in (0, 1):
-                        entry = bool(entry)
-                    if not isinstance(entry, bool):
-                        raise EntityError(f"Valor da opção '{option}' deve ser verdadeiro ou falso")
-                    normalized_value.append(entry)
-            elif isinstance(value, list):
-                normalized_value = []
-                for entry in value:
-                    if entry is None:
-                        normalized_value.append(False)
-                    elif isinstance(entry, (int, float)) and entry in (0, 1):
-                        normalized_value.append(bool(entry))
-                    elif isinstance(entry, bool):
-                        normalized_value.append(entry)
-                    else:
-                        raise EntityError(f"Cada entrada do checkbox deve ser verdadeiro ou falso, recebido: {entry}")
-            else:
-                raise EntityError("Valor do checkbox deve ser um objeto ou lista de booleanos")
+        if value is None:
+            normalized_value = None
+        elif isinstance(value, dict):
+            normalized_value = self._normalize_dict_value(value)
+        elif isinstance(value, list):
+            normalized_value = self._normalize_list_value(value)
+        else:
+            raise EntityError("Valor do checkbox deve ser um objeto ou lista de booleanos")
         self._validate_value(normalized_value)
+        return normalized_value
+
+    def _normalize_dict_value(self, value: dict) -> list:
+        unknown_keys = [key for key in value.keys() if key not in self.options]
+        if unknown_keys:
+            raise EntityError(f"Chaves desconhecidas no valor do checkbox: {unknown_keys}")
+        normalized_value = []
+        for option in self.options:
+            entry = value.get(option)
+            if entry is None:
+                entry = False
+            if isinstance(entry, (int, float)) and entry in (0, 1):
+                entry = bool(entry)
+            if not isinstance(entry, bool):
+                raise EntityError(f"Valor da opção '{option}' deve ser verdadeiro ou falso")
+            normalized_value.append(entry)
+        return normalized_value
+
+    @staticmethod
+    def _normalize_list_value(value: list) -> list:
+        normalized_value = []
+        for entry in value:
+            if entry is None:
+                normalized_value.append(False)
+            elif isinstance(entry, (int, float)) and entry in (0, 1):
+                normalized_value.append(bool(entry))
+            elif isinstance(entry, bool):
+                normalized_value.append(entry)
+            else:
+                raise EntityError(f"Cada entrada do checkbox deve ser verdadeiro ou falso, recebido: {entry}")
         return normalized_value
 
     def _validate_value(self, value):
@@ -454,16 +460,8 @@ class FileField(Field):
         if self.min_quantity is not None and self.max_quantity is not None and self.min_quantity > self.max_quantity:
             raise EntityError(f'Quantidade mínima ({min_quantity}) não pode ser maior que a máxima ({max_quantity})')
 
-        if value is not None:
-            if isinstance(value, list):
-                if not all(isinstance(item, (str, dict)) for item in value):
-                    raise EntityError('Cada arquivo deve ser identificado por uma string ou objeto')
-                if self.min_quantity is not None and len(value) < self.min_quantity:
-                    raise EntityError(f'Número de arquivos ({len(value)}) é menor que o mínimo exigido ({self.min_quantity})')
-                if self.max_quantity is not None and len(value) > self.max_quantity:
-                    raise EntityError(f'Número de arquivos ({len(value)}) excede o máximo permitido ({self.max_quantity})')
-            elif not isinstance(value, (str, dict)):
-                raise EntityError('Valor do campo de arquivo deve ser uma string, objeto ou lista')
+        # Mesma validação de _validate_value (atributos já atribuídos acima).
+        self._validate_value(value)
         self.value = value
 
     def _validate_value(self, value):
