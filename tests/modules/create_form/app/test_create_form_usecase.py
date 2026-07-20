@@ -145,7 +145,7 @@ class TestCreateFormUsecase:
             usecase(**payload)
 
     def test_create_form_usecase_duplicate_field_key(self):
-        usecase, payload, _ = _make_usecase_and_payload()
+        _, payload, _ = _make_usecase_and_payload()
         payload = deepcopy(payload)
 
         field_a = TextField(

@@ -120,7 +120,7 @@ class TestGetFormController:
     def test_get_form_unexpected_error(self):
         class BoomUsecase:
             def __call__(self, requester_user_id: str, form_id: str):
-                raise Exception("boom")
+                raise RuntimeError("boom")
 
         controller = GetFormController(BoomUsecase())
         request = HttpRequest(body={

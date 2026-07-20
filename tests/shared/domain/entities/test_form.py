@@ -22,22 +22,22 @@ justification = Justification(
 
 
 def make_form(**overrides):
-    base = dict(
-        id=valid_id,
-        form_title='form_title',
-        created_by=valid_id,
-        user_id=valid_id,
-        system='system',
-        city='city',
-        street='street',
-        latitude=1.0,
-        longitude=1.0,
-        priority=Priority.LOW,
-        status=FormStatus.PENDING,
-        created_at=1,
-        updated_at=1,
-        sections=[section],
-    )
+    base = {
+        "id": valid_id,
+        "form_title": 'form_title',
+        "created_by": valid_id,
+        "user_id": valid_id,
+        "system": 'system',
+        "city": 'city',
+        "street": 'street',
+        "latitude": 1.0,
+        "longitude": 1.0,
+        "priority": Priority.LOW,
+        "status": FormStatus.PENDING,
+        "created_at": 1,
+        "updated_at": 1,
+        "sections": [section],
+    }
     base.update(overrides)
     return Form(**base)
 
