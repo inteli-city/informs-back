@@ -123,34 +123,7 @@ class LambdaHttpRequest(HttpRequest):
         """
         data = data or {}
         headers = data.get("headers")
-        query_string_parameters = data.get("queryStringParameters")
-        multi_value_query_string_parameters = data.get("multiValueQueryStringParameters")
-        raw_query_string = data.get("rawQueryString") or ""
-        parsed_query_params = {}
-
-        if isinstance(raw_query_string, str) and raw_query_string:
-            parsed = parse_qs(raw_query_string, keep_blank_values=True)
-            for key, values in parsed.items():
-                parsed_query_params[key] = values[0] if len(values) == 1 else values
-
-        if isinstance(multi_value_query_string_parameters, dict):
-            for key, values in multi_value_query_string_parameters.items():
-                if key in parsed_query_params:
-                    continue
-                if not isinstance(values, list):
-                    parsed_query_params[key] = values
-                elif len(values) == 1:
-                    parsed_query_params[key] = values[0]
-                else:
-                    parsed_query_params[key] = values
-
-        if isinstance(query_string_parameters, dict):
-            for key, value in query_string_parameters.items():
-                if key not in parsed_query_params:
-                    parsed_query_params[key] = value
-
-        if parsed_query_params:
-            query_string_parameters = parsed_query_params
+        query_string_parameters = self._merge_query_params(data)
 
         path_parameters = data.get("pathParameters")
         body = None
@@ -177,6 +150,38 @@ class LambdaHttpRequest(HttpRequest):
                 or {}
             )
         self.http = LambdaDefaultHTTP(http_context)
+
+    @staticmethod
+    def _merge_query_params(data: dict) -> dict:
+        """Combina rawQueryString, multiValue e queryStringParameters numa fonte única.
+
+        Precedência: rawQueryString > multiValueQueryStringParameters >
+        queryStringParameters. Retorna o dict combinado, ou o
+        queryStringParameters original quando nada foi combinado.
+        """
+        query_string_parameters = data.get("queryStringParameters")
+        parsed_query_params = {}
+
+        raw_query_string = data.get("rawQueryString") or ""
+        if isinstance(raw_query_string, str) and raw_query_string:
+            for key, values in parse_qs(raw_query_string, keep_blank_values=True).items():
+                parsed_query_params[key] = values[0] if len(values) == 1 else values
+
+        multi_value = data.get("multiValueQueryStringParameters")
+        if isinstance(multi_value, dict):
+            for key, values in multi_value.items():
+                if key in parsed_query_params:
+                    continue
+                if isinstance(values, list) and len(values) == 1:
+                    parsed_query_params[key] = values[0]
+                else:
+                    parsed_query_params[key] = values
+
+        if isinstance(query_string_parameters, dict):
+            for key, value in query_string_parameters.items():
+                parsed_query_params.setdefault(key, value)
+
+        return parsed_query_params if parsed_query_params else query_string_parameters
 
 
 class HttpResponseRedirect(HttpResponse):
