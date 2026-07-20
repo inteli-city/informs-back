@@ -121,42 +121,55 @@ class FormRepositoryDynamo(IFormRepository):
         return forms, encode_pagination_token(next_key)
 
     @staticmethod
+    def _and(base, expr):
+        return expr if base is None else base & expr
+
+    @staticmethod
+    def _status_filter(status):
+        if status is None:
+            return None
+        if not isinstance(status, list):
+            return Attr('status').eq(status.value)
+        status_filter = None
+        for status_item in status:
+            status_filter = FormRepositoryDynamo._or(status_filter, Attr('status').eq(status_item.value))
+        return status_filter
+
+    @staticmethod
+    def _or(base, expr):
+        return expr if base is None else base | expr
+
+    @staticmethod
+    def _system_filter(system):
+        if system is None:
+            return None
+        if not isinstance(system, list):
+            return Attr('system').eq(system)
+        system_filter = None
+        for system_item in system:
+            system_filter = FormRepositoryDynamo._or(system_filter, Attr('system').eq(system_item))
+        return system_filter
+
+    @staticmethod
+    def _created_at_filter(created_at_start, created_at_end):
+        if created_at_start is not None and created_at_end is not None:
+            return Attr('created_at').between(Decimal(created_at_start), Decimal(created_at_end))
+        if created_at_start is not None:
+            return Attr('created_at').gte(Decimal(created_at_start))
+        if created_at_end is not None:
+            return Attr('created_at').lte(Decimal(created_at_end))
+        return None
+
+    @staticmethod
     def _build_forms_filter_expression(status, system, created_at_start, created_at_end):
         filter_expression = None
-
-        if status is not None:
-            if isinstance(status, list):
-                status_filter = None
-                for status_item in status:
-                    expr = Attr('status').eq(status_item.value)
-                    status_filter = expr if status_filter is None else status_filter | expr
-                if status_filter is not None:
-                    filter_expression = status_filter
-            else:
-                filter_expression = Attr('status').eq(status.value)
-
-        if system is not None:
-            if isinstance(system, list):
-                system_filter = None
-                for system_item in system:
-                    expr = Attr('system').eq(system_item)
-                    system_filter = expr if system_filter is None else system_filter | expr
-                if system_filter is not None:
-                    filter_expression = system_filter if filter_expression is None else filter_expression & system_filter
-            else:
-                expr = Attr('system').eq(system)
-                filter_expression = expr if filter_expression is None else filter_expression & expr
-
-        if created_at_start is not None and created_at_end is not None:
-            expr = Attr('created_at').between(Decimal(created_at_start), Decimal(created_at_end))
-            filter_expression = expr if filter_expression is None else filter_expression & expr
-        elif created_at_start is not None:
-            expr = Attr('created_at').gte(Decimal(created_at_start))
-            filter_expression = expr if filter_expression is None else filter_expression & expr
-        elif created_at_end is not None:
-            expr = Attr('created_at').lte(Decimal(created_at_end))
-            filter_expression = expr if filter_expression is None else filter_expression & expr
-
+        for part in (
+            FormRepositoryDynamo._status_filter(status),
+            FormRepositoryDynamo._system_filter(system),
+            FormRepositoryDynamo._created_at_filter(created_at_start, created_at_end),
+        ):
+            if part is not None:
+                filter_expression = FormRepositoryDynamo._and(filter_expression, part)
         return filter_expression
 
     @staticmethod

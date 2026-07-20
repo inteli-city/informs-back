@@ -162,26 +162,33 @@ class LambdaHttpRequest(HttpRequest):
         query_string_parameters = data.get("queryStringParameters")
         parsed_query_params = {}
 
-        raw_query_string = data.get("rawQueryString") or ""
-        if isinstance(raw_query_string, str) and raw_query_string:
-            for key, values in parse_qs(raw_query_string, keep_blank_values=True).items():
-                parsed_query_params[key] = values[0] if len(values) == 1 else values
-
-        multi_value = data.get("multiValueQueryStringParameters")
-        if isinstance(multi_value, dict):
-            for key, values in multi_value.items():
-                if key in parsed_query_params:
-                    continue
-                if isinstance(values, list) and len(values) == 1:
-                    parsed_query_params[key] = values[0]
-                else:
-                    parsed_query_params[key] = values
+        LambdaHttpRequest._merge_raw_query_string(parsed_query_params, data.get("rawQueryString"))
+        LambdaHttpRequest._merge_multi_value(parsed_query_params, data.get("multiValueQueryStringParameters"))
 
         if isinstance(query_string_parameters, dict):
             for key, value in query_string_parameters.items():
                 parsed_query_params.setdefault(key, value)
 
         return parsed_query_params if parsed_query_params else query_string_parameters
+
+    @staticmethod
+    def _merge_raw_query_string(target: dict, raw_query_string) -> None:
+        if not isinstance(raw_query_string, str) or not raw_query_string:
+            return
+        for key, values in parse_qs(raw_query_string, keep_blank_values=True).items():
+            target[key] = values[0] if len(values) == 1 else values
+
+    @staticmethod
+    def _merge_multi_value(target: dict, multi_value) -> None:
+        if not isinstance(multi_value, dict):
+            return
+        for key, values in multi_value.items():
+            if key in target:
+                continue
+            if isinstance(values, list) and len(values) == 1:
+                target[key] = values[0]
+            else:
+                target[key] = values
 
 
 class HttpResponseRedirect(HttpResponse):

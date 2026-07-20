@@ -35,21 +35,23 @@ class TestStartFormUsecase:
 
         form = repo.forms[0]
         form.status = FormStatus.PENDING
+        in_progress_at = int(datetime.now().timestamp() * 1000)
 
         with pytest.raises(ForbiddenAction):
             usecase(
                 requester_user_id="another-user",
                 form_id=form.id,
-                in_progress_at=int(datetime.now().timestamp() * 1000)
+                in_progress_at=in_progress_at
             )
 
     def test_start_form_not_found(self):
         repo = FormRepositoryMock()
         usecase = StartFormUsecase(repo)
 
+        in_progress_at = int(datetime.now().timestamp() * 1000)
         with pytest.raises(NoItemsFound):
             usecase(
                 requester_user_id="d61dbf66-a10f-11ed-a8fc-0242ac120099",
                 form_id="not-found",
-                in_progress_at=int(datetime.now().timestamp() * 1000)
+                in_progress_at=in_progress_at
             )
