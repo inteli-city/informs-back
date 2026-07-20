@@ -53,14 +53,14 @@ class FormRepositoryDynamo(IFormRepository):
             sort_key=Environments.get_envs().dynamo_sort_key,
         )
     
-    def get_form_by_id(self, user_id: str, form_id: str) -> Form:
+    def get_form_by_id(self, user_id: str, form_id: str) -> Optional[Form]:
         form = self.dynamo.get_item(partition_key=self.form_partition_key_format(form_id), sort_key=self.form_sort_key_format())
         if "Item" not in form:
             return None
 
         return FormDynamoDTO.from_dynamo(form['Item']).to_entity()
 
-    def get_form_by_user_id(self, user_id: str) -> dict:
+    def get_form_by_user_id(self, user_id: str) -> List[Form]:
         query_string = Key(self.dynamo.partition_key).eq(self.form_partition_key_format(user_id))
         resp = self.dynamo.query(key_condition_expression=query_string, Select='ALL_ATTRIBUTES')
         forms = []
@@ -220,7 +220,7 @@ class FormRepositoryDynamo(IFormRepository):
         sections: Optional[List[Section]] = None,
         justification: Optional[Justification] = None,
         expected_status: Optional[FormStatus] = None,
-    ) -> Form:
+    ) -> Optional[Form]:
         update_dict = {}
         current_form = self.get_form_by_id(user_id=user_id, form_id=form_id)
 

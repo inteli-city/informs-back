@@ -1,5 +1,4 @@
 from copy import deepcopy
-from datetime import datetime, timedelta
 from typing import List, Optional, Union
 from src.shared.domain.entities.field import TextField
 from src.shared.domain.entities.form import Form
@@ -17,14 +16,6 @@ class FormRepositoryMock(IFormRepository):
     forms: List[Form]
 
     def __init__(self):
-        def timestamp_yesterday():
-            current_date = datetime.now()
-            yesterday_date = current_date - timedelta(days=1)
-
-            timestamp_yesterday_seconds = int(yesterday_date.timestamp())
-            timestamp_yesterday_milliseconds = timestamp_yesterday_seconds * 1000
-            return timestamp_yesterday_milliseconds
-
         text_field = TextField(label='label', required=True, key='key', order=1, regex='regex', max_length=10, value='value')
         text_field_2 = TextField(label='label 2', required=True, key='key_2', order=2, regex='regex', max_length=10, value='value')
         section = Section(section_id=1, fields=[text_field, text_field_2])
@@ -123,7 +114,7 @@ class FormRepositoryMock(IFormRepository):
             ),
         ]
     
-    def get_form_by_id(self, user_id: str, form_id: str) -> Form:
+    def get_form_by_id(self, user_id: str, form_id: str) -> Optional[Form]:
         for form in self.forms:
             if form.id == form_id:
                 return deepcopy(form)
@@ -241,7 +232,7 @@ class FormRepositoryMock(IFormRepository):
         sections: Optional[List[Section]] = None,
         justification: Optional[Justification] = None,
         expected_status: Optional[FormStatus] = None,
-    ) -> Form:
+    ) -> Optional[Form]:
         for form in self.forms:
             if form.id == form_id:
                 if expected_status is not None and form.status != expected_status:
