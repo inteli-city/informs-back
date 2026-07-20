@@ -45,6 +45,11 @@ def test_lambda_logging_handler_logs_and_reraises_unhandled_exception(caplog):
             "httpMethod": "DELETE",
         }, None)
 
-    error_messages = [record.getMessage() for record in caplog.records if record.levelno == logging.ERROR]
+    error_records = [record for record in caplog.records if record.levelno == logging.ERROR]
 
-    assert any("RuntimeError: boom" in message for message in error_messages)
+    # logger.exception anexa o traceback via exc_info (não no texto da mensagem).
+    assert any(
+        record.exc_info is not None and record.exc_info[0] is RuntimeError
+        for record in error_records
+    )
+    assert "RuntimeError: boom" in caplog.text

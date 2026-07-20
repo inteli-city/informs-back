@@ -30,38 +30,45 @@ class TestProfile:
         assert profile.vehicle_plate is None
 
     def test_invalid_user_id(self):
+        kwargs = _kwargs(user_id="too-short")
         with pytest.raises(EntityError):
-            Profile(**_kwargs(user_id="too-short"))
+            Profile(**kwargs)
 
     def test_invalid_role(self):
+        # cast esquiva o type checker: passamos string de propósito
+        # para validar a checagem em runtime.
+        kwargs = _kwargs(role=cast(ProfileRole, "ADMIN"))
         with pytest.raises(EntityError):
-            # cast esquiva o type checker: passamos string de propósito
-            # para validar a checagem em runtime.
-            Profile(**_kwargs(role=cast(ProfileRole, "ADMIN")))
+            Profile(**kwargs)
 
     def test_empty_name(self):
+        kwargs = _kwargs(name="   ")
         with pytest.raises(EntityError):
-            Profile(**_kwargs(name="   "))
+            Profile(**kwargs)
 
     def test_invalid_email(self):
+        kwargs = _kwargs(email="not-an-email")
         with pytest.raises(EntityError):
-            Profile(**_kwargs(email="not-an-email"))
+            Profile(**kwargs)
 
     def test_empty_system(self):
+        kwargs = _kwargs(system="")
         with pytest.raises(EntityError):
-            Profile(**_kwargs(system=""))
+            Profile(**kwargs)
 
     def test_active_must_be_bool(self):
+        kwargs = _kwargs(active=cast(bool, "yes"))
         with pytest.raises(EntityError):
-            Profile(**_kwargs(active=cast(bool, "yes")))
+            Profile(**kwargs)
 
     def test_vehicle_plate_optional(self):
         profile = Profile(**_kwargs(vehicle_plate="ABC1D23"))
         assert profile.vehicle_plate == "ABC1D23"
 
     def test_vehicle_plate_empty_invalid(self):
+        kwargs = _kwargs(vehicle_plate="")
         with pytest.raises(EntityError):
-            Profile(**_kwargs(vehicle_plate=""))
+            Profile(**kwargs)
 
     def test_deactivate_marks_inactive_and_updates_timestamp(self):
         profile = Profile(**_kwargs())
