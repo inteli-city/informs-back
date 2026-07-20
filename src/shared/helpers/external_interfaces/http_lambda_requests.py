@@ -156,8 +156,8 @@ class LambdaHttpRequest(HttpRequest):
         """Combina rawQueryString, multiValue e queryStringParameters numa fonte única.
 
         Precedência: rawQueryString > multiValueQueryStringParameters >
-        queryStringParameters. Retorna o dict combinado, ou o
-        queryStringParameters original quando nada foi combinado.
+        queryStringParameters. Retorna sempre um dict (vazio quando não há
+        parâmetros ou a fonte não é um dict válido).
         """
         query_string_parameters = data.get("queryStringParameters")
         parsed_query_params = {}
@@ -169,7 +169,7 @@ class LambdaHttpRequest(HttpRequest):
             for key, value in query_string_parameters.items():
                 parsed_query_params.setdefault(key, value)
 
-        return parsed_query_params if parsed_query_params else query_string_parameters
+        return parsed_query_params
 
     @staticmethod
     def _merge_raw_query_string(target: dict, raw_query_string) -> None:
