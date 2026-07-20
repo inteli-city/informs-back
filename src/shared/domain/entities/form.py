@@ -13,6 +13,8 @@ from src.shared.domain.validators import ensure_non_negative_int
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction
 
+_ERR_UPDATED_AT_MUST_BE_INT = 'Timestamp de atualização deve ser um inteiro'
+
 
 class Form(abc.ABC):
     form_title: str
@@ -80,6 +82,15 @@ class Form(abc.ABC):
         information_fields: Optional[List[InformationField]] = None,
     ):
 
+        # Validação dividida em blocos para manter a complexidade de cada
+        # método baixa; a ordem de validação/atribuição é preservada.
+        self._init_identity(form_title, id, user_id, created_by, template)
+        self._init_place(area, system, city, street, number, latitude, longitude)
+        self._init_priority_status(priority, observation, expiration_date, status)
+        self._init_timestamps(in_progress_at, cancelled_at, completed_at, created_at, updated_at)
+        self._init_content(justification, sections, template, information_fields)
+
+    def _init_identity(self, form_title, id, user_id, created_by, template):
         if not isinstance(form_title, str):
             raise EntityError('Título do formulário deve ser uma string')
         self.form_title = form_title
@@ -100,6 +111,7 @@ class Form(abc.ABC):
             raise EntityError('ID do template deve ser uma string')
         self.template = template
 
+    def _init_place(self, area, system, city, street, number, latitude, longitude):
         if area is not None and not isinstance(area, str):
             raise EntityError('Área deve ser uma string')
         self.area = area
@@ -132,6 +144,7 @@ class Form(abc.ABC):
             raise EntityError('Longitude deve estar entre -180 e 180')
         self.longitude = float(longitude)
 
+    def _init_priority_status(self, priority, observation, expiration_date, status):
         if not isinstance(priority, Priority):
             raise EntityError('Prioridade inválida')
         self.priority = priority
@@ -148,6 +161,7 @@ class Form(abc.ABC):
             raise EntityError('Status do formulário inválido')
         self.status = status
 
+    def _init_timestamps(self, in_progress_at, cancelled_at, completed_at, created_at, updated_at):
         if in_progress_at is not None and not isinstance(in_progress_at, int):
             raise EntityError('Timestamp de início deve ser um inteiro')
         self.in_progress_at = in_progress_at
@@ -165,9 +179,10 @@ class Form(abc.ABC):
         self.created_at = created_at
 
         if not isinstance(updated_at, int):
-            raise EntityError('Timestamp de atualização deve ser um inteiro')
+            raise EntityError(_ERR_UPDATED_AT_MUST_BE_INT)
         self.updated_at = updated_at
 
+    def _init_content(self, justification, sections, template, information_fields):
         if justification is None or not isinstance(justification, Justification):
             raise EntityError('Justificativa é obrigatória e deve ser válida')
         self.justification = justification
@@ -196,7 +211,7 @@ class Form(abc.ABC):
         if not isinstance(in_progress_at, int):
             raise EntityError('Timestamp de início deve ser um inteiro')
         if not isinstance(updated_at, int):
-            raise EntityError('Timestamp de atualização deve ser um inteiro')
+            raise EntityError(_ERR_UPDATED_AT_MUST_BE_INT)
 
         if self.status != FormStatus.PENDING:
             raise ForbiddenAction("Formulário não está aberto para início")
@@ -209,7 +224,7 @@ class Form(abc.ABC):
         if not isinstance(new_status, FormStatus):
             raise EntityError('Novo status inválido')
         if not isinstance(updated_at, int):
-            raise EntityError('Timestamp de atualização deve ser um inteiro')
+            raise EntityError(_ERR_UPDATED_AT_MUST_BE_INT)
 
         if new_status in [FormStatus.CANCELLED, FormStatus.COMPLETED]:
             raise ForbiddenAction("Não é possível alterar o status para cancelado ou concluído")
@@ -367,7 +382,7 @@ class Form(abc.ABC):
         if not isinstance(completed_at, int):
             raise EntityError('Timestamp de conclusão deve ser um inteiro')
         if not isinstance(updated_at, int):
-            raise EntityError('Timestamp de atualização deve ser um inteiro')
+            raise EntityError(_ERR_UPDATED_AT_MUST_BE_INT)
         if self.status is not FormStatus.IN_PROGRESS:
             raise ForbiddenAction("Formulário não está em andamento")
 
@@ -387,7 +402,7 @@ class Form(abc.ABC):
         if not isinstance(cancelled_at, int):
             raise EntityError('Timestamp de cancelamento deve ser um inteiro')
         if not isinstance(updated_at, int):
-            raise EntityError('Timestamp de atualização deve ser um inteiro')
+            raise EntityError(_ERR_UPDATED_AT_MUST_BE_INT)
 
         if self.is_finished():
             raise ForbiddenAction("Formulário já está finalizado e não pode ser cancelado")
