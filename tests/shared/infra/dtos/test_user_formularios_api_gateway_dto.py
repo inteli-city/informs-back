@@ -3,7 +3,7 @@ import pytest
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 
-class Test_UserFormulariosApiGatewayDto:
+class TestUserFormulariosApiGatewayDto:
 
     def test_user_api_gateway_dto_from_api_gateway(self):
         user_data = {

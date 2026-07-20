@@ -6,7 +6,7 @@ from src.shared.infra.repositories.form_repository_mock import FormRepositoryMoc
 from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
 
 
-class Test_SubmitFormController:
+class TestSubmitFormController:
 
     def _build_fields(self):
         return [

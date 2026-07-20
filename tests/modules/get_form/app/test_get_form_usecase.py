@@ -1,6 +1,8 @@
 import os
 import sys
 
+import pytest
+
 sys.path.append(os.getcwd())
 
 from src.modules.get_form.app.get_form_usecase import GetFormUsecase
@@ -9,7 +11,7 @@ from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFou
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 
 
-class Test_GetFormUsecase:
+class TestGetFormUsecase:
     def test_get_form_success(self):
         repo = FormRepositoryMock()
         usecase = GetFormUsecase(repo)
@@ -25,11 +27,8 @@ class Test_GetFormUsecase:
         repo = FormRepositoryMock()
         usecase = GetFormUsecase(repo)
 
-        try:
+        with pytest.raises(NoItemsFound):
             usecase(requester_user_id=repo.forms[0].user_id, form_id="non-existent-id-123456789012345678901234567890123456")
-            assert False
-        except NoItemsFound:
-            assert True
 
     def test_get_form_forbidden(self):
         repo = FormRepositoryMock()
@@ -37,8 +36,5 @@ class Test_GetFormUsecase:
 
         form = repo.forms[0]
 
-        try:
+        with pytest.raises(ForbiddenAction):
             usecase(requester_user_id="another-user-id-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", form_id=form.id)
-            assert False
-        except ForbiddenAction:
-            assert True

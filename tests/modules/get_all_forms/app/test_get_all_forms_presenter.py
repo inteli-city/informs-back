@@ -6,7 +6,7 @@ import sys
 sys.path.append(os.getcwd())
 
 
-class Test_GetAllFormsPresenter:
+class TestGetAllFormsPresenter:
     def test_get_all_forms_presenter(self):
         os.environ["STAGE"] = "TEST"
         # ensure module picks Stage=TEST

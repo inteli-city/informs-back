@@ -14,7 +14,7 @@ def make_justification_payload():
         "justification_image": FileUploadRequest(filename="a.jpg", mimetype="image/jpeg"),
     }
 
-class Test_CancelFormUsecase:
+class TestCancelFormUsecase:
 
     def test_cancel_form_usecase(self):
         import os
@@ -51,11 +51,12 @@ class Test_CancelFormUsecase:
         file_repo = FileRepositoryMock()
         usecase = CancelFormUsecase(form_repo, file_repo)
         
+        justification_image = FileUploadRequest(filename="a.jpg", mimetype="image/png")
         with pytest.raises(NoItemsFound):
             usecase(
                 requester_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
                 form_id='invalid_id',
-                justification_image=FileUploadRequest(filename="a.jpg", mimetype="image/png"),
+                justification_image=justification_image,
                 selected_option='option',
                 justification_text='text',
                 cancelled_at=1

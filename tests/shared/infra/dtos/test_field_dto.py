@@ -1,10 +1,12 @@
+import pytest
+
 from src.shared.domain.entities.field import CheckBoxGroupField, CheckboxField, DateField, DropDownField, FileField, NumberField, RadioGroupField, SwitchButtonField, TextField, TypeAheadField
 from src.shared.domain.enums.fields_enum import FieldType
 from src.shared.domain.enums.file_type_enum import FileType
 from src.shared.infra.dtos.field_dto import FieldDTO
 
 
-class Test_FieldDTO:
+class TestFieldDTO:
     def test_field_dto_from_dynamo_text_field(self):
         field_dict = {
             "field_type": "TEXT_FIELD",
@@ -49,7 +51,7 @@ class Test_FieldDTO:
         assert field_dto.field.max_value == 10
         assert field_dto.field.min_value == 1
         assert field_dto.field.decimal == True
-        assert field_dto.field.value == 1.0
+        assert field_dto.field.value == pytest.approx(1.0)
     
     def test_field_dto_from_dynamo_dropdown_field(self):
         field_dict = {

@@ -10,7 +10,7 @@ from src.shared.infra.repositories.form_repository_mock import FormRepositoryMoc
 from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
 
 
-class Test_SubmitFormUsecase:
+class TestSubmitFormUsecase:
 
     def test_submit_form_usecase(self):
         repo = FormRepositoryMock()

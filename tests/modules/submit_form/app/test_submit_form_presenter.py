@@ -3,7 +3,7 @@ import os
 import importlib
 
 
-class Test_SubmitFormPresenter:
+class TestSubmitFormPresenter:
 
     def test_submit_form_presenter(self):
         os.environ["STAGE"] = "TEST"

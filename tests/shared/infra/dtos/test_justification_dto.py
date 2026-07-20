@@ -4,7 +4,7 @@ from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.infra.dtos.justification_dto import JustificationDTO
 
 
-class Test_justificationDTO:
+class TestJustificationDTO:
 
     def test_justification_dto_from_request(self):
         justification_dict = {

@@ -14,7 +14,7 @@ SYSTEM_TO_ORIGIN = {
     "GAIA": "gaia",
     "GIPAV": "servicos_poa",
 }
-SYNC_SYSTEMS = tuple(SYSTEM_TO_ORIGIN.keys())
+SYNC_SYSTEMS = tuple(SYSTEM_TO_ORIGIN)
 
 SERVICE_NAME = "sync_forms_origin"
 METRICS_NAMESPACE = "Informs"
@@ -115,6 +115,7 @@ def lambda_handler(event, context):
             namespace=METRICS_NAMESPACE,
             default_dimensions={"service": SERVICE_NAME, "system": result.system},
         ):
+            # single_metric emite a métrica ao sair do contexto; corpo vazio é intencional.
             pass
         with single_metric(
             name="FormsFailedBySystem",
@@ -123,6 +124,7 @@ def lambda_handler(event, context):
             namespace=METRICS_NAMESPACE,
             default_dimensions={"service": SERVICE_NAME, "system": result.system},
         ):
+            # single_metric emite a métrica ao sair do contexto; corpo vazio é intencional.
             pass
         with single_metric(
             name="OriginRequestsBySystem",
@@ -131,6 +133,7 @@ def lambda_handler(event, context):
             namespace=METRICS_NAMESPACE,
             default_dimensions={"service": SERVICE_NAME, "system": result.system},
         ):
+            # single_metric emite a métrica ao sair do contexto; corpo vazio é intencional.
             pass
         for status_code, status_count in (result.status_code_counts or {}).items():
             with single_metric(
@@ -144,6 +147,7 @@ def lambda_handler(event, context):
                     "status_code": status_code,
                 },
             ):
+                # single_metric emite a métrica ao sair do contexto; corpo vazio é intencional.
                 pass
 
     summary = _summarize_results(results)

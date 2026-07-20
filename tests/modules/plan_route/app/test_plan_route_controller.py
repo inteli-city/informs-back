@@ -160,7 +160,7 @@ class TestPlanRouteController:
     def test_unexpected_error_returns_500(self):
         class BoomUsecase:
             def __call__(self, **kwargs):
-                raise Exception("boom")
+                raise RuntimeError("boom")
 
         controller = PlanRouteController(BoomUsecase())
         request = HttpRequest(body={

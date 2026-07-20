@@ -8,7 +8,7 @@ from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.infra.dtos.section_dto import SectionDTO
 
 
-class Test_SectionDTO:
+class TestSectionDTO:
 
     def test_section_dto_from_request_text(self):
         section_dict = {

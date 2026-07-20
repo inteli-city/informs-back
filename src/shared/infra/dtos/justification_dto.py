@@ -12,37 +12,36 @@ class JustificationDTO:
 
     def __init__(self, options: Optional[List[JustificationOption]], selected: Optional[SelectedJustification] = None, selected_option: Optional[str] = None, justification_text: Optional[str] = None, justification_image: Optional[str] = None):
         self.options = options
-        self.selected = selected if selected is not None else (SelectedJustification(option=selected_option, text=justification_text, image_url=justification_image) if selected_option is not None else None)
+        if selected is None and selected_option is not None:
+            selected = SelectedJustification(option=selected_option, text=justification_text, image_url=justification_image)
+        self.selected = selected
         self.selected_option = self.selected.option if self.selected else None
         self.justification_text = self.selected.text if self.selected else None
         self.justification_image = self.selected.image_url if self.selected else None
 
+    @staticmethod
     def from_request(justification_dict: dict) -> "JustificationDTO":
-        if justification_dict.get('options') is None or not justification_dict.get('options'):
+        options_data = justification_dict.get('options')
+        if not options_data:
             raise EntityError('options')
 
-        options = []
-        if justification_dict.get('options') is not None:
-            options_data = justification_dict.get('options')
+        options = [JustificationDTO._parse_option(option_data) for option_data in options_data]
+        selected = JustificationDTO._parse_selected(justification_dict)
+        return JustificationDTO(options=options, selected=selected)
 
-            for option_data in options_data:
-                if option_data.get('option') is None:
-                    raise EntityError('option')
+    @staticmethod
+    def _parse_option(option_data: dict) -> JustificationOption:
+        for key in ('option', 'required_image', 'required_text'):
+            if option_data.get(key) is None:
+                raise EntityError(key)
+        return JustificationOption(
+            option=option_data.get('option'),
+            required_image=option_data.get('required_image'),
+            required_text=option_data.get('required_text')
+        )
 
-                if option_data.get('required_image') is None:
-                    raise EntityError('required_image')
-
-                if option_data.get('required_text') is None:
-                    raise EntityError('required_text')
-
-                option = JustificationOption(
-                    option=option_data.get('option'),
-                    required_image=option_data.get('required_image'),
-                    required_text=option_data.get('required_text')
-                )
-                options.append(option)
-
-        selected = None
+    @staticmethod
+    def _parse_selected(justification_dict: dict) -> Optional[SelectedJustification]:
         selected_dict = justification_dict.get('selected') or {}
         if not selected_dict and justification_dict.get('selected_option') is not None:
             selected_dict = {
@@ -51,16 +50,16 @@ class JustificationDTO:
                 "image_url": justification_dict.get('justification_image')
             }
 
-        if selected_dict:
-            if selected_dict.get('option') is None:
-                raise EntityError('option')
-            selected = SelectedJustification(
-                option=selected_dict.get('option'),
-                text=selected_dict.get('text'),
-                image_url=selected_dict.get('image_url')
-            )
+        if not selected_dict:
+            return None
 
-        return JustificationDTO(options=options, selected=selected)
+        if selected_dict.get('option') is None:
+            raise EntityError('option')
+        return SelectedJustification(
+            option=selected_dict.get('option'),
+            text=selected_dict.get('text'),
+            image_url=selected_dict.get('image_url')
+        )
 
     @staticmethod
     def from_entity(justification: Justification) -> "JustificationDTO":

@@ -3,7 +3,7 @@ import os
 import importlib
 
 
-class Test_CancelFormPresenter:
+class TestCancelFormPresenter:
 
     def test_cancel_form_presenter(self):
         os.environ["STAGE"] = "TEST"

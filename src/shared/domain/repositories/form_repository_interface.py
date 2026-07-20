@@ -10,7 +10,7 @@ from src.shared.domain.enums.form_status_enum import FormStatus
 class IFormRepository(ABC):
 
     @abstractmethod
-    def get_form_by_id(self, user_id:str, form_id: str) -> Form:
+    def get_form_by_id(self, user_id: str, form_id: str) -> Optional[Form]:
         pass
     
     @abstractmethod
@@ -59,5 +59,5 @@ class IFormRepository(ABC):
         sections: Optional[List[Section]] = None,
         justification: Optional[Justification] = None,
         expected_status: Optional[FormStatus] = None,
-    ) -> Form:
+    ) -> Optional[Form]:
         pass

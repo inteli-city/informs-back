@@ -6,7 +6,7 @@ import importlib
 sys.path.append(os.getcwd())
 
 
-class Test_CreateFormPresenter:
+class TestCreateFormPresenter:
     def test_create_form_presenter(self):
         os.environ["STAGE"] = "TEST"
         from src.modules.create_form.app import create_form_presenter
