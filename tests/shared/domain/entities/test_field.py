@@ -5,7 +5,7 @@ from src.shared.domain.enums.file_type_enum import FileType
 from src.shared.helpers.errors.domain_errors import EntityError
 
 
-class Test_Field:
+class TestField:
 
     def test_field_cannot_be_instanciated(self):
         with pytest.raises(TypeError):

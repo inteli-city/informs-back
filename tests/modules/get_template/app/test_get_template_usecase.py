@@ -26,8 +26,9 @@ class TestGetTemplateUsecase:
         assert template.name == self.template.name
 
     def test_get_template_usecase_not_found(self):
+        template_id = str(uuid.uuid4())
         with pytest.raises(NoItemsFound):
-            self.usecase(template_id=str(uuid.uuid4()), requester=self.requester)
+            self.usecase(template_id=template_id, requester=self.requester)
 
     def test_get_template_usecase_forbidden(self):
         other_requester = UserGatewayDTO(user_id="user-123", name="User", email="user@test.com", systems=["ORION"])

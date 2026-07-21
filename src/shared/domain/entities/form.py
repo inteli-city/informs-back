@@ -1,16 +1,19 @@
 import abc
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID
 
 from src.shared.domain.entities.field import FileField
 from src.shared.domain.entities.file_upload import FileUploadRequest
 from src.shared.domain.entities.information_field import InformationField
 from src.shared.domain.entities.justification import Justification
-from src.shared.domain.entities.section import Section
+from src.shared.domain.entities.section import MAX_SECTION_INSTANCE, Section
 from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.enums.priority_enum import Priority
+from src.shared.domain.validators import ensure_non_negative_int
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction
+
+_ERR_UPDATED_AT_MUST_BE_INT = 'Timestamp de atualização deve ser um inteiro'
 
 
 class Form(abc.ABC):
@@ -79,6 +82,15 @@ class Form(abc.ABC):
         information_fields: Optional[List[InformationField]] = None,
     ):
 
+        # Validação dividida em blocos para manter a complexidade de cada
+        # método baixa; a ordem de validação/atribuição é preservada.
+        self._init_identity(form_title, id, user_id, created_by, template)
+        self._init_place(area, system, city, street, number, latitude, longitude)
+        self._init_priority_status(priority, observation, expiration_date, status)
+        self._init_timestamps(in_progress_at, cancelled_at, completed_at, created_at, updated_at)
+        self._init_content(justification, sections, template, information_fields)
+
+    def _init_identity(self, form_title, id, user_id, created_by, template):
         if not isinstance(form_title, str):
             raise EntityError('Título do formulário deve ser uma string')
         self.form_title = form_title
@@ -99,6 +111,7 @@ class Form(abc.ABC):
             raise EntityError('ID do template deve ser uma string')
         self.template = template
 
+    def _init_place(self, area, system, city, street, number, latitude, longitude):
         if area is not None and not isinstance(area, str):
             raise EntityError('Área deve ser uma string')
         self.area = area
@@ -131,6 +144,7 @@ class Form(abc.ABC):
             raise EntityError('Longitude deve estar entre -180 e 180')
         self.longitude = float(longitude)
 
+    def _init_priority_status(self, priority, observation, expiration_date, status):
         if not isinstance(priority, Priority):
             raise EntityError('Prioridade inválida')
         self.priority = priority
@@ -147,6 +161,7 @@ class Form(abc.ABC):
             raise EntityError('Status do formulário inválido')
         self.status = status
 
+    def _init_timestamps(self, in_progress_at, cancelled_at, completed_at, created_at, updated_at):
         if in_progress_at is not None and not isinstance(in_progress_at, int):
             raise EntityError('Timestamp de início deve ser um inteiro')
         self.in_progress_at = in_progress_at
@@ -164,9 +179,10 @@ class Form(abc.ABC):
         self.created_at = created_at
 
         if not isinstance(updated_at, int):
-            raise EntityError('Timestamp de atualização deve ser um inteiro')
+            raise EntityError(_ERR_UPDATED_AT_MUST_BE_INT)
         self.updated_at = updated_at
 
+    def _init_content(self, justification, sections, template, information_fields):
         if justification is None or not isinstance(justification, Justification):
             raise EntityError('Justificativa é obrigatória e deve ser válida')
         self.justification = justification
@@ -195,7 +211,7 @@ class Form(abc.ABC):
         if not isinstance(in_progress_at, int):
             raise EntityError('Timestamp de início deve ser um inteiro')
         if not isinstance(updated_at, int):
-            raise EntityError('Timestamp de atualização deve ser um inteiro')
+            raise EntityError(_ERR_UPDATED_AT_MUST_BE_INT)
 
         if self.status != FormStatus.PENDING:
             raise ForbiddenAction("Formulário não está aberto para início")
@@ -208,7 +224,7 @@ class Form(abc.ABC):
         if not isinstance(new_status, FormStatus):
             raise EntityError('Novo status inválido')
         if not isinstance(updated_at, int):
-            raise EntityError('Timestamp de atualização deve ser um inteiro')
+            raise EntityError(_ERR_UPDATED_AT_MUST_BE_INT)
 
         if new_status in [FormStatus.CANCELLED, FormStatus.COMPLETED]:
             raise ForbiddenAction("Não é possível alterar o status para cancelado ou concluído")
@@ -238,10 +254,13 @@ class Form(abc.ABC):
         if self.status is not FormStatus.IN_PROGRESS:
             raise ForbiddenAction("Formulário não está em andamento")
 
-    def _find_section(self, section_id: int) -> Section:
-        section = next((item for item in self.sections if item.section_id == section_id), None)
+    def _find_section(self, section_id: int, section_instance: int = 0) -> Section:
+        section = next(
+            (s for s in self.sections if s.section_id == section_id and s.section_instance == section_instance),
+            None,
+        )
         if section is None:
-            raise EntityError(f"Seção com ID {section_id} não encontrada no formulário")
+            raise EntityError(f"Seção {section_id} (instância {section_instance}) não encontrada no formulário")
         return section
 
     @staticmethod
@@ -279,25 +298,58 @@ class Form(abc.ABC):
             normalized_value.append(file_upload.to_dict())
         return normalized_uploads, normalized_value
 
-    def apply_field_values(self, fields: List[dict]) -> Dict[Tuple[int, str], List[FileUploadRequest]]:
+    @staticmethod
+    def _parse_field_item(item: dict) -> Tuple[int, int, str, Any]:
+        if not isinstance(item, dict):
+            raise EntityError("Campo deve ser um objeto")
+        section_instance = item.get("section_instance", 0)
+        ensure_non_negative_int(section_instance, "section_instance")
+        if section_instance > MAX_SECTION_INSTANCE:
+            raise EntityError(f"section_instance deve ser no máximo {MAX_SECTION_INSTANCE}")
+        return item.get("section_id"), section_instance, item.get("field_key"), item.get("value")
+
+    def _get_or_materialize_section(self, section_id: int, section_instance: int, base_sections: Dict[int, Section]) -> Section:
+        section = next(
+            (s for s in self.sections if s.section_id == section_id and s.section_instance == section_instance),
+            None,
+        )
+        if section is not None:
+            return section
+        if section_instance == 0:
+            raise EntityError(f"Seção {section_id} (instância {section_instance}) não encontrada no formulário")
+        base = base_sections.get(section_id)
+        if base is None:
+            raise EntityError(f"Seção {section_id} não encontrada no formulário")
+        if not base.is_duplicable:
+            raise EntityError(f"Seção {section_id} não é duplicável")
+        new_section = base.with_instance(section_instance)
+        self.sections.append(new_section)
+        return new_section
+
+    def apply_field_values(self, fields: List[dict]) -> Dict[Tuple[int, int, str], List[FileUploadRequest]]:
         if not isinstance(fields, list):
             raise EntityError("Campos devem ser uma lista")
+
+        # Referências diretas, sem snapshot: Section.with_instance() já clona a
+        # base e zera os valores, então clonar da seção viva (mesmo mutada por
+        # este submit) produz o mesmo resultado — sem pagar deepcopy de todas
+        # as seções em toda submissão.
+        base_sections = {
+            s.section_id: s
+            for s in self.sections if s.section_instance == 0
+        }
 
         seen = set()
         file_uploads = {}
         for item in fields:
-            if not isinstance(item, dict):
-                raise EntityError("Campo deve ser um objeto")
-            section_id = item.get("section_id")
-            field_key = item.get("field_key")
-            value = item.get("value")
+            section_id, section_instance, field_key, value = self._parse_field_item(item)
 
-            key = (section_id, field_key)
+            key = (section_id, section_instance, field_key)
             if key in seen:
-                raise EntityError(f"Campo '{field_key}' duplicado na seção {section_id}")
+                raise EntityError(f"Campo '{field_key}' duplicado na seção {section_id} instância {section_instance}")
             seen.add(key)
 
-            section = self._find_section(section_id)
+            section = self._get_or_materialize_section(section_id, section_instance, base_sections)
             field_index = self._find_field_index(section, field_key)
             existing_field = section.fields[field_index]
 
@@ -310,10 +362,10 @@ class Form(abc.ABC):
         self.ensure_required_fields_filled()
         return file_uploads
 
-    def set_file_field_urls(self, section_id: int, field_key: str, file_urls: List[str]):
+    def set_file_field_urls(self, section_id: int, field_key: str, file_urls: List[str], section_instance: int = 0):
         if not isinstance(file_urls, list) or not file_urls or not all(isinstance(url, str) for url in file_urls):
             raise EntityError("URLs de arquivo devem ser uma lista não vazia")
-        section = self._find_section(section_id)
+        section = self._find_section(section_id, section_instance)
         field_index = self._find_field_index(section, field_key)
         field = section.fields[field_index]
         if not isinstance(field, FileField):
@@ -330,7 +382,7 @@ class Form(abc.ABC):
         if not isinstance(completed_at, int):
             raise EntityError('Timestamp de conclusão deve ser um inteiro')
         if not isinstance(updated_at, int):
-            raise EntityError('Timestamp de atualização deve ser um inteiro')
+            raise EntityError(_ERR_UPDATED_AT_MUST_BE_INT)
         if self.status is not FormStatus.IN_PROGRESS:
             raise ForbiddenAction("Formulário não está em andamento")
 
@@ -350,7 +402,7 @@ class Form(abc.ABC):
         if not isinstance(cancelled_at, int):
             raise EntityError('Timestamp de cancelamento deve ser um inteiro')
         if not isinstance(updated_at, int):
-            raise EntityError('Timestamp de atualização deve ser um inteiro')
+            raise EntityError(_ERR_UPDATED_AT_MUST_BE_INT)
 
         if self.is_finished():
             raise ForbiddenAction("Formulário já está finalizado e não pode ser cancelado")

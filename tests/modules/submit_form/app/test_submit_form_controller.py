@@ -1,11 +1,12 @@
 from src.modules.submit_form.app.submit_form_controller import SubmitFormController
 from src.modules.submit_form.app.submit_form_usecase import SubmitFormUsecase
+from src.shared.domain.entities.section import MAX_SECTION_INSTANCE
 from src.shared.helpers.external_interfaces.http_models import HttpRequest
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
 
 
-class Test_SubmitFormController:
+class TestSubmitFormController:
 
     def _build_fields(self):
         return [
@@ -39,6 +40,37 @@ class Test_SubmitFormController:
         assert response.status_code == 200
         assert response.body["files"] == []
     
+    def test_submit_form_controller_section_instance_above_max(self):
+        """section_instance acima do teto deve ser rejeitado já no contrato (400),
+        antes de qualquer deepcopy/persistência no domínio."""
+        repo = FormRepositoryMock()
+        file_repo = FileRepositoryMock()
+        usecase = SubmitFormUsecase(repo, file_repo)
+
+        controller = SubmitFormController(usecase)
+
+        data = HttpRequest(body={"requester_user": {
+                "sub": 'd61dbf66-a10f-11ed-a8fc-0242ac120001',
+                "name": 'Gabriel Godoy',
+                "email": 'gabriel@gmail.com',
+                "cognito:groups": "GAIA, JUNDIAI,FORMULARIOS"
+            },
+            "form_id": repo.forms[0].id,
+            "completed_at": 123,
+            "fields": [
+                {
+                    "section_id": 1,
+                    "section_instance": MAX_SECTION_INSTANCE + 1,
+                    "field_key": "key",
+                    "value": "poggers"
+                }
+            ],
+        })
+
+        response = controller(data)
+
+        assert response.status_code == 400
+
     def test_submit_form_controller_missing_requester_user(self):
         repo = FormRepositoryMock()
         file_repo = FileRepositoryMock()

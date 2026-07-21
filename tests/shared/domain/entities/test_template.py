@@ -33,8 +33,9 @@ class TestTemplateEntity:
         assert tpl.sections[0].section_id == 1
 
     def test_invalid_name(self):
+        tpl = make_template()
         with pytest.raises(EntityError):
-            make_template().change_name("")
+            tpl.change_name("")
 
     def test_change_description(self):
         tpl = make_template()

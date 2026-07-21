@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 import os
 
-# from dotenv import load_dotenv
-
 import aws_cdk as cdk
 
 from adjust_layer_directory import adjust_layer_directory

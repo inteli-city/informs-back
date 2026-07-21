@@ -53,14 +53,14 @@ class FormRepositoryDynamo(IFormRepository):
             sort_key=Environments.get_envs().dynamo_sort_key,
         )
     
-    def get_form_by_id(self, user_id: str, form_id: str) -> Form:
+    def get_form_by_id(self, user_id: str, form_id: str) -> Optional[Form]:
         form = self.dynamo.get_item(partition_key=self.form_partition_key_format(form_id), sort_key=self.form_sort_key_format())
         if "Item" not in form:
             return None
 
         return FormDynamoDTO.from_dynamo(form['Item']).to_entity()
 
-    def get_form_by_user_id(self, user_id: str) -> dict:
+    def get_form_by_user_id(self, user_id: str) -> List[Form]:
         query_string = Key(self.dynamo.partition_key).eq(self.form_partition_key_format(user_id))
         resp = self.dynamo.query(key_condition_expression=query_string, Select='ALL_ATTRIBUTES')
         forms = []
@@ -83,93 +83,21 @@ class FormRepositoryDynamo(IFormRepository):
     ) -> Tuple[List[Form], Optional[str]]:
         forms: List[Form] = []
 
-        items = []
-        filter_expression = None
-
-        if status is not None:
-            if isinstance(status, list):
-                if status:
-                    status_filter = None
-                    for status_item in status:
-                        expr = Attr('status').eq(status_item.value)
-                        status_filter = expr if status_filter is None else status_filter | expr
-                    filter_expression = status_filter
-            else:
-                filter_expression = Attr('status').eq(status.value)
-        if system is not None:
-            if isinstance(system, list):
-                if system:
-                    system_filter = None
-                    for system_item in system:
-                        expr = Attr('system').eq(system_item)
-                        system_filter = expr if system_filter is None else system_filter | expr
-                    if system_filter is not None:
-                        filter_expression = system_filter if filter_expression is None else filter_expression & system_filter
-            else:
-                expr = Attr('system').eq(system)
-                filter_expression = expr if filter_expression is None else filter_expression & expr
-        if created_at_start is not None and created_at_end is not None:
-            expr = Attr('created_at').between(Decimal(created_at_start), Decimal(created_at_end))
-            filter_expression = expr if filter_expression is None else filter_expression & expr
-        elif created_at_start is not None:
-            expr = Attr('created_at').gte(Decimal(created_at_start))
-            filter_expression = expr if filter_expression is None else filter_expression & expr
-        elif created_at_end is not None:
-            expr = Attr('created_at').lte(Decimal(created_at_end))
-            filter_expression = expr if filter_expression is None else filter_expression & expr
+        filter_expression = self._build_forms_filter_expression(
+            status, system, created_at_start, created_at_end
+        )
+        # limit paginado só se aplica via Dynamo quando não há busca textual
+        # (search é filtrado pós-query, então precisamos varrer tudo).
+        use_dynamo_limit = limit is not None and search is None
 
         if user_id is not None:
-            query = Key("GSI1PK").eq(self.form_gsi1_partition_key_format(user_id))
-            query_kwargs = {
-                "key_condition_expression": query,
-                "IndexName": "UserPriorityIndex",
-                "Select": "ALL_ATTRIBUTES",
-            }
-            if filter_expression is not None:
-                query_kwargs["FilterExpression"] = filter_expression
-            start_key = exclusive_start_key
-            while True:
-                if limit is not None and search is None:
-                    remaining = limit - len(items)
-                    if remaining <= 0:
-                        break
-                    query_kwargs["Limit"] = remaining
-                else:
-                    query_kwargs.pop("Limit", None)
-                if start_key is not None:
-                    query_kwargs["ExclusiveStartKey"] = start_key
-                else:
-                    query_kwargs.pop("ExclusiveStartKey", None)
-                resp = self.dynamo.query(**query_kwargs)
-                items.extend(resp.get("Items", []))
-                start_key = resp.get("LastEvaluatedKey")
-                if start_key is None:
-                    break
+            items, start_key = self._query_forms_by_user(
+                user_id, filter_expression, exclusive_start_key, limit, use_dynamo_limit
+            )
         else:
-            scan_kwargs = {
-                "Select": "ALL_ATTRIBUTES",
-            }
-            start_key = exclusive_start_key
-            while True:
-                if limit is not None and search is None:
-                    remaining = limit - len(items)
-                    if remaining <= 0:
-                        break
-                    scan_kwargs["Limit"] = remaining
-                else:
-                    scan_kwargs.pop("Limit", None)
-                if start_key is not None:
-                    scan_kwargs["ExclusiveStartKey"] = start_key
-                else:
-                    scan_kwargs.pop("ExclusiveStartKey", None)
-                if filter_expression is not None:
-                    resp = self.dynamo.scan_items(filter_expression=filter_expression, **scan_kwargs)
-                else:
-                    resp = self.dynamo.dynamo_table.scan(**scan_kwargs)
-                items.extend(resp.get("Items", []))
-                start_key = resp.get("LastEvaluatedKey")
-                if start_key is None:
-                    break
+            items, start_key = self._scan_forms(
+                filter_expression, exclusive_start_key, limit, use_dynamo_limit
+            )
 
         for item in items:
             forms.append(FormDynamoDTO.from_dynamo(item).to_entity())
@@ -189,8 +117,115 @@ class FormRepositoryDynamo(IFormRepository):
         if limit is not None and search is not None:
             forms = forms[:limit]
 
-        next_key = start_key if limit is not None and search is None else None
+        next_key = start_key if use_dynamo_limit else None
         return forms, encode_pagination_token(next_key)
+
+    @staticmethod
+    def _and(base, expr):
+        return expr if base is None else base & expr
+
+    @staticmethod
+    def _status_filter(status):
+        if status is None:
+            return None
+        if not isinstance(status, list):
+            return Attr('status').eq(status.value)
+        status_filter = None
+        for status_item in status:
+            status_filter = FormRepositoryDynamo._or(status_filter, Attr('status').eq(status_item.value))
+        return status_filter
+
+    @staticmethod
+    def _or(base, expr):
+        return expr if base is None else base | expr
+
+    @staticmethod
+    def _system_filter(system):
+        if system is None:
+            return None
+        if not isinstance(system, list):
+            return Attr('system').eq(system)
+        system_filter = None
+        for system_item in system:
+            system_filter = FormRepositoryDynamo._or(system_filter, Attr('system').eq(system_item))
+        return system_filter
+
+    @staticmethod
+    def _created_at_filter(created_at_start, created_at_end):
+        if created_at_start is not None and created_at_end is not None:
+            return Attr('created_at').between(Decimal(created_at_start), Decimal(created_at_end))
+        if created_at_start is not None:
+            return Attr('created_at').gte(Decimal(created_at_start))
+        if created_at_end is not None:
+            return Attr('created_at').lte(Decimal(created_at_end))
+        return None
+
+    @staticmethod
+    def _build_forms_filter_expression(status, system, created_at_start, created_at_end):
+        filter_expression = None
+        for part in (
+            FormRepositoryDynamo._status_filter(status),
+            FormRepositoryDynamo._system_filter(system),
+            FormRepositoryDynamo._created_at_filter(created_at_start, created_at_end),
+        ):
+            if part is not None:
+                filter_expression = FormRepositoryDynamo._and(filter_expression, part)
+        return filter_expression
+
+    @staticmethod
+    def _apply_pagination_kwargs(kwargs: dict, items: list, start_key, limit, use_dynamo_limit) -> bool:
+        """Ajusta Limit/ExclusiveStartKey no kwargs. Retorna False se deve parar."""
+        if use_dynamo_limit:
+            remaining = limit - len(items)
+            if remaining <= 0:
+                return False
+            kwargs["Limit"] = remaining
+        else:
+            kwargs.pop("Limit", None)
+        if start_key is not None:
+            kwargs["ExclusiveStartKey"] = start_key
+        else:
+            kwargs.pop("ExclusiveStartKey", None)
+        return True
+
+    def _query_forms_by_user(self, user_id, filter_expression, exclusive_start_key, limit, use_dynamo_limit):
+        query = Key("GSI1PK").eq(self.form_gsi1_partition_key_format(user_id))
+        query_kwargs = {
+            "key_condition_expression": query,
+            "IndexName": "UserPriorityIndex",
+            "Select": "ALL_ATTRIBUTES",
+        }
+        if filter_expression is not None:
+            query_kwargs["FilterExpression"] = filter_expression
+
+        items = []
+        start_key = exclusive_start_key
+        while True:
+            if not self._apply_pagination_kwargs(query_kwargs, items, start_key, limit, use_dynamo_limit):
+                break
+            resp = self.dynamo.query(**query_kwargs)
+            items.extend(resp.get("Items", []))
+            start_key = resp.get("LastEvaluatedKey")
+            if start_key is None:
+                break
+        return items, start_key
+
+    def _scan_forms(self, filter_expression, exclusive_start_key, limit, use_dynamo_limit):
+        scan_kwargs = {"Select": "ALL_ATTRIBUTES"}
+        items = []
+        start_key = exclusive_start_key
+        while True:
+            if not self._apply_pagination_kwargs(scan_kwargs, items, start_key, limit, use_dynamo_limit):
+                break
+            if filter_expression is not None:
+                resp = self.dynamo.scan_items(filter_expression=filter_expression, **scan_kwargs)
+            else:
+                resp = self.dynamo.dynamo_table.scan(**scan_kwargs)
+            items.extend(resp.get("Items", []))
+            start_key = resp.get("LastEvaluatedKey")
+            if start_key is None:
+                break
+        return items, start_key
 
     def create_form(self, form: Form) -> Form:
         item = FormDynamoDTO.from_entity(form).to_dynamo()
@@ -220,31 +255,22 @@ class FormRepositoryDynamo(IFormRepository):
         sections: Optional[List[Section]] = None,
         justification: Optional[Justification] = None,
         expected_status: Optional[FormStatus] = None,
-    ) -> Form:
+    ) -> Optional[Form]:
         update_dict = {}
         current_form = self.get_form_by_id(user_id=user_id, form_id=form_id)
 
-        def _put(key, value):
-            if value is None:
-                return
-            if isinstance(value, FormStatus):
-                update_dict[key] = value.value
-            elif isinstance(value, Justification):
-                update_dict[key] = JustificationDTO.from_entity(value).to_dynamo()
-            elif isinstance(value, list) and value and isinstance(value[0], Section):
-                update_dict[key] = [SectionDTO.from_entity(section).to_dynamo() for section in value]
-            elif isinstance(value, (int, float)):
-                update_dict[key] = Decimal(str(value))
-            else:
-                update_dict[key] = value
-
-        _put("status", status)
-        _put("in_progress_at", in_progress_at)
-        _put("completed_at", completed_at)
-        _put("cancelled_at", cancelled_at)
-        _put("updated_at", updated_at)
-        _put("sections", sections)
-        _put("justification", justification)
+        candidate_updates = {
+            "status": status,
+            "in_progress_at": in_progress_at,
+            "completed_at": completed_at,
+            "cancelled_at": cancelled_at,
+            "updated_at": updated_at,
+            "sections": sections,
+            "justification": justification,
+        }
+        for key, value in candidate_updates.items():
+            if value is not None:
+                update_dict[key] = self._coerce_update_value(value)
         if current_form is not None:
             update_dict["GSI2PK"] = self.form_gsi2_partition_key_format(current_form.system)
             if updated_at is not None:
@@ -266,8 +292,20 @@ class FormRepositoryDynamo(IFormRepository):
 
         if "Attributes" not in resp:
             return None
-        
+
         return FormDynamoDTO.from_dynamo(resp['Attributes']).to_entity()
+
+    @staticmethod
+    def _coerce_update_value(value):
+        if isinstance(value, FormStatus):
+            return value.value
+        if isinstance(value, Justification):
+            return JustificationDTO.from_entity(value).to_dynamo()
+        if isinstance(value, list) and value and isinstance(value[0], Section):
+            return [SectionDTO.from_entity(section).to_dynamo() for section in value]
+        if isinstance(value, (int, float)):
+            return Decimal(str(value))
+        return value
 
     def get_forms_updated_since(
         self,

@@ -56,56 +56,11 @@ class CreateFormUsecase:
 
         form_id = str(uuid.uuid4())
         now_timestamp = now_timestamp_ms()
-        files: list[FileUpload] = []
-        resolved_sections = sections
 
-        if template is not None:
-            if self.template_repo is None:
-                raise EntityError("template")
-            resolved_template = self.template_repo.get_template(template)
-            if resolved_template is None:
-                raise NoItemsFound("Template não encontrado")
-            if resolved_template.system != system:
-                raise ForbiddenAction("Template não pertence ao sistema informado")
-            if not resolved_template.is_active:
-                raise ForbiddenAction("Template não está ativo")
-            resolved_sections = deepcopy(resolved_template.sections)
-
-        if information_fields:
-            uploads = information_fields_uploads or []
-            for idx, information_field in enumerate(information_fields):
-                if isinstance(information_field, FileInformationField):
-                    if idx >= len(uploads) or uploads[idx] is None:
-                        raise EntityError("mimetype")
-                    upload = uploads[idx]
-                    if not isinstance(upload, FileUploadRequest):
-                        raise EntityError("mimetype")
-                    mimetype = upload.mimetype
-                    filename = upload.filename
-                    file_path = f'{utc_year()}/{system}/{form_id}/information_field/{str(uuid.uuid4())}.{mimetype.split("/")[-1]}'
-                    presigned_url = self.file_repo.generate_presigned_url(
-                        file_path=file_path,
-                        mimetype=mimetype,
-                    )
-                    file_url = build_s3_url(file_path)
-                    information_field.file_path = file_url
-                    if information_field.file_type is None:
-                        if mimetype.lower().startswith("image/"):
-                            information_field.file_type = FileType.IMAGE
-                        else:
-                            information_field.file_type = FileType.DOCUMENT
-                    files.append(
-                        FileUpload(
-                            filename=filename,
-                            mimetype=mimetype,
-                            pre_signed_url=presigned_url,
-                            file_path=file_path,
-                            file_url=file_url,
-                            section_id=None,
-                            field_key=None,
-                            file_index=None,
-                        )
-                    )
+        resolved_sections = self._resolve_sections(template, system, sections)
+        files = self._process_information_field_uploads(
+            information_fields, information_fields_uploads, system, form_id
+        )
 
         form = Form(
             form_title=form_title,
@@ -132,3 +87,62 @@ class CreateFormUsecase:
 
         created_form = self.form_repo.create_form(form)
         return created_form, files
+
+    def _resolve_sections(self, template: Optional[str], system: str, sections: List[Section]) -> List[Section]:
+        if template is None:
+            return sections
+        if self.template_repo is None:
+            raise EntityError("template")
+        resolved_template = self.template_repo.get_template(template)
+        if resolved_template is None:
+            raise NoItemsFound("Template não encontrado")
+        if resolved_template.system != system:
+            raise ForbiddenAction("Template não pertence ao sistema informado")
+        if not resolved_template.is_active:
+            raise ForbiddenAction("Template não está ativo")
+        return deepcopy(resolved_template.sections)
+
+    def _process_information_field_uploads(
+        self,
+        information_fields: Optional[List[InformationField]],
+        information_fields_uploads: Optional[List[Optional[FileUploadRequest]]],
+        system: str,
+        form_id: str,
+    ) -> list[FileUpload]:
+        files: list[FileUpload] = []
+        if not information_fields:
+            return files
+        uploads = information_fields_uploads or []
+        for idx, information_field in enumerate(information_fields):
+            if not isinstance(information_field, FileInformationField):
+                continue
+            upload = uploads[idx] if idx < len(uploads) else None
+            if not isinstance(upload, FileUploadRequest):
+                raise EntityError("mimetype")
+            files.append(self._prepare_file_information_field(information_field, upload, system, form_id))
+        return files
+
+    def _prepare_file_information_field(
+        self,
+        information_field: FileInformationField,
+        upload: FileUploadRequest,
+        system: str,
+        form_id: str,
+    ) -> FileUpload:
+        mimetype = upload.mimetype
+        file_path = f'{utc_year()}/{system}/{form_id}/information_field/{str(uuid.uuid4())}.{mimetype.split("/")[-1]}'
+        presigned_url = self.file_repo.generate_presigned_url(file_path=file_path, mimetype=mimetype)
+        file_url = build_s3_url(file_path)
+        information_field.file_path = file_url
+        if information_field.file_type is None:
+            information_field.file_type = FileType.IMAGE if mimetype.lower().startswith("image/") else FileType.DOCUMENT
+        return FileUpload(
+            filename=upload.filename,
+            mimetype=mimetype,
+            pre_signed_url=presigned_url,
+            file_path=file_path,
+            file_url=file_url,
+            section_id=None,
+            field_key=None,
+            file_index=None,
+        )

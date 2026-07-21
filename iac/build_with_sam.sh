@@ -18,7 +18,7 @@ echo -e "${BLUE}========================================${NC}"
 echo ""
 
 # Verificar se está na pasta iac com app.py
-if [ ! -f "app.py" ]; then
+if [[ ! -f "app.py" ]]; then
     echo -e "${RED}❌ Erro: arquivo app.py não encontrado${NC}"
     echo -e "${YELLOW}💡 Execute este script da pasta 'iac' onde está o app.py${NC}"
     exit 1
@@ -28,7 +28,7 @@ echo -e "${GREEN}✅ Pasta correta detectada${NC}"
 echo ""
 
 # Python command (prefere o venv do repositório quando disponível)
-if [ -x "../venv/bin/python" ]; then
+if [[ -x "../venv/bin/python" ]]; then
     PYTHON_BIN="../venv/bin/python"
 else
     PYTHON_BIN="python3"
@@ -60,7 +60,7 @@ echo -e "${GREEN}✅ OpenAPI sincronizado${NC}"
 echo ""
 
 # Remover cdk.out
-if [ -d "cdk.out" ]; then
+if [[ -d "cdk.out" ]]; then
     echo -e "${YELLOW}🗑️  Removendo pasta cdk.out...${NC}"
     rm -rf cdk.out
     echo -e "${GREEN}✅ cdk.out removido${NC}"
@@ -69,7 +69,7 @@ else
 fi
 
 # Remover .aws-sam
-if [ -d ".aws-sam" ]; then
+if [[ -d ".aws-sam" ]]; then
     echo -e "${YELLOW}🗑️  Removendo pasta .aws-sam...${NC}"
     rm -rf .aws-sam
     echo -e "${GREEN}✅ .aws-sam removido${NC}"

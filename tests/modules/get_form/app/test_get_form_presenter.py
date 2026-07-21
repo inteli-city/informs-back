@@ -6,7 +6,7 @@ import sys
 sys.path.append(os.getcwd())
 
 
-class Test_GetFormPresenter:
+class TestGetFormPresenter:
     def test_get_form_presenter(self):
         os.environ["STAGE"] = "TEST"
         from src.modules.get_form.app import get_form_presenter

@@ -14,7 +14,6 @@ O serviço permite criar templates reutilizáveis, gerar formulários dinâmicos
 venv\Scripts\python.exe -m pytest
 venv\Scripts\python.exe -m pytest --cov=src --cov-report=term-missing
 venv\Scripts\python.exe -m src.shared.helpers.functions.generate_openapi_from_contracts
-venv\Scripts\python.exe -m src.shared.helpers.functions.check_openapi_contract_drift
 ```
 
 Para desenvolvimento local com SAM/DynamoDB Local, veja `iac/LOCAL_SETUP.md`.

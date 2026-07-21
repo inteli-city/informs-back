@@ -15,7 +15,7 @@ justification = Justification(
     selected=SelectedJustification(option='option', text='text', image_url='image')
 )
 
-class Test_FormRepositoryMock:
+class TestFormRepositoryMock:
 
     def test_form_repository_mock_get_form_by_id(self):
         repo = FormRepositoryMock()

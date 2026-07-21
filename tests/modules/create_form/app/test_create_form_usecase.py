@@ -61,7 +61,7 @@ def _make_usecase_and_payload():
     return usecase, payload, template_repo
 
 
-class Test_CreateFormUsecase:
+class TestCreateFormUsecase:
     def test_create_form_usecase(self):
         usecase, payload, _ = _make_usecase_and_payload()
 
@@ -145,7 +145,7 @@ class Test_CreateFormUsecase:
             usecase(**payload)
 
     def test_create_form_usecase_duplicate_field_key(self):
-        usecase, payload, _ = _make_usecase_and_payload()
+        _, payload, _ = _make_usecase_and_payload()
         payload = deepcopy(payload)
 
         field_a = TextField(

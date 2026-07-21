@@ -54,3 +54,22 @@ class FileInformationField(InformationField):
             raise EntityError('Tipo de arquivo inválido')
         self.file_path = file_path
         self.file_type = file_type
+
+
+class UrlInformationField(InformationField):
+    """Aponta para um arquivo/foto já existente em algum lugar (uma URL).
+
+    Diferente de FileInformationField, não gera upload/presigned URL: a URL já
+    existe. O front renderiza o conteúdo de acordo com o `mimetype`.
+    """
+    url: str
+    mimetype: str
+
+    def __init__(self, url: str, mimetype: str):
+        super().__init__(information_field_type=InformationFieldType.URL_INFORMATION_FIELD)
+        if not isinstance(url, str) or not url:
+            raise EntityError('URL do campo informativo deve ser uma string não vazia')
+        if not isinstance(mimetype, str) or not mimetype:
+            raise EntityError('mimetype do campo informativo deve ser uma string não vazia')
+        self.url = url
+        self.mimetype = mimetype
