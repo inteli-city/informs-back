@@ -10,7 +10,7 @@ from src.shared.infra.repositories.form_repository_mock import FormRepositoryMoc
 from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
 
 
-class Test_SubmitFormUsecase:
+class TestSubmitFormUsecase:
 
     def test_submit_form_usecase(self):
         repo = FormRepositoryMock()
@@ -132,6 +132,68 @@ class Test_SubmitFormUsecase:
         assert isinstance(value, list)
         assert len(value) == 1
         assert value[0].startswith("https://")
+
+    def test_submit_form_usecase_with_duplicated_section(self):
+        repo = FormRepositoryMock()
+        file_repo = FileRepositoryMock()
+        usecase = SubmitFormUsecase(repo, file_repo)
+
+        form = repo.forms[0]
+
+        file_field = FileField(
+            placeholder='file',
+            required=True,
+            key='file_key',
+            file_type=FileType.IMAGE,
+            min_quantity=1,
+            max_quantity=1,
+        )
+        form.sections = [Section(section_id=1, fields=[file_field], is_duplicable=True)]
+
+        files = usecase(
+            user_id=form.user_id,
+            form_id=form.id,
+            fields=[
+                {"section_id": 1, "section_instance": 0, "field_key": "file_key", "value": {"filename": "a.jpg", "mimetype": "image/jpeg"}},
+                {"section_id": 1, "section_instance": 1, "field_key": "file_key", "value": {"filename": "b.jpg", "mimetype": "image/jpeg"}},
+            ],
+            completed_at=123,
+        )
+
+        assert form.status == FormStatus.COMPLETED
+        assert len(form.sections) == 2
+        assert {s.section_instance for s in form.sections} == {0, 1}
+
+        assert len(files) == 2
+        by_instance = {f.section_instance: f for f in files}
+        assert by_instance[0].filename == "a.jpg"
+        assert by_instance[1].filename == "b.jpg"
+        # o caminho no S3 separa as instâncias da seção
+        assert '/sections/1/0/' in by_instance[0].file_path
+        assert '/sections/1/1/' in by_instance[1].file_path
+
+        # cada instância recebe as URLs dos seus próprios arquivos
+        for section in form.sections:
+            value = section.fields[0].value
+            assert isinstance(value, list) and len(value) == 1
+            assert value[0].startswith("https://")
+        urls = [s.fields[0].value[0] for s in form.sections]
+        assert urls[0] != urls[1]
+
+    def test_submit_form_usecase_duplicated_section_not_duplicable(self):
+        repo = FormRepositoryMock()
+        file_repo = FileRepositoryMock()
+        usecase = SubmitFormUsecase(repo, file_repo)
+
+        form = repo.forms[0]
+
+        fields = [
+            {"section_id": 1, "field_key": "key", "value": "poggers"},
+            {"section_id": 1, "section_instance": 1, "field_key": "key", "value": "extra"},
+        ]
+
+        with pytest.raises(EntityError):
+            usecase(user_id=form.user_id, form_id=form.id, fields=fields, completed_at=123)
 
     def test_submit_form_usecase_with_multiple_file_uploads(self):
         repo = FormRepositoryMock()

@@ -54,6 +54,7 @@ class TestCreateTemplateUsecase:
         repo = TemplateRepositoryMock()
         usecase = CreateTemplateUsecase(repo)
 
+        sections = [self._make_section()]
         with pytest.raises(ForbiddenAction):
             usecase(
                 created_by="user-123",
@@ -61,7 +62,7 @@ class TestCreateTemplateUsecase:
                 system="JUNDIAI",
                 description=None,
                 is_active=True,
-                sections=[self._make_section()],
+                sections=sections,
                 requester_systems=["GAIA"],
             )
 
@@ -73,6 +74,7 @@ class TestCreateTemplateUsecase:
             def __init__(self):
                 self.fields = []
 
+        sections = [SectionWithoutFields()]
         with pytest.raises(EntityError):
             usecase(
                 created_by="user-123",
@@ -80,5 +82,5 @@ class TestCreateTemplateUsecase:
                 system="GAIA",
                 description=None,
                 is_active=True,
-                sections=[SectionWithoutFields()],
+                sections=sections,
             )

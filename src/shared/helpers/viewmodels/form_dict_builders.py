@@ -17,7 +17,7 @@ Aqui as variações ficam explícitas em parâmetros nomeados:
 """
 
 from enum import Enum
-from typing import Any, Dict
+from typing import Any, Callable, Dict, Optional
 
 from src.shared.domain.entities.field import Field
 from src.shared.domain.entities.form import Form
@@ -78,13 +78,34 @@ def build_field_dict(field: Field, *, include_dynamic_extras: bool = False) -> D
     return base
 
 
-def build_section_dict(section: Section, *, include_dynamic_extras: bool = False) -> Dict[str, Any]:
+def build_field_vars_dict(field: Field) -> Dict[str, Any]:
+    """Serialização dinâmica de field: espelha todos os atributos da entidade.
+
+    Diferente de `build_field_dict` (chaves explícitas), este dump inclui
+    atributos como `placeholder`/`formatting`/`value` que os endpoints de
+    template e `GET /form` sempre expuseram — não trocar um pelo outro sem
+    conferir o contrato de resposta.
+    """
+    return {
+        attr: getattr(field, attr).value if isinstance(getattr(field, attr), Enum) else getattr(field, attr)
+        for attr in vars(field)
+    }
+
+
+def build_section_dict(
+    section: Section,
+    *,
+    include_dynamic_extras: bool = False,
+    field_serializer: Optional[Callable[[Field], Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    if field_serializer is None:
+        def field_serializer(field: Field) -> Dict[str, Any]:
+            return build_field_dict(field, include_dynamic_extras=include_dynamic_extras)
     return {
         "section_id": section.section_id,
-        "fields": [
-            build_field_dict(field, include_dynamic_extras=include_dynamic_extras)
-            for field in section.fields
-        ],
+        "section_instance": section.section_instance,
+        "is_duplicable": section.is_duplicable,
+        "fields": [field_serializer(field) for field in section.fields],
     }
 
 

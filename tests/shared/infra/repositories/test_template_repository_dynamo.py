@@ -8,7 +8,6 @@ sys.path.append(os.getcwd())
 from src.shared.domain.entities.field import TextField
 from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.template import Template
-from src.shared.helpers.functions.pagination_token import encode_pagination_token
 from src.shared.infra.dtos.template_dynamo_dto import TemplateDynamoDTO
 from src.shared.infra.repositories.template_repository_dynamo import TemplateRepositoryDynamo
 
@@ -99,7 +98,6 @@ def test_template_repository_dynamo_get_all_and_update():
         "Items": [item],
         "LastEvaluatedKey": {"PK": "template#next", "SK": "METADATA"},
     }
-    token = encode_pagination_token({"PK": "template#start", "SK": "METADATA"})
     start_key = {"PK": "template#start", "SK": "METADATA"}
 
     results, next_key = repo.get_all_templates(

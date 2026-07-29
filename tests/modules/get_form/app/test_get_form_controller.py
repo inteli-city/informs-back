@@ -9,7 +9,7 @@ from src.shared.helpers.external_interfaces.http_models import HttpRequest
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 
 
-class Test_GetFormController:
+class TestGetFormController:
     def setup_method(self):
         self.repo = FormRepositoryMock()
         self.usecase = GetFormUsecase(self.repo)
@@ -120,7 +120,7 @@ class Test_GetFormController:
     def test_get_form_unexpected_error(self):
         class BoomUsecase:
             def __call__(self, requester_user_id: str, form_id: str):
-                raise Exception("boom")
+                raise RuntimeError("boom")
 
         controller = GetFormController(BoomUsecase())
         request = HttpRequest(body={

@@ -75,39 +75,44 @@ class TemplateRepositoryDynamo(ITemplateRepository):
             "IndexName": "UserPriorityIndex",
             "Select": "ALL_ATTRIBUTES",
         }
-        start_key = exclusive_start_key
-        if start_key is not None:
-            query_kwargs["ExclusiveStartKey"] = start_key
-
         if name_contains is not None:
             query_kwargs["FilterExpression"] = Attr("name").contains(name_contains)
 
+        # limit paginado só se aplica via Dynamo quando não há filtro por nome
+        # (o filtro é aplicado pós-query, então precisamos varrer tudo).
+        use_dynamo_limit = limit is not None and name_contains is None
+        items, start_key = self._query_all_pages(query_kwargs, exclusive_start_key, limit, use_dynamo_limit)
+
+        templates = [TemplateDynamoDTO.from_dynamo(item).to_entity() for item in items]
+        if limit is not None and name_contains is not None:
+            templates = templates[:limit]
+
+        next_key = start_key if use_dynamo_limit else None
+        return templates, encode_pagination_token(next_key)
+
+    def _query_all_pages(self, query_kwargs: dict, exclusive_start_key, limit, use_dynamo_limit):
         items: List[dict] = []
         start_key = exclusive_start_key
         while True:
-            if limit is not None and name_contains is None:
+            if use_dynamo_limit:
                 remaining = limit - len(items)
                 if remaining <= 0:
                     break
                 query_kwargs["Limit"] = remaining
             else:
                 query_kwargs.pop("Limit", None)
+
             if start_key is not None:
                 query_kwargs["ExclusiveStartKey"] = start_key
             else:
                 query_kwargs.pop("ExclusiveStartKey", None)
+
             resp = self.dynamo.query(**query_kwargs)
             items.extend(resp.get("Items", []))
             start_key = resp.get("LastEvaluatedKey")
             if start_key is None:
                 break
-
-        templates = [TemplateDynamoDTO.from_dynamo(item).to_entity() for item in items]
-        if limit is not None and name_contains is not None:
-            templates = templates[:limit]
-
-        next_key = start_key if limit is not None and name_contains is None else None
-        return templates, encode_pagination_token(next_key)
+        return items, start_key
 
     def update_template(self, template: Template) -> Template:
         dto = TemplateDynamoDTO.from_entity(template).to_dynamo()

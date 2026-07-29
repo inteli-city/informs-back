@@ -13,5 +13,6 @@ class FileUploadSchema(ResponseContractModel):
     file_path: str
     file_url: str
     section_id: int | None = None
+    section_instance: int | None = None
     field_key: str | None = None
     file_index: int | None = None

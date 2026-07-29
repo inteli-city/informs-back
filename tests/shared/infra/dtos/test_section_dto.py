@@ -8,7 +8,7 @@ from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.infra.dtos.section_dto import SectionDTO
 
 
-class Test_SectionDTO:
+class TestSectionDTO:
 
     def test_section_dto_from_request_text(self):
         section_dict = {
@@ -663,4 +663,104 @@ class Test_SectionDTO:
         assert section.fields[0].formatting == 'formatting'
         assert section.fields[0].max_length == 10
         assert section.fields[0].value == None
-        
+
+    # --- Novos testes: is_duplicable e section_instance ---
+
+    def test_section_dto_from_request_is_duplicable_true(self):
+        section_dict = {
+            'section_id': '1',
+            'is_duplicable': True,
+            'fields': [{'field_type': 'TEXT_FIELD', 'placeholder': 'x', 'required': True, 'key': 'k', 'max_length': 10}],
+        }
+        dto = SectionDTO.from_request(section_dict)
+        assert dto.is_duplicable is True
+        assert dto.section_instance == 0
+
+    def test_section_dto_from_request_section_instance_nonzero_raises(self):
+        """section_instance só é materializado na submissão (Form._get_or_materialize_section);
+        aceitar um valor != 0 na criação/atualização deixaria a seção sem instância 0 correspondente."""
+        section_dict = {
+            'section_id': '1',
+            'is_duplicable': True,
+            'section_instance': 3,
+            'fields': [{'field_type': 'TEXT_FIELD', 'placeholder': 'x', 'required': True, 'key': 'k', 'max_length': 10}],
+        }
+        with pytest.raises(EntityError):
+            SectionDTO.from_request(section_dict)
+
+    def test_section_dto_from_request_is_duplicable_default_false(self):
+        section_dict = {
+            'section_id': '1',
+            'fields': [{'field_type': 'TEXT_FIELD', 'placeholder': 'x', 'required': True, 'key': 'k', 'max_length': 10}],
+        }
+        dto = SectionDTO.from_request(section_dict)
+        assert dto.is_duplicable is False
+
+    def test_section_dto_from_entity_preserves_flags(self):
+        from src.shared.domain.entities.field import TextField as TF
+        section = Section(section_id=5, fields=[TF(label='l', required=True, key='k', order=1, max_length=5)], is_duplicable=True, section_instance=2)
+        dto = SectionDTO.from_entity(section)
+        assert dto.is_duplicable is True
+        assert dto.section_instance == 2
+
+    def test_section_dto_from_dynamo_defaults_when_missing(self):
+        """Retrocompatibilidade: seções antigas no DynamoDB sem esses campos."""
+        section_dict = {
+            'section_id': '1',
+            'fields': [{'field_type': 'TEXT_FIELD', 'placeholder': 'x', 'required': True, 'key': 'k', 'max_length': 10}],
+        }
+        dto = SectionDTO.from_dynamo(section_dict)
+        assert dto.is_duplicable is False
+        assert dto.section_instance == 0
+
+    def test_section_dto_from_dynamo_with_flags(self):
+        section_dict = {
+            'section_id': '1',
+            'is_duplicable': True,
+            'section_instance': 3,
+            'fields': [{'field_type': 'TEXT_FIELD', 'placeholder': 'x', 'required': True, 'key': 'k', 'max_length': 10}],
+        }
+        dto = SectionDTO.from_dynamo(section_dict)
+        assert dto.is_duplicable is True
+        assert dto.section_instance == 3
+
+    def test_section_dto_from_dynamo_decimal_section_instance(self):
+        """boto3 devolve números do DynamoDB como decimal.Decimal; o round-trip
+        até a entidade (validação estrita de int) não pode quebrar — senão todo
+        formulário gravado com section_instance vira ilegível na leitura."""
+        from decimal import Decimal
+        section_dict = {
+            'section_id': '1',
+            'is_duplicable': True,
+            'section_instance': Decimal('3'),
+            'fields': [{'field_type': 'TEXT_FIELD', 'placeholder': 'x', 'required': True, 'key': 'k', 'max_length': 10}],
+        }
+        entity = SectionDTO.from_dynamo(section_dict).to_entity()
+        assert entity.section_instance == 3
+        assert isinstance(entity.section_instance, int)
+
+    def test_section_dto_to_dynamo_includes_flags(self):
+        from src.shared.domain.entities.field import TextField as TF
+        dto = SectionDTO(
+            section_id='1',
+            fields=[TF(label='l', required=True, key='k', order=1, max_length=5)],
+            is_duplicable=True,
+            section_instance=1,
+        )
+        result = dto.to_dynamo()
+        assert result['is_duplicable'] is True
+        assert result['section_instance'] == 1
+
+    def test_section_dto_to_entity_preserves_flags(self):
+        from src.shared.domain.entities.field import TextField as TF
+        dto = SectionDTO(
+            section_id='7',
+            fields=[TF(label='l', required=True, key='k', order=1, max_length=5)],
+            is_duplicable=True,
+            section_instance=2,
+        )
+        entity = dto.to_entity()
+        assert entity.section_id == 7
+        assert entity.is_duplicable is True
+        assert entity.section_instance == 2
+

@@ -1,5 +1,0 @@
-type: object
-properties:
-  files:
-    type: array
-    items: { $ref: "../entities/docs/file-upload.yaml#/FileUpload" }

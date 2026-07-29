@@ -3,7 +3,7 @@ from src.shared.domain.entities.justification import Justification, Justificatio
 from src.shared.helpers.errors.domain_errors import EntityError
 
 
-class Test_justification:
+class TestJustification:
 
     option = JustificationOption(option='option', required_image=True, required_text=True)
     

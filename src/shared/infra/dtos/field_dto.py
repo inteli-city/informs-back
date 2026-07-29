@@ -178,47 +178,57 @@ class FieldDTO:
 
     @staticmethod
     def _build_checkbox_group_field(base_args: dict, field_dict: dict) -> CheckBoxGroupField:
-        value_raw = field_dict.get("value")
         options = field_dict.get("options")
-        normalized_value = None
-
-        if value_raw is not None:
-            if isinstance(value_raw, dict):
-                if not isinstance(options, list) or not options:
-                    raise EntityError("Opções são obrigatórias para o tipo CheckboxGroup")
-                unknown_keys = [key for key in value_raw.keys() if key not in options]
-                if unknown_keys:
-                    raise EntityError(f"Chaves desconhecidas no valor do checkbox: {unknown_keys}")
-                normalized_value = []
-                for option in options:
-                    entry = value_raw.get(option)
-                    if entry is None:
-                        entry = False
-                    if isinstance(entry, (int, float)) and entry in (0, 1):
-                        entry = bool(entry)
-                    if not isinstance(entry, bool):
-                        raise EntityError(f"Valor da opção '{option}' deve ser verdadeiro ou falso")
-                    normalized_value.append(entry)
-            elif isinstance(value_raw, list):
-                normalized_value = []
-                for entry in value_raw:
-                    if entry is None:
-                        normalized_value.append(False)
-                    elif isinstance(entry, (int, float)) and entry in (0, 1):
-                        normalized_value.append(bool(entry))
-                    elif isinstance(entry, bool):
-                        normalized_value.append(entry)
-                    else:
-                        raise EntityError(f"Cada entrada do checkbox deve ser verdadeiro ou falso, recebido: {entry}")
-            else:
-                raise EntityError("Valor do checkbox deve ser um objeto ou lista de booleanos")
-
+        normalized_value = FieldDTO._normalize_checkbox_group_value(field_dict.get("value"), options)
         return CheckBoxGroupField(
             **base_args,
             options=options,
             check_limit=FieldDTO._to_int(field_dict.get("check_limit")),
             value=normalized_value,
         )
+
+    @staticmethod
+    def _normalize_checkbox_group_value(value_raw, options):
+        if value_raw is None:
+            return None
+        if isinstance(value_raw, dict):
+            return FieldDTO._normalize_checkbox_dict(value_raw, options)
+        if isinstance(value_raw, list):
+            return FieldDTO._normalize_checkbox_list(value_raw)
+        raise EntityError("Valor do checkbox deve ser um objeto ou lista de booleanos")
+
+    @staticmethod
+    def _normalize_checkbox_dict(value_raw: dict, options) -> list:
+        if not isinstance(options, list) or not options:
+            raise EntityError("Opções são obrigatórias para o tipo CheckboxGroup")
+        unknown_keys = [key for key in value_raw.keys() if key not in options]
+        if unknown_keys:
+            raise EntityError(f"Chaves desconhecidas no valor do checkbox: {unknown_keys}")
+        normalized_value = []
+        for option in options:
+            entry = value_raw.get(option)
+            if entry is None:
+                entry = False
+            if isinstance(entry, (int, float)) and entry in (0, 1):
+                entry = bool(entry)
+            if not isinstance(entry, bool):
+                raise EntityError(f"Valor da opção '{option}' deve ser verdadeiro ou falso")
+            normalized_value.append(entry)
+        return normalized_value
+
+    @staticmethod
+    def _normalize_checkbox_list(value_raw: list) -> list:
+        normalized_value = []
+        for entry in value_raw:
+            if entry is None:
+                normalized_value.append(False)
+            elif isinstance(entry, (int, float)) and entry in (0, 1):
+                normalized_value.append(bool(entry))
+            elif isinstance(entry, bool):
+                normalized_value.append(entry)
+            else:
+                raise EntityError(f"Cada entrada do checkbox deve ser verdadeiro ou falso, recebido: {entry}")
+        return normalized_value
 
     @staticmethod
     def _build_switch_button_field(base_args: dict, field_dict: dict) -> SwitchButtonField:

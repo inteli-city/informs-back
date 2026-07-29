@@ -9,7 +9,7 @@ from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 
 
-class Test_GetAllFormsUsecase:
+class TestGetAllFormsUsecase:
     def test_get_all_forms_usecase_filter_by_user(self):
         repo = FormRepositoryMock()
         usecase = GetAllFormsUsecase(repo)

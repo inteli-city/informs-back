@@ -1,11 +1,11 @@
 import pytest
 
-from src.shared.domain.entities.information_field import FileInformationField, InformationField, MapInformationField, TextInformationField
+from src.shared.domain.entities.information_field import FileInformationField, InformationField, MapInformationField, TextInformationField, UrlInformationField
 from src.shared.domain.enums.information_field_type_enum import InformationFieldType
 from src.shared.helpers.errors.domain_errors import EntityError
 
 
-class Test_InformationField:
+class TestInformationField:
 
     def test_information_field_cannot_be_instanciated(self):
         with pytest.raises(TypeError):
@@ -31,8 +31,8 @@ class Test_InformationField:
     def test_map_information_field(self):
         map_information_field = MapInformationField(latitude=1.0, longitude=1.0)
         assert map_information_field.information_field_type == InformationFieldType.MAP_INFORMATION_FIELD
-        assert map_information_field.latitude == 1.0
-        assert map_information_field.longitude == 1.0
+        assert map_information_field.latitude == pytest.approx(1.0)
+        assert map_information_field.longitude == pytest.approx(1.0)
     
     def test_map_information_field_latitude_is_none(self):
         with pytest.raises(EntityError):
@@ -63,3 +63,31 @@ class Test_InformationField:
     def test_file_information_field_file_path_is_not_str(self):
         with pytest.raises(EntityError):
             FileInformationField(file_path=1)
+
+    # UrlInformationField
+
+    def test_url_information_field(self):
+        url_information_field = UrlInformationField(url='https://example.com/photo.jpg', mimetype='image/jpeg')
+        assert url_information_field.information_field_type == InformationFieldType.URL_INFORMATION_FIELD
+        assert url_information_field.url == 'https://example.com/photo.jpg'
+        assert url_information_field.mimetype == 'image/jpeg'
+
+    def test_url_information_field_url_is_none(self):
+        with pytest.raises(EntityError):
+            UrlInformationField(url=None, mimetype='image/jpeg')
+
+    def test_url_information_field_url_is_empty(self):
+        with pytest.raises(EntityError):
+            UrlInformationField(url='', mimetype='image/jpeg')
+
+    def test_url_information_field_url_is_not_str(self):
+        with pytest.raises(EntityError):
+            UrlInformationField(url=1, mimetype='image/jpeg')
+
+    def test_url_information_field_mimetype_is_none(self):
+        with pytest.raises(EntityError):
+            UrlInformationField(url='https://example.com/photo.jpg', mimetype=None)
+
+    def test_url_information_field_mimetype_is_empty(self):
+        with pytest.raises(EntityError):
+            UrlInformationField(url='https://example.com/photo.jpg', mimetype='')

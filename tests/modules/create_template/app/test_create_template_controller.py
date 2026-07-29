@@ -86,7 +86,7 @@ class TestCreateTemplateController:
         assert response.status_code == 400
         assert response.body == "Parâmetro inválido: Template deve ter ao menos uma seção"
 
-    def test_create_template_controller_accepts_legacy_isActive(self):
+    def test_create_template_controller_accepts_legacy_is_active(self):
         repo = TemplateRepositoryMock()
         controller = CreateTemplateController(CreateTemplateUsecase(repo))
 

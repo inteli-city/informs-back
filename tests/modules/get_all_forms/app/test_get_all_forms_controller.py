@@ -8,7 +8,7 @@ from src.shared.helpers.external_interfaces.http_models import HttpRequest
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 
 
-class Test_GetAllFormsController:
+class TestGetAllFormsController:
     def test_get_all_forms_controller_success(self):
         repo = FormRepositoryMock()
         usecase = GetAllFormsUsecase(repo)
