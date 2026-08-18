@@ -1,7 +1,7 @@
 from importlib import import_module
 from typing import Set
 
-from src.shared.domain.repositories.file_repository_interface import IFileRepository
+from src.shared.domain.repositories.file_repository_interface import DEFAULT_PRESIGN_EXPIRES_IN, IFileRepository
 from src.shared.environments import Environments
 from src.shared.helpers.errors.usecase_errors import ErrorWithFile
 from src.shared.helpers.functions.exception_message import get_exception_message
@@ -32,7 +32,7 @@ class FileRepositoryS3(IFileRepository):
             config=config,
         )
 
-    def generate_presigned_url(self, file_path: str, mimetype: str, expires_in: int = 3600) -> str:
+    def generate_presigned_url(self, file_path: str, mimetype: str, expires_in: int = DEFAULT_PRESIGN_EXPIRES_IN) -> str:
         try:
             return self.client.generate_presigned_url(
                 ClientMethod="put_object",
