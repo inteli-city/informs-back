@@ -108,6 +108,15 @@ class LambdaStack(Construct):
             authorizer=authorizer,
         )
 
+        self.refresh_presign = self.create_lambda_api_gateway_integration(
+            module_name="refresh_presign",
+            method="POST",
+            api_resource=form_id_resource,
+            path="files/refresh-presign",
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
         self.plan_route = self.create_lambda_api_gateway_integration(
             module_name="plan_route",
             method="POST",
@@ -240,6 +249,7 @@ class LambdaStack(Construct):
         )
 
         self.functions_that_need_dynamo_forms_permissions = [
+            self.refresh_presign,
             self.create_form,
             self.cancel_form,
             self.submit_form,
@@ -256,6 +266,7 @@ class LambdaStack(Construct):
         ]
 
         self.functions_that_need_cognito_permissions = [
+            self.refresh_presign,
             self.create_form,
             self.cancel_form,
             self.submit_form,

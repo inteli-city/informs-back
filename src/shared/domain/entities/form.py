@@ -7,6 +7,7 @@ from src.shared.domain.entities.file_upload import FileUploadRequest
 from src.shared.domain.entities.information_field import InformationField
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import MAX_SECTION_INSTANCE, Section
+from src.shared.domain.entities.stored_file import StoredFile
 from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.enums.priority_enum import Priority
 from src.shared.domain.validators import ensure_non_negative_int
@@ -371,6 +372,47 @@ class Form(abc.ABC):
         if not isinstance(field, FileField):
             raise EntityError("Campo não é do tipo arquivo")
         field.set_value(file_urls)
+
+    def stored_files(self) -> List[StoredFile]:
+        """
+        Todos os arquivos que o formulário afirma ter: as URLs gravadas nos
+        campos de arquivo, mais a imagem da justificativa quando houver.
+
+        É a lista de referência para descobrir o que deveria estar no S3 —
+        usada tanto na renovação de presigned URL quanto na reconciliação.
+        """
+        stored: List[StoredFile] = []
+
+        for section in self.sections:
+            for field in section.fields:
+                if not isinstance(field, FileField):
+                    continue
+                for index, file_url in enumerate(self._file_urls_of(field)):
+                    stored.append(
+                        StoredFile(
+                            file_url=file_url,
+                            section_id=section.section_id,
+                            section_instance=section.section_instance,
+                            field_key=field.key,
+                            file_index=index,
+                        )
+                    )
+
+        justification_image = self.justification.justification_image if self.justification else None
+        if isinstance(justification_image, str) and justification_image:
+            stored.append(StoredFile(file_url=justification_image))
+
+        return stored
+
+    @staticmethod
+    def _file_urls_of(field: FileField) -> List[str]:
+        """Só URL já registrada conta: dict é upload que ainda não virou URL."""
+        value = field.value
+        if isinstance(value, str) and value:
+            return [value]
+        if isinstance(value, list):
+            return [item for item in value if isinstance(item, str) and item]
+        return []
 
     def ensure_required_fields_filled(self):
         for section in self.sections:
