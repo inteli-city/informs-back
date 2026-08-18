@@ -14,8 +14,12 @@ from src.shared.infra.repositories.form_repository_mock import FormRepositoryMoc
 
 os.environ["STAGE"] = "TEST"
 
-FIRST_PATH = "2026/system/form/sections/1/0/aaaa.jpeg"
-SECOND_PATH = "2026/system/form/sections/1/0/bbbb.jpeg"
+# Precisa bater com o form_id real do mock (forms[0]) — o path real sempre
+# grava o form_id no 3o segmento, e a nova checagem em _belongs_to_form
+# rejeita qualquer path onde isso não seja verdade.
+FORM_ID = 'd61dbf66-a10f-11ed-a8fc-0242ac120010'
+FIRST_PATH = f"2026/system/{FORM_ID}/sections/1/0/aaaa.jpeg"
+SECOND_PATH = f"2026/system/{FORM_ID}/sections/1/0/bbbb.jpeg"
 
 
 def make_usecase_with_photos():
@@ -112,6 +116,23 @@ class TestRefreshPresignUsecase:
                 user_id=self.user_id,
                 form_id=self.form.id,
                 requested_files=[{"file_url": "https://atacante.example.com/qualquer.jpeg", "mimetype": "image/jpeg"}],
+            )
+
+    def test_recusa_url_que_aponta_para_key_de_outro_formulario_mesmo_gravada_aqui(self):
+        # A IDOR real: nada impede que o valor de um FILE_FIELD deste
+        # formulário seja a URL de uma key de OUTRO formulário (ver
+        # field_dto._build_file_field, trusted=False). Sem a checagem de
+        # _belongs_to_form, isso bastaria pra sair daqui com uma presigned URL
+        # de escrita válida para uma key que não é deste formulário.
+        outro_form_path = "2026/system/d61dbf66-a10f-11ed-a8fc-0242ac120099/sections/1/0/cccc.jpeg"
+        outro_form_url = build_s3_url(outro_form_path)
+        self.form.sections[0].fields[0].set_value([outro_form_url])
+
+        with pytest.raises(EntityError):
+            self.usecase(
+                user_id=self.user_id,
+                form_id=self.form.id,
+                requested_files=[{"file_url": outro_form_url, "mimetype": "image/jpeg"}],
             )
 
     def test_formulario_inexistente(self):

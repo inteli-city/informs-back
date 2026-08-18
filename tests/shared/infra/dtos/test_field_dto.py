@@ -229,7 +229,26 @@ class TestFieldDTO:
         field_dto = FieldDTO.from_dynamo(field_dict)
 
         assert field_dto.field.value == ["https://bucket.s3.amazonaws.com/file.jpg"]
-    
+
+    def test_field_dto_from_dynamo_file_field_untrusted_ignora_value_do_cliente(self):
+        # value de FILE_FIELD só é atribuído pelo backend no upload via
+        # presigned URL. Um request de create/update (trusted=False) não pode
+        # plantar aqui a URL de um arquivo de outro formulário — ver a IDOR
+        # coberta em test_refresh_presign_usecase.
+        field_dict = {
+            "field_type": "FILE_FIELD",
+            "placeholder": "placeholder",
+            "required": True,
+            "key": "key",
+            "value": ["https://bucket.s3.amazonaws.com/outro-formulario/file.jpg"],
+            "file_type": "IMAGE",
+            "min_quantity": 1,
+            "max_quantity": 2
+        }
+
+        field_dto = FieldDTO.from_dynamo(field_dict, trusted=False)
+
+        assert field_dto.field.value is None
 
     def test_field_dto_to_dynamo_text_field(self):
         field = TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='value')

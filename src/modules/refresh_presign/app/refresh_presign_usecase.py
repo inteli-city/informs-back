@@ -40,7 +40,7 @@ class RefreshPresignUsecase:
         stored_by_url = self._index_stored_files(form)
 
         return [
-            self._refresh(stored_by_url, requested["file_url"], requested["mimetype"])
+            self._refresh(form.id, stored_by_url, requested["file_url"], requested["mimetype"])
             for requested in requested_files
         ]
 
@@ -54,7 +54,16 @@ class RefreshPresignUsecase:
     def _index_stored_files(form: Form) -> Dict[str, StoredFile]:
         return {stored.file_url: stored for stored in form.stored_files()}
 
-    def _refresh(self, stored_by_url: Dict[str, StoredFile], file_url: str, mimetype: str) -> FileUpload:
+    @staticmethod
+    def _belongs_to_form(file_path: str, form_id: str) -> bool:
+        # create/submit/cancel_form sempre gravam a key como
+        # "{ano}/{sistema}/{form_id}/...". Comparar esse segmento é o que
+        # garante que a key pertence de fato a este formulário — o índice por
+        # URL sozinho não garante isso.
+        segments = file_path.split("/")
+        return len(segments) > 2 and segments[2] == form_id
+
+    def _refresh(self, form_id: str, stored_by_url: Dict[str, StoredFile], file_url: str, mimetype: str) -> FileUpload:
         stored = stored_by_url.get(file_url)
         if stored is None:
             # Não vaza se a URL existe em outro formulário: para este requester
@@ -62,7 +71,13 @@ class RefreshPresignUsecase:
             raise NoItemsFound("Arquivo não pertence a este formulário")
 
         file_path = extract_file_path(file_url)
-        if file_path is None:
+        if file_path is None or not self._belongs_to_form(file_path, form_id):
+            # form.stored_files() não é fronteira de autorização: o valor de um
+            # FILE_FIELD (ou da imagem de justificativa) é escrito a partir do
+            # request de create/update, então nada impede o dono de UM formulário
+            # de colar ali a URL de outro. Sem esta checagem estrutural, isso
+            # bastaria para conseguir aqui uma presigned URL de escrita válida
+            # para uma key que não pertence a este formulário.
             raise EntityError("URL de arquivo não pertence ao bucket configurado")
 
         presigned_url = self.file_repo.generate_presigned_url(file_path=file_path, mimetype=mimetype)
