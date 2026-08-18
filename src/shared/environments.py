@@ -45,6 +45,8 @@ class Environments:
     sync_forms_page_limit: int
     sync_forms_window_minutes: int
     sync_forms_first_run_full_sync: bool
+    kuma_heartbeat_push_url: Optional[str]
+    kuma_missing_files_push_url: Optional[str]
 
     @staticmethod
     def _parse_bool(value) -> bool:
@@ -85,6 +87,8 @@ class Environments:
             self.sync_forms_page_limit = 100
             self.sync_forms_window_minutes = 10
             self.sync_forms_first_run_full_sync = False
+            self.kuma_heartbeat_push_url = None
+            self.kuma_missing_files_push_url = None
         else:
             self.region = os.environ.get("REGION")
             self.endpoint_url = os.environ.get("ENDPOINT_URL")
@@ -105,6 +109,8 @@ class Environments:
             self.sync_forms_page_limit = int(os.environ.get("SYNC_FORMS_PAGE_LIMIT", "100"))
             self.sync_forms_window_minutes = int(os.environ.get("SYNC_FORMS_WINDOW_MINUTES", "10"))
             self.sync_forms_first_run_full_sync = self._parse_bool(os.environ.get("SYNC_FORMS_FIRST_RUN_FULL_SYNC"))
+            self.kuma_heartbeat_push_url = os.environ.get("KUMA_HEARTBEAT_PUSH_URL")
+            self.kuma_missing_files_push_url = os.environ.get("KUMA_MISSING_FILES_PUSH_URL")
 
     @staticmethod
     def get_form_repo() -> IFormRepository:
