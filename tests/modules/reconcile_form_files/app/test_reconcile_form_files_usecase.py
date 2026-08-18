@@ -143,8 +143,11 @@ class TestReconcileFormFilesUsecase:
 
     def test_ignora_formulario_fora_da_janela(self):
         paths = self._paths(2)
-        self._prepare_form(paths)
-        self.form.created_at = self.now - 90 * 24 * ONE_HOUR_MS
+        # updated_at, não created_at, é o que define a janela — um formulário
+        # criado há muito tempo mas concluído agora ainda deve ser pego (ver
+        # test_backfill_com_janela_explicita_alcanca_o_historico e o caso real
+        # OS-6179, criado dias antes de ser submetido).
+        self._prepare_form(paths, updated_at=self.now - 90 * 24 * ONE_HOUR_MS)
         self.file_repo.existing_file_paths = set()
 
         result = self.usecase(window_hours=24)
@@ -153,14 +156,41 @@ class TestReconcileFormFilesUsecase:
 
     def test_backfill_com_janela_explicita_alcanca_o_historico(self):
         paths = self._paths(2)
-        self._prepare_form(paths)
-        self.form.created_at = self.now - 90 * 24 * ONE_HOUR_MS
+        self._prepare_form(paths, updated_at=self.now - 90 * 24 * ONE_HOUR_MS)
         self.file_repo.existing_file_paths = set()
 
-        result = self.usecase(created_at_start=0, created_at_end=self.now)
+        result = self.usecase(updated_at_start=0, updated_at_end=self.now)
 
         assert result.forms_checked == 1
         assert result.files_missing == 2
+
+    def test_pagina_corretamente_com_mais_de_uma_pagina(self):
+        # Regressão: _iter_forms repassava o token de paginação (string opaca
+        # devolvida por get_all_forms) direto como exclusive_start_key sem
+        # decodificar — a segunda página quebrava com AttributeError.
+        paths_a = self._paths(1)
+        self._prepare_form(paths_a)
+
+        second_form = self.form_repo.forms[1]
+        second_form.status = FormStatus.COMPLETED
+        second_form.created_at = self.now - ONE_HOUR_MS
+        second_form.updated_at = self.now - ONE_HOUR_MS
+        second_form.justification = None
+        paths_b = self._paths(1, form_id=second_form.id)
+        second_form.sections = [
+            Section(section_id=1, fields=[FileField(
+                label='fotos', required=False, key='FOTOS0', order=1,
+                file_type=FileType.IMAGE, value=[build_s3_url(p) for p in paths_b],
+            )])
+        ]
+
+        self.file_repo.existing_file_paths = set(paths_a) | set(paths_b)
+
+        result = self.usecase(page_size=1)
+
+        assert result.forms_scanned == 2
+        assert result.forms_checked == 2
+        assert result.pages_loaded >= 2
 
     def test_deriva_o_prefixo_do_ano_gravado_na_key(self):
         # Formulário criado em dezembro e submetido em janeiro grava no ano do

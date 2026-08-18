@@ -27,6 +27,8 @@ class IFormRepository(ABC):
         user_id: Optional[str] = None,
         created_at_start: Optional[int] = None,
         created_at_end: Optional[int] = None,
+        updated_at_start: Optional[int] = None,
+        updated_at_end: Optional[int] = None,
         search: Optional[str] = None,
     ) -> Tuple[List[Form], Optional[str]]:
         pass

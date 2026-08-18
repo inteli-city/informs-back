@@ -6,6 +6,7 @@ from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.repositories.file_repository_interface import IFileRepository
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.helpers.functions.datetime_utils import now_timestamp_ms
+from src.shared.helpers.functions.pagination_token import try_decode_pagination_token
 from src.shared.helpers.functions.s3_url import extract_file_path
 
 
@@ -66,15 +67,15 @@ class ReconcileFormFilesUsecase:
 
     def __call__(
         self,
-        created_at_start: Optional[int] = None,
-        created_at_end: Optional[int] = None,
+        updated_at_start: Optional[int] = None,
+        updated_at_end: Optional[int] = None,
         window_hours: Optional[int] = None,
         grace_minutes: Optional[int] = None,
         page_size: int = 100,
         logger=None,
     ) -> ReconcileResult:
         now = now_timestamp_ms()
-        window_start, window_end = self._resolve_window(created_at_start, created_at_end, window_hours, now)
+        window_start, window_end = self._resolve_window(updated_at_start, updated_at_end, window_hours, now)
         grace_cutoff = now - self._minutes_to_ms(
             grace_minutes if grace_minutes is not None else self.DEFAULT_GRACE_MINUTES
         )
@@ -98,14 +99,14 @@ class ReconcileFormFilesUsecase:
 
     def _resolve_window(
         self,
-        created_at_start: Optional[int],
-        created_at_end: Optional[int],
+        updated_at_start: Optional[int],
+        updated_at_end: Optional[int],
         window_hours: Optional[int],
         now: int,
     ) -> Tuple[int, int]:
-        end = created_at_end if created_at_end is not None else now
-        if created_at_start is not None:
-            return created_at_start, end
+        end = updated_at_end if updated_at_end is not None else now
+        if updated_at_start is not None:
+            return updated_at_start, end
         hours = window_hours if window_hours is not None else self.DEFAULT_WINDOW_HOURS
         return end - hours * 60 * 60 * 1000, end
 
@@ -120,8 +121,11 @@ class ReconcileFormFilesUsecase:
                 limit=page_size,
                 exclusive_start_key=exclusive_start_key,
                 status=list(self.RECONCILED_STATUSES),
-                created_at_start=window_start,
-                created_at_end=window_end,
+                # updated_at, não created_at: um formulário criado dias antes de
+                # ser concluído (ex.: OS-6179) precisa cair na janela pela data em
+                # que passou a COMPLETED/SENT, senão o job nunca o vê.
+                updated_at_start=window_start,
+                updated_at_end=window_end,
             )
             result.pages_loaded += 1
             for form in forms:
@@ -129,7 +133,13 @@ class ReconcileFormFilesUsecase:
 
             if not next_key:
                 return
-            exclusive_start_key = next_key
+            # get_all_forms devolve um token opaco (base64), não a chave crua do
+            # Dynamo — precisa decodificar antes de reenviar como
+            # exclusive_start_key, senão a próxima chamada quebra (era o único
+            # lugar do repo que pulava esse passo).
+            exclusive_start_key = try_decode_pagination_token(next_key)
+            if exclusive_start_key is None:
+                return
 
     def _reconcile_form(self, form: Form, result: ReconcileResult) -> Optional[FormReconciliation]:
         stored_files = form.stored_files()
