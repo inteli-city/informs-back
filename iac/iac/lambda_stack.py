@@ -1,9 +1,14 @@
+import os
+
 from aws_cdk import (
     aws_lambda as lambda_,
     Duration,
+    aws_cloudwatch as cloudwatch,
+    aws_cloudwatch_actions as cloudwatch_actions,
     aws_scheduler as scheduler,
     aws_iam as iam,
     aws_logs as logs,
+    aws_sns as sns,
 )
 from constructs import Construct
 from typing import Optional
@@ -248,7 +253,98 @@ class LambdaStack(Construct):
             state="ENABLED",
         )
 
+        # Mesma origem do sufixo usado no IacStack para nomear recursos por stage.
+        stage_suffix = os.environ.get("GITHUB_REF_NAME", "dev")
+
+        self.reconcile_form_files_module_name = "reconcile_form_files"
+
+        self.reconcile_form_files = lambda_.Function(
+            self,
+            self.reconcile_form_files_module_name.title(),
+            code=lambda_.Code.from_asset("../src/modules/reconcile_form_files"),
+            handler="app.reconcile_form_files_presenter.lambda_handler",
+            runtime=lambda_.Runtime.PYTHON_3_10,
+            layers=[self.lambda_layer],
+            memory_size=512,
+            environment=environment_variables,
+            # Um LIST por formulário: a janela de 24h cabe folgada em 5 min, e o
+            # backfill histórico é invocado manualmente com janela fatiada.
+            timeout=Duration.seconds(300),
+            tracing=lambda_.Tracing.ACTIVE,
+            log_retention=logs.RetentionDays.ONE_MONTH,
+        )
+
+        # O bucket não é gerenciado por este CDK (só referenciado por nome via
+        # BUCKET_NAME), então a permissão é concedida pelo ARN construído aqui
+        # em vez de por bucket.grant_read().
+        bucket_name = environment_variables.get("BUCKET_NAME")
+        if bucket_name:
+            self.reconcile_form_files.add_to_role_policy(
+                iam.PolicyStatement(
+                    effect=iam.Effect.ALLOW,
+                    actions=["s3:ListBucket"],
+                    resources=[f"arn:aws:s3:::{bucket_name}"],
+                )
+            )
+
+        self.reconcile_form_files_scheduler_role = iam.Role(
+            self,
+            "ReconcileFormFilesSchedulerRole",
+            assumed_by=iam.ServicePrincipal("scheduler.amazonaws.com"),
+        )
+        self.reconcile_form_files.grant_invoke(self.reconcile_form_files_scheduler_role)
+
+        self.reconcile_form_files_schedule = scheduler.CfnSchedule(
+            self,
+            "ReconcileFormFilesEventBridgeScheduler",
+            schedule_expression="rate(1 hour)",
+            flexible_time_window=scheduler.CfnSchedule.FlexibleTimeWindowProperty(
+                mode="OFF",
+            ),
+            target=scheduler.CfnSchedule.TargetProperty(
+                arn=self.reconcile_form_files.function_arn,
+                role_arn=self.reconcile_form_files_scheduler_role.role_arn,
+                input='{"trigger":"eventbridge-scheduler","job":"reconcile_form_files"}',
+            ),
+            description="Reconciles form files against S3 every hour",
+            state="ENABLED",
+        )
+
+        # Sem alarme o job seria só mais um log que ninguém lê: é ele que troca
+        # "descobrir meses depois" por "descobrir no mesmo dia".
+        self.forms_with_missing_files_alarm = cloudwatch.Alarm(
+            self,
+            "FormsWithMissingFilesAlarm",
+            alarm_name=f"Informs-FormsWithMissingFiles-{stage_suffix}",
+            alarm_description=(
+                "Formulário concluído referencia arquivo que não existe no S3. "
+                "Investigar com o log do reconcile_form_files (campo missing_sample)."
+            ),
+            metric=cloudwatch.Metric(
+                namespace="Informs",
+                metric_name="FormsWithMissingFiles",
+                dimensions_map={"service": self.reconcile_form_files_module_name},
+                statistic="Sum",
+                period=Duration.hours(1),
+            ),
+            threshold=0,
+            comparison_operator=cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+            evaluation_periods=1,
+            # Execução sem formulário na janela não emite nada; tratar como OK
+            # evita alarme falso em janela vazia (fim de semana, feriado).
+            treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
+        )
+
+        alarm_topic_arn = os.environ.get("ALARM_TOPIC_ARN")
+        if alarm_topic_arn:
+            self.forms_with_missing_files_alarm.add_alarm_action(
+                cloudwatch_actions.SnsAction(
+                    sns.Topic.from_topic_arn(self, "InformsAlarmTopic", alarm_topic_arn)
+                )
+            )
+
         self.functions_that_need_dynamo_forms_permissions = [
+            self.reconcile_form_files,
             self.refresh_presign,
             self.create_form,
             self.cancel_form,

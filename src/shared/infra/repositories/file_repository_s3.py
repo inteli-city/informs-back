@@ -1,4 +1,5 @@
 from importlib import import_module
+from typing import Set
 
 from src.shared.domain.repositories.file_repository_interface import IFileRepository
 from src.shared.environments import Environments
@@ -43,5 +44,20 @@ class FileRepositoryS3(IFileRepository):
                 ExpiresIn=expires_in,
                 HttpMethod="PUT",
             )
+        except Exception as err:
+            raise ErrorWithFile(get_exception_message(err))
+
+    def list_file_paths(self, prefix: str) -> Set[str]:
+        try:
+            paginator = self.client.get_paginator("list_objects_v2")
+            pages = paginator.paginate(
+                Bucket=Environments.get_envs().bucket_name,
+                Prefix=prefix,
+            )
+            return {
+                item["Key"]
+                for page in pages
+                for item in page.get("Contents", [])
+            }
         except Exception as err:
             raise ErrorWithFile(get_exception_message(err))
