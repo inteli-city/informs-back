@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional
+from typing import Optional, Tuple
 import os
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.location_repository_interface import ILocationRepository
@@ -47,6 +47,7 @@ class Environments:
     sync_forms_first_run_full_sync: bool
     kuma_heartbeat_push_url: Optional[str]
     kuma_missing_files_push_url: Optional[str]
+    reconcile_systems: Tuple[str, ...]
 
     @staticmethod
     def _parse_bool(value) -> bool:
@@ -55,6 +56,13 @@ class Environments:
         if value is None:
             return False
         return str(value).strip().lower() in {"1", "true", "t", "yes", "y", "on"}
+
+    @staticmethod
+    def _parse_csv(value: Optional[str]) -> Tuple[str, ...]:
+        """Normaliza uma lista configurada por ambiente, preservando a ordem."""
+        if not value:
+            return ()
+        return tuple(dict.fromkeys(item.strip() for item in value.split(",") if item.strip()))
 
 
     def _configure_local(self):
@@ -89,6 +97,7 @@ class Environments:
             self.sync_forms_first_run_full_sync = False
             self.kuma_heartbeat_push_url = None
             self.kuma_missing_files_push_url = None
+            self.reconcile_systems = ("GAIA",)
         else:
             self.region = os.environ.get("REGION")
             self.endpoint_url = os.environ.get("ENDPOINT_URL")
@@ -111,6 +120,7 @@ class Environments:
             self.sync_forms_first_run_full_sync = self._parse_bool(os.environ.get("SYNC_FORMS_FIRST_RUN_FULL_SYNC"))
             self.kuma_heartbeat_push_url = os.environ.get("KUMA_HEARTBEAT_PUSH_URL")
             self.kuma_missing_files_push_url = os.environ.get("KUMA_MISSING_FILES_PUSH_URL")
+            self.reconcile_systems = self._parse_csv(os.environ.get("RECONCILE_SYSTEMS"))
 
     @staticmethod
     def get_form_repo() -> IFormRepository:

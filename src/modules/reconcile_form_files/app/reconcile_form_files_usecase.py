@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Sequence, Set, Tuple
 
 from src.shared.domain.entities.form import Form
 from src.shared.domain.enums.form_status_enum import FormStatus
@@ -67,6 +67,7 @@ class ReconcileFormFilesUsecase:
 
     def __call__(
         self,
+        systems: Sequence[str],
         updated_at_start: Optional[int] = None,
         updated_at_end: Optional[int] = None,
         window_hours: Optional[int] = None,
@@ -82,7 +83,7 @@ class ReconcileFormFilesUsecase:
 
         result = ReconcileResult(window_start=window_start, window_end=window_end)
 
-        for form in self._iter_forms(window_start, window_end, page_size, result):
+        for form in self._iter_forms(systems, window_start, window_end, page_size, result):
             result.forms_scanned += 1
             if form.updated_at is not None and form.updated_at > grace_cutoff:
                 continue
@@ -114,32 +115,39 @@ class ReconcileFormFilesUsecase:
     def _minutes_to_ms(minutes: int) -> int:
         return minutes * 60 * 1000
 
-    def _iter_forms(self, window_start: int, window_end: int, page_size: int, result: ReconcileResult):
-        exclusive_start_key = None
-        while True:
-            forms, next_key = self.form_repo.get_all_forms(
-                limit=page_size,
-                exclusive_start_key=exclusive_start_key,
-                status=list(self.RECONCILED_STATUSES),
-                # updated_at, não created_at: um formulário criado dias antes de
-                # ser concluído (ex.: OS-6179) precisa cair na janela pela data em
-                # que passou a COMPLETED/SENT, senão o job nunca o vê.
-                updated_at_start=window_start,
-                updated_at_end=window_end,
-            )
-            result.pages_loaded += 1
-            for form in forms:
-                yield form
+    def _iter_forms(
+        self,
+        systems: Sequence[str],
+        window_start: int,
+        window_end: int,
+        page_size: int,
+        result: ReconcileResult,
+    ):
+        # O GSI2 é particionado por sistema. Por isso cada sistema é configurado
+        # explicitamente por ambiente: não há Scan da single-table para descobrir
+        # formulários ou partições.
+        for system in systems:
+            exclusive_start_key = None
+            while True:
+                forms, next_key = self.form_repo.get_forms_updated_since(
+                    system=system,
+                    updated_at_start=window_start,
+                    updated_at_end=window_end,
+                    limit=page_size,
+                    exclusive_start_key=exclusive_start_key,
+                    status=list(self.RECONCILED_STATUSES),
+                )
+                result.pages_loaded += 1
+                for form in forms:
+                    yield form
 
-            if not next_key:
-                return
-            # get_all_forms devolve um token opaco (base64), não a chave crua do
-            # Dynamo — precisa decodificar antes de reenviar como
-            # exclusive_start_key, senão a próxima chamada quebra (era o único
-            # lugar do repo que pulava esse passo).
-            exclusive_start_key = try_decode_pagination_token(next_key)
-            if exclusive_start_key is None:
-                return
+                if not next_key:
+                    break
+                # O repositório devolve token opaco; o Dynamo recebe a chave
+                # crua na próxima Query do mesmo sistema.
+                exclusive_start_key = try_decode_pagination_token(next_key)
+                if exclusive_start_key is None:
+                    break
 
     def _reconcile_form(self, form: Form, result: ReconcileResult) -> Optional[FormReconciliation]:
         stored_files = form.stored_files()

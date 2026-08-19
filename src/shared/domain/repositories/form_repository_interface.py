@@ -41,6 +41,7 @@ class IFormRepository(ABC):
         updated_at_end: Optional[int] = None,
         limit: Optional[int] = None,
         exclusive_start_key: Optional[dict] = None,
+        status: Optional[Union[FormStatus, List[FormStatus]]] = None,
     ) -> Tuple[List[Form], Optional[str]]:
         pass
 

@@ -20,7 +20,8 @@ class TestReconcileFormFilesUsecase:
     def setup_method(self):
         self.form_repo = FormRepositoryMock()
         self.file_repo = FileRepositoryMock()
-        self.usecase = ReconcileFormFilesUsecase(self.form_repo, self.file_repo)
+        usecase = ReconcileFormFilesUsecase(self.form_repo, self.file_repo)
+        self.usecase = lambda **kwargs: usecase(systems=("GAIA",), **kwargs)
         self.now = now_timestamp_ms()
 
         # Só o formulário preparado em cada teste deve entrar na janela.
@@ -191,6 +192,37 @@ class TestReconcileFormFilesUsecase:
         assert result.forms_scanned == 2
         assert result.forms_checked == 2
         assert result.pages_loaded >= 2
+
+    def test_consulta_gsi_por_cada_sistema_sem_usar_listagem_global(self, monkeypatch):
+        paths_a = self._paths(1, system="GAIA")
+        self._prepare_form(paths_a)
+
+        second_form = self.form_repo.forms[1]
+        second_form.system = "SGC"
+        second_form.status = FormStatus.SENT
+        second_form.created_at = self.now - ONE_HOUR_MS
+        second_form.updated_at = self.now - ONE_HOUR_MS
+        second_form.justification = None
+        paths_b = self._paths(1, form_id=second_form.id, system="SGC")
+        second_form.sections = [
+            Section(section_id=1, fields=[FileField(
+                label='fotos', required=False, key='FOTOS0', order=1,
+                file_type=FileType.IMAGE, value=[build_s3_url(paths_b[0])],
+            )])
+        ]
+        self.file_repo.existing_file_paths = set(paths_a) | set(paths_b)
+
+        def global_listing_must_not_run(*args, **kwargs):
+            raise AssertionError("a reconciliação não pode chamar get_all_forms/Scan")
+
+        monkeypatch.setattr(self.form_repo, "get_all_forms", global_listing_must_not_run)
+        result = ReconcileFormFilesUsecase(self.form_repo, self.file_repo)(
+            systems=("GAIA", "SGC"),
+        )
+
+        assert result.forms_scanned == 2
+        assert result.forms_checked == 2
+        assert result.pages_loaded == 2
 
     def test_deriva_o_prefixo_do_ano_gravado_na_key(self):
         # Formulário criado em dezembro e submetido em janeiro grava no ano do

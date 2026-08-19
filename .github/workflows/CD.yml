@@ -67,3 +67,4 @@ jobs:
           BUCKET_NAME: ${{ secrets.BUCKET_NAME }}
           KUMA_HEARTBEAT_PUSH_URL: ${{ secrets.KUMA_HEARTBEAT_PUSH_URL }}
           KUMA_MISSING_FILES_PUSH_URL: ${{ secrets.KUMA_MISSING_FILES_PUSH_URL }}
+          RECONCILE_SYSTEMS: ${{ secrets.RECONCILE_SYSTEMS }}

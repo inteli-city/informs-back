@@ -91,6 +91,9 @@ class IacStack(Stack):
             # _push_kuma), então isto pode ficar sem valor em dev/homolog.
             "KUMA_HEARTBEAT_PUSH_URL",
             "KUMA_MISSING_FILES_PUSH_URL",
+            # Lista explícita das partições GSI2 a consultar no job de
+            # reconciliação. Sem isso a Lambda falha em vez de fazer Scan.
+            "RECONCILE_SYSTEMS",
         ]
         for key in optional_env_keys:
             value = os.environ.get(key)
@@ -122,6 +125,18 @@ class IacStack(Stack):
         
         for f in self.lambda_stack.functions_that_need_dynamo_forms_permissions:
             self.dynamo_stack.dynamo_table_forms.grant_read_write_data(f)
+
+        for f in self.lambda_stack.functions_that_need_dynamo_forms_gsi2_query_permissions:
+            f.add_to_role_policy(
+                aws_iam.PolicyStatement(
+                    effect=aws_iam.Effect.ALLOW,
+                    actions=["dynamodb:Query"],
+                    resources=[
+                        self.dynamo_stack.dynamo_table_forms.table_arn,
+                        f"{self.dynamo_stack.dynamo_table_forms.table_arn}/index/SystemUpdatedAtIndex",
+                    ],
+                )
+            )
 
         for f in self.lambda_stack.functions_that_need_dynamo_profiles_permissions:
             self.dynamo_stack.dynamo_table_profiles.grant_read_write_data(f)

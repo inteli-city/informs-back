@@ -302,9 +302,11 @@ def test_form_repository_dynamo_get_forms_updated_since():
         updated_at_start=1,
         updated_at_end=9999999999999,
         limit=10,
+        status=[FormStatus.COMPLETED, FormStatus.SENT],
     )
 
     assert len(forms) == 1
     assert next_key is None
     assert repo.dynamo.query_kwargs["IndexName"] == "SystemUpdatedAtIndex"
     assert repo.dynamo.query_kwargs["ScanIndexForward"] is True
+    assert "FilterExpression" in repo.dynamo.query_kwargs
