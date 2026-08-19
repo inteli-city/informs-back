@@ -65,3 +65,5 @@ jobs:
           USER_POOL_ID: ${{ secrets.USER_POOL_ID }}
           APP_CLIENT_ID: ${{ secrets.APP_CLIENT_ID }}
           BUCKET_NAME: ${{ secrets.BUCKET_NAME }}
+          KUMA_HEARTBEAT_PUSH_URL: ${{ secrets.KUMA_HEARTBEAT_PUSH_URL }}
+          KUMA_MISSING_FILES_PUSH_URL: ${{ secrets.KUMA_MISSING_FILES_PUSH_URL }}
