@@ -2,7 +2,7 @@ import time
 import urllib.error
 import urllib.request
 from typing import Optional
-from urllib.parse import quote
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from aws_lambda_powertools import Logger, Metrics, Tracer
 from aws_lambda_powertools.metrics import MetricUnit, single_metric
@@ -42,6 +42,14 @@ def _int_or_none(event: dict, key: str):
         return None
 
 
+def _build_kuma_push_url(url: str, status: str, msg: str) -> str:
+    """Atualiza a URL copiada do Kuma sem duplicar status/msg já existentes."""
+    parsed = urlsplit(url)
+    query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    query.update({"status": status, "msg": msg})
+    return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urlencode(query), parsed.fragment))
+
+
 def _push_kuma(url: Optional[str], status: str, msg: str) -> None:
     """
     Heartbeat/observabilidade via Kuma (padrão já usado na Intelicity) em vez
@@ -53,8 +61,7 @@ def _push_kuma(url: Optional[str], status: str, msg: str) -> None:
     """
     if not url:
         return
-    separator = "&" if "?" in url else "?"
-    full_url = f"{url}{separator}status={status}&msg={quote(msg)}"
+    full_url = _build_kuma_push_url(url, status, msg)
     try:
         with urllib.request.urlopen(full_url, timeout=KUMA_PUSH_TIMEOUT_SECONDS):
             pass
