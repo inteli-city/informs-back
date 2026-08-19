@@ -85,7 +85,12 @@ class IacStack(Stack):
             "SYNC_FORMS_TIMEOUT",
             "S3_ENDPOINT_URL",
             "AWS_SQS_ENDPOINT_URL",
-            "ENDPOINT_URL"
+            "ENDPOINT_URL",
+            # Push URLs dos monitores no Kuma (heartbeat + fotos-faltando) do
+            # reconcile_form_files. Ausentes = presenter não envia push (ver
+            # _push_kuma), então isto pode ficar sem valor em dev/homolog.
+            "KUMA_HEARTBEAT_PUSH_URL",
+            "KUMA_MISSING_FILES_PUSH_URL",
         ]
         for key in optional_env_keys:
             value = os.environ.get(key)

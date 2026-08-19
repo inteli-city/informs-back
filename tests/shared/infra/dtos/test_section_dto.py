@@ -269,7 +269,32 @@ class TestSectionDTO:
         assert section.fields[0].file_type == FileType.IMAGE
         assert section.fields[0].min_quantity == 1
         assert section.fields[0].max_quantity == 10
-    
+
+    def test_section_dto_from_request_file_ignora_value_enviado_pelo_cliente(self):
+        # create_form/create_template/update_template passam por from_request.
+        # value de FILE_FIELD só pode vir do backend (upload via presigned URL) —
+        # ver field_dto._build_file_field(trusted=False).
+        section_dict = {
+            'section_id': '99999',
+            'fields': [
+                {
+                    'field_type': 'FILE_FIELD',
+                    'placeholder': 'placeholder',
+                    'required': True,
+                    'key': 'key',
+                    'value': ['https://bucket.s3.amazonaws.com/outro-formulario/file.jpg'],
+                    'file_type': 'IMAGE',
+                    'min_quantity': 1,
+                    'max_quantity': 10
+                },
+            ]
+        }
+
+        section = SectionDTO.from_request(section_dict)
+
+        assert section.fields[0].value is None
+
+
     def test_section_dto_from_request_missing_section_id(self):
         section_dict = {
             'fields': [

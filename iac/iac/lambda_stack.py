@@ -47,6 +47,11 @@ class LambdaStack(Construct):
                                                  code=lambda_.Code.from_asset("./lambda_layer_out_temp"),
                                                  compatible_runtimes=[lambda_.Runtime.PYTHON_3_10]
                                                  )
+
+        # O bucket não é gerenciado por este CDK (só referenciado por nome via
+        # BUCKET_NAME), então toda permissão de S3 é concedida pelo ARN
+        # construído aqui em vez de por bucket.grant_*().
+        bucket_name = environment_variables.get("BUCKET_NAME")
         forms_resource = api_gateway_resource.add_resource("forms")
         form_id_resource = forms_resource.add_resource("{form_id}")
         templates_resource = api_gateway_resource.add_resource("templates")
@@ -107,6 +112,32 @@ class LambdaStack(Construct):
             environment_variables=environment_variables,
             authorizer=authorizer,
         )
+
+        self.refresh_presign = self.create_lambda_api_gateway_integration(
+            module_name="refresh_presign",
+            method="POST",
+            api_resource=form_id_resource,
+            path="files/refresh-presign",
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        # As 4 lambdas que assinam presigned URL de upload (create/submit/cancel
+        # e a renovação) precisam de s3:PutObject na identidade que assina: quem
+        # valida a permissão no PUT é o S3, contra a role de QUEM gerou a
+        # assinatura — não importa de onde o cliente faça a requisição, então
+        # isso nunca depende de IP de origem. Isto substitui a policy manual
+        # "FormulariosProductionPresignedUploadS3Policy" (hoje só anexada a 3
+        # das 4 roles em prod — o refresh_presign nunca a recebeu), trazendo a
+        # permissão para o código versionado em vez de um estado manual na AWS.
+        if bucket_name:
+            s3_put_policy = iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=["s3:PutObject", "s3:PutObjectTagging", "s3:AbortMultipartUpload"],
+                resources=[f"arn:aws:s3:::{bucket_name}/*"],
+            )
+            for lambda_fn in (self.create_form, self.submit_form, self.cancel_form, self.refresh_presign):
+                lambda_fn.add_to_role_policy(s3_put_policy)
 
         self.plan_route = self.create_lambda_api_gateway_integration(
             module_name="plan_route",
@@ -239,7 +270,67 @@ class LambdaStack(Construct):
             state="ENABLED",
         )
 
+        self.reconcile_form_files_module_name = "reconcile_form_files"
+
+        self.reconcile_form_files = lambda_.Function(
+            self,
+            self.reconcile_form_files_module_name.title(),
+            code=lambda_.Code.from_asset("../src/modules/reconcile_form_files"),
+            handler="app.reconcile_form_files_presenter.lambda_handler",
+            runtime=lambda_.Runtime.PYTHON_3_10,
+            layers=[self.lambda_layer],
+            memory_size=512,
+            environment=environment_variables,
+            # Um LIST por formulário: a janela de 24h cabe folgada em 5 min, e o
+            # backfill histórico é invocado manualmente com janela fatiada.
+            timeout=Duration.seconds(300),
+            tracing=lambda_.Tracing.ACTIVE,
+            log_retention=logs.RetentionDays.ONE_MONTH,
+        )
+
+        if bucket_name:
+            self.reconcile_form_files.add_to_role_policy(
+                iam.PolicyStatement(
+                    effect=iam.Effect.ALLOW,
+                    actions=["s3:ListBucket"],
+                    resources=[f"arn:aws:s3:::{bucket_name}"],
+                )
+            )
+
+        self.reconcile_form_files_scheduler_role = iam.Role(
+            self,
+            "ReconcileFormFilesSchedulerRole",
+            assumed_by=iam.ServicePrincipal("scheduler.amazonaws.com"),
+        )
+        self.reconcile_form_files.grant_invoke(self.reconcile_form_files_scheduler_role)
+
+        self.reconcile_form_files_schedule = scheduler.CfnSchedule(
+            self,
+            "ReconcileFormFilesEventBridgeScheduler",
+            schedule_expression="rate(1 hour)",
+            flexible_time_window=scheduler.CfnSchedule.FlexibleTimeWindowProperty(
+                mode="OFF",
+            ),
+            target=scheduler.CfnSchedule.TargetProperty(
+                arn=self.reconcile_form_files.function_arn,
+                role_arn=self.reconcile_form_files_scheduler_role.role_arn,
+                input='{"trigger":"eventbridge-scheduler","job":"reconcile_form_files"}',
+            ),
+            description="Reconciles form files against S3 every hour",
+            state="ENABLED",
+        )
+
+        # Notificação não passa mais por CloudWatch Alarm + SNS: o
+        # reconcile_form_files_presenter empurra 2 pushes HTTP pro Kuma
+        # (heartbeat sempre; missing-files up/down) via KUMA_HEARTBEAT_PUSH_URL
+        # e KUMA_MISSING_FILES_PUSH_URL em environment_variables — é o Kuma quem
+        # decide notificar o Teams, mesmo padrão já usado para outros serviços.
+        # A métrica FormsWithMissingFiles continua sendo emitida (ver
+        # presenter) só para dashboard/debug no CloudWatch.
+
         self.functions_that_need_dynamo_forms_permissions = [
+            self.reconcile_form_files,
+            self.refresh_presign,
             self.create_form,
             self.cancel_form,
             self.submit_form,
@@ -256,6 +347,7 @@ class LambdaStack(Construct):
         ]
 
         self.functions_that_need_cognito_permissions = [
+            self.refresh_presign,
             self.create_form,
             self.cancel_form,
             self.submit_form,
