@@ -72,7 +72,12 @@ def lambda_handler(event, context):
     event_request = LambdaEventBridgeRequest(event)
     logger.info("reconcile_form_files triggered", extra={"event": event_request.summary()})
 
+    envs = Environments.get_envs()
+    if not envs.reconcile_systems:
+        raise RuntimeError("RECONCILE_SYSTEMS deve listar os sistemas a reconciliar")
+
     result = usecase(
+        systems=envs.reconcile_systems,
         updated_at_start=_int_or_none(event, "updated_at_start"),
         updated_at_end=_int_or_none(event, "updated_at_end"),
         window_hours=_int_or_none(event, "window_hours"),
@@ -83,7 +88,6 @@ def lambda_handler(event, context):
 
     duration_ms = int((time.time() - start_time) * 1000)
 
-    envs = Environments.get_envs()
     # Sempre "up": só chegamos aqui se o job rodou até o fim. Se a Lambda
     # travar/estourar timeout ANTES disto, nenhum push sai — e é isso que o
     # monitor heartbeat no Kuma detecta pela ausência, não por um "down" ativo.

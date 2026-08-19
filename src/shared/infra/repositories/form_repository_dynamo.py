@@ -329,6 +329,7 @@ class FormRepositoryDynamo(IFormRepository):
         updated_at_end: Optional[int] = None,
         limit: Optional[int] = None,
         exclusive_start_key: Optional[dict] = None,
+        status: Optional[Union[FormStatus, List[FormStatus]]] = None,
     ) -> Tuple[List[Form], Optional[str]]:
         start_ms = max(0, int(updated_at_start))
         end_ms = int(updated_at_end) if updated_at_end is not None else int(datetime.now(timezone.utc).timestamp() * 1000)
@@ -346,6 +347,9 @@ class FormRepositoryDynamo(IFormRepository):
             query_kwargs["Limit"] = limit
         if exclusive_start_key is not None:
             query_kwargs["ExclusiveStartKey"] = exclusive_start_key
+        status_filter = self._status_filter(status)
+        if status_filter is not None:
+            query_kwargs["FilterExpression"] = status_filter
 
         resp = self.dynamo.query(**query_kwargs)
         items = resp.get("Items", [])

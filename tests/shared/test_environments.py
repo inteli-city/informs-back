@@ -10,6 +10,11 @@ def test_environments_parse_bool():
     assert Environments._parse_bool(None) is False
 
 
+def test_environments_parse_csv():
+    assert Environments._parse_csv("GAIA, SGC,GAIA,, ") == ("GAIA", "SGC")
+    assert Environments._parse_csv(None) == ()
+
+
 def test_environments_get_envs_caches_and_resets(monkeypatch):
     Environments._reset_instance()
     monkeypatch.setenv("STAGE", "TEST")

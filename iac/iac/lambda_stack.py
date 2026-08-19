@@ -329,7 +329,6 @@ class LambdaStack(Construct):
         # presenter) só para dashboard/debug no CloudWatch.
 
         self.functions_that_need_dynamo_forms_permissions = [
-            self.reconcile_form_files,
             self.refresh_presign,
             self.create_form,
             self.cancel_form,
@@ -344,6 +343,12 @@ class LambdaStack(Construct):
             self.plan_route,
             self.sync_forms_origin,
             self.sync_forms_origin_callback,
+        ]
+        # A reconciliação só pode consultar o GSI2 por sistema e janela. Não
+        # recebe grant_read_data/read_write_data porque esses grants incluem
+        # dynamodb:Scan, incompatível com o custo esperado desse scheduler.
+        self.functions_that_need_dynamo_forms_gsi2_query_permissions = [
+            self.reconcile_form_files,
         ]
 
         self.functions_that_need_cognito_permissions = [

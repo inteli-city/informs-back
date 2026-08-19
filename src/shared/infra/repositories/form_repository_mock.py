@@ -273,10 +273,14 @@ class FormRepositoryMock(IFormRepository):
         updated_at_end: Optional[int] = None,
         limit: Optional[int] = None,
         exclusive_start_key: Optional[dict] = None,
+        status: Optional[Union[FormStatus, List[FormStatus]]] = None,
     ) -> tuple[List[Form], Optional[str]]:
         forms = [form for form in self.forms if form.system == system and form.updated_at >= updated_at_start]
         if updated_at_end is not None:
             forms = [form for form in forms if form.updated_at <= updated_at_end]
+        if status is not None:
+            statuses = status if isinstance(status, list) else [status]
+            forms = [form for form in forms if form.status in statuses]
 
         forms = sorted(forms, key=lambda form: (form.updated_at, form.id))
 
