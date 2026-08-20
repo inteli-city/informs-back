@@ -12,6 +12,7 @@ class RefreshPresignFileSchema(RequestContractModel):
     """
     file_url: str
     mimetype: str
+    checksum_sha256: str | None = None
 
 
 class RefreshPresignRequestSchema(RequestContractModel):

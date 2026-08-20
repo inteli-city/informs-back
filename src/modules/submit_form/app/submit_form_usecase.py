@@ -82,12 +82,18 @@ class SubmitFormUsecase:
 
         files = []
         file_urls = []
+        file_integrity = []
         for idx, upload in enumerate(uploads):
             file_upload = self._build_file_upload(form, form_id, section_id, section_instance, field.key, idx, upload)
             files.append(file_upload)
             file_urls.append(file_upload.file_url)
+            file_integrity.append({
+                "mimetype": file_upload.mimetype,
+                "size_bytes": file_upload.size_bytes,
+                "checksum_sha256": file_upload.checksum_sha256,
+            })
 
-        form.set_file_field_urls(section_id, field.key, file_urls, section_instance)
+        form.set_file_field_urls(section_id, field.key, file_urls, section_instance, file_integrity)
         return files
 
     def _build_file_upload(
@@ -102,7 +108,11 @@ class SubmitFormUsecase:
     ) -> FileUpload:
         mimetype = upload.mimetype
         file_path = f'{utc_year()}/{form.system}/{form_id}/sections/{section_id}/{section_instance}/{str(uuid.uuid4())}.{mimetype.split("/")[-1]}'
-        presigned_url = self.file_repo.generate_presigned_url(file_path=file_path, mimetype=mimetype)
+        presigned_url = self.file_repo.generate_presigned_url(
+            file_path=file_path,
+            mimetype=mimetype,
+            checksum_sha256=upload.checksum_sha256,
+        )
         file_url = build_s3_url(file_path)
 
         return FileUpload(
@@ -115,6 +125,8 @@ class SubmitFormUsecase:
             section_instance=section_instance,
             field_key=field_key,
             file_index=file_index,
+            size_bytes=upload.size_bytes,
+            checksum_sha256=upload.checksum_sha256,
         )
 
     def _complete_and_persist(self, form: Form, user_id: str, form_id: str, completed_at: int) -> None:

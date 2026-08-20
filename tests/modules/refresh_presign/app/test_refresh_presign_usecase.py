@@ -35,6 +35,10 @@ def make_usecase_with_photos():
         order=1,
         file_type=FileType.IMAGE,
         value=[build_s3_url(FIRST_PATH), build_s3_url(SECOND_PATH)],
+        file_integrity=[
+            {"mimetype": "image/jpeg", "size_bytes": 42, "checksum_sha256": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="},
+            {"mimetype": "image/jpeg", "size_bytes": 43, "checksum_sha256": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="},
+        ],
     )
     form.sections = [Section(section_id=1, fields=[file_field])]
 
@@ -74,6 +78,8 @@ class TestRefreshPresignUsecase:
         assert files[0].field_key == "FOTOS0"
         # Segundo arquivo da lista — o app usa o índice para casar com o asset local.
         assert files[0].file_index == 1
+        assert files[0].size_bytes == 43
+        assert files[0].checksum_sha256 == "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="
 
     def test_renova_varios_arquivos_na_ordem_pedida(self):
         files = self.usecase(
@@ -87,16 +93,17 @@ class TestRefreshPresignUsecase:
 
         assert [file.file_path for file in files] == [SECOND_PATH, FIRST_PATH]
 
-    def test_usa_o_mimetype_informado_pelo_cliente(self):
+    def test_preserva_mimetype_persistido_para_reassinar_upload_com_integridade(self):
         files = self.usecase(
             user_id=self.user_id,
             form_id=self.form.id,
             requested_files=[{"file_url": build_s3_url(FIRST_PATH), "mimetype": "image/png"}],
         )
 
-        # A assinatura é específica de Content-Type; quem envia o PUT dita o valor.
-        assert files[0].mimetype == "image/png"
-        assert "mimetype=image/png" in files[0].pre_signed_url
+        # O valor persistido é a fonte da verdade: mudar o request permitiria
+        # mandar bytes com tipo incompatível com a expectativa do formulário.
+        assert files[0].mimetype == "image/jpeg"
+        assert "mimetype=image/jpeg" in files[0].pre_signed_url
 
     def test_recusa_arquivo_que_nao_pertence_ao_formulario(self):
         with pytest.raises(NoItemsFound):

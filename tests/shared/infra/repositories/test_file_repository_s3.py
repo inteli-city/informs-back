@@ -45,6 +45,20 @@ def test_file_repository_s3_generate_presigned_url(monkeypatch):
     assert call["HttpMethod"] == "PUT"
 
 
+def test_file_repository_s3_assina_checksum_quando_informado(monkeypatch):
+    client = FakeS3Client()
+    monkeypatch.setattr("src.shared.infra.repositories.file_repository_s3._create_s3_client", lambda **kwargs: client)
+    repo = FileRepositoryS3()
+
+    repo.generate_presigned_url(
+        file_path="path/file.jpg",
+        mimetype="image/jpeg",
+        checksum_sha256="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    )
+
+    assert client.calls[0]["Params"]["ChecksumSHA256"] == "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+
+
 def test_file_repository_s3_generate_presigned_url_error(monkeypatch):
     os.environ["STAGE"] = "TEST"
     client = FakeS3Client(should_fail=True)

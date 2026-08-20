@@ -294,7 +294,12 @@ class Form(abc.ABC):
                 raise EntityError("Cada arquivo deve conter 'filename' e 'mimetype'")
             if not isinstance(filename, str) or not isinstance(mimetype, str):
                 raise EntityError("'filename' e 'mimetype' devem ser strings")
-            file_upload = FileUploadRequest(filename=filename, mimetype=mimetype)
+            file_upload = FileUploadRequest(
+                filename=filename,
+                mimetype=mimetype,
+                size_bytes=upload.get("size_bytes"),
+                checksum_sha256=upload.get("checksum_sha256"),
+            )
             normalized_uploads.append(file_upload)
             normalized_value.append(file_upload.to_dict())
         return normalized_uploads, normalized_value
@@ -363,7 +368,7 @@ class Form(abc.ABC):
         self.ensure_required_fields_filled()
         return file_uploads
 
-    def set_file_field_urls(self, section_id: int, field_key: str, file_urls: List[str], section_instance: int = 0):
+    def set_file_field_urls(self, section_id: int, field_key: str, file_urls: List[str], section_instance: int = 0, file_integrity: Optional[List[dict]] = None):
         if not isinstance(file_urls, list) or not file_urls or not all(isinstance(url, str) for url in file_urls):
             raise EntityError("URLs de arquivo devem ser uma lista não vazia")
         section = self._find_section(section_id, section_instance)
@@ -372,6 +377,7 @@ class Form(abc.ABC):
         if not isinstance(field, FileField):
             raise EntityError("Campo não é do tipo arquivo")
         field.set_value(file_urls)
+        field.set_file_integrity(file_integrity)
 
     def stored_files(self) -> List[StoredFile]:
         """
@@ -387,7 +393,9 @@ class Form(abc.ABC):
             for field in section.fields:
                 if not isinstance(field, FileField):
                     continue
+                integrity = field.file_integrity or []
                 for index, file_url in enumerate(self._file_urls_of(field)):
+                    metadata = integrity[index] if index < len(integrity) and isinstance(integrity[index], dict) else {}
                     stored.append(
                         StoredFile(
                             file_url=file_url,
@@ -395,12 +403,21 @@ class Form(abc.ABC):
                             section_instance=section.section_instance,
                             field_key=field.key,
                             file_index=index,
+                            mimetype=metadata.get("mimetype"),
+                            size_bytes=metadata.get("size_bytes"),
+                            checksum_sha256=metadata.get("checksum_sha256"),
                         )
                     )
 
         justification_image = self.justification.justification_image if self.justification else None
         if isinstance(justification_image, str) and justification_image:
-            stored.append(StoredFile(file_url=justification_image))
+            integrity = self.justification.justification_image_integrity or {}
+            stored.append(StoredFile(
+                file_url=justification_image,
+                mimetype=integrity.get("mimetype"),
+                size_bytes=integrity.get("size_bytes"),
+                checksum_sha256=integrity.get("checksum_sha256"),
+            ))
 
         return stored
 
@@ -440,6 +457,7 @@ class Form(abc.ABC):
         justification_image: Optional[str],
         cancelled_at: int,
         updated_at: int,
+        justification_image_integrity: Optional[dict] = None,
     ):
         if not isinstance(cancelled_at, int):
             raise EntityError('Timestamp de cancelamento deve ser um inteiro')
@@ -462,7 +480,8 @@ class Form(abc.ABC):
             options=self.justification.options,
             selected_option=selected_option,
             justification_text=justification_text,
-            justification_image=justification_image
+            justification_image=justification_image,
+            justification_image_integrity=justification_image_integrity,
         )
 
         self.status = FormStatus.CANCELLED
