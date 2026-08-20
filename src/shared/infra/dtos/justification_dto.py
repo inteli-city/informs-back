@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import List, Optional
 from src.shared.domain.entities.justification import Justification, JustificationOption, SelectedJustification
 from src.shared.helpers.errors.domain_errors import EntityError
@@ -102,15 +103,26 @@ class JustificationDTO:
                 option=selected_dict.get('option'),
                 text=selected_dict.get('text'),
                 image_url=selected_dict.get('image_url'),
-                image_integrity=selected_dict.get('image_integrity')
+                image_integrity=JustificationDTO._normalize_image_integrity(selected_dict.get('image_integrity'))
             )
 
         selected_option = justification_dict.get('selected_option') if selected is None else None
         justification_text = justification_dict.get('justification_text') if selected is None else None
         justification_image = justification_dict.get('justification_image') if selected is None else None
-        justification_image_integrity = justification_dict.get('justification_image_integrity') if selected is None else None
+        justification_image_integrity = JustificationDTO._normalize_image_integrity(
+            justification_dict.get('justification_image_integrity')
+        ) if selected is None else None
 
         return JustificationDTO(options=options, selected=selected, selected_option=selected_option, justification_text=justification_text, justification_image=justification_image, justification_image_integrity=justification_image_integrity)
+
+    @staticmethod
+    def _normalize_image_integrity(image_integrity):
+        if not isinstance(image_integrity, dict):
+            return image_integrity
+        normalized = dict(image_integrity)
+        if isinstance(normalized.get('size_bytes'), Decimal):
+            normalized['size_bytes'] = int(normalized['size_bytes'])
+        return normalized
 
     def to_entity(self) -> Justification:
         return Justification(options=self.options, selected=self.selected)
