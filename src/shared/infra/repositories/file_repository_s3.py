@@ -1,5 +1,5 @@
 from importlib import import_module
-from typing import Set
+from typing import Optional, Set
 
 from src.shared.domain.repositories.file_repository_interface import DEFAULT_PRESIGN_EXPIRES_IN, IFileRepository
 from src.shared.environments import Environments
@@ -32,18 +32,36 @@ class FileRepositoryS3(IFileRepository):
             config=config,
         )
 
-    def generate_presigned_url(self, file_path: str, mimetype: str, expires_in: int = DEFAULT_PRESIGN_EXPIRES_IN) -> str:
+    def generate_presigned_url(self, file_path: str, mimetype: str, expires_in: int = DEFAULT_PRESIGN_EXPIRES_IN, checksum_sha256: Optional[str] = None) -> str:
         try:
+            params = {
+                "Bucket": Environments.get_envs().bucket_name,
+                "Key": file_path,
+                "ContentType": mimetype,
+            }
+            if checksum_sha256:
+                params["ChecksumSHA256"] = checksum_sha256
             return self.client.generate_presigned_url(
                 ClientMethod="put_object",
-                Params={
-                    "Bucket": Environments.get_envs().bucket_name,
-                    "Key": file_path,
-                    "ContentType": mimetype,
-                },
+                Params=params,
                 ExpiresIn=expires_in,
                 HttpMethod="PUT",
             )
+        except Exception as err:
+            raise ErrorWithFile(get_exception_message(err))
+
+    def get_file_metadata(self, file_path: str) -> dict:
+        try:
+            head = self.client.head_object(
+                Bucket=Environments.get_envs().bucket_name,
+                Key=file_path,
+                ChecksumMode="ENABLED",
+            )
+            return {
+                "size_bytes": head.get("ContentLength"),
+                "mimetype": head.get("ContentType"),
+                "checksum_sha256": head.get("ChecksumSHA256"),
+            }
         except Exception as err:
             raise ErrorWithFile(get_exception_message(err))
 

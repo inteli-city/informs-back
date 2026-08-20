@@ -296,6 +296,13 @@ class LambdaStack(Construct):
                     resources=[f"arn:aws:s3:::{bucket_name}"],
                 )
             )
+            self.reconcile_form_files.add_to_role_policy(
+                iam.PolicyStatement(
+                    effect=iam.Effect.ALLOW,
+                    actions=["s3:GetObject"],
+                    resources=[f"arn:aws:s3:::{bucket_name}/*"],
+                )
+            )
 
         self.reconcile_form_files_scheduler_role = iam.Role(
             self,

@@ -80,11 +80,16 @@ class RefreshPresignUsecase:
             # para uma key que não pertence a este formulário.
             raise EntityError("URL de arquivo não pertence ao bucket configurado")
 
-        presigned_url = self.file_repo.generate_presigned_url(file_path=file_path, mimetype=mimetype)
+        expected_mimetype = stored.mimetype or mimetype
+        presigned_url = self.file_repo.generate_presigned_url(
+            file_path=file_path,
+            mimetype=expected_mimetype,
+            checksum_sha256=stored.checksum_sha256,
+        )
 
         return FileUpload(
             filename=file_path.split("/")[-1],
-            mimetype=mimetype,
+            mimetype=expected_mimetype,
             pre_signed_url=presigned_url,
             file_path=file_path,
             file_url=file_url,
@@ -92,4 +97,6 @@ class RefreshPresignUsecase:
             section_instance=stored.section_instance,
             field_key=stored.field_key,
             file_index=stored.file_index,
+            size_bytes=stored.size_bytes,
+            checksum_sha256=stored.checksum_sha256,
         )

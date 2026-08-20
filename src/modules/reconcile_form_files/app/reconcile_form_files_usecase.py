@@ -18,12 +18,14 @@ class FormReconciliation:
     status: str
     files_expected: int = 0
     files_missing: int = 0
+    files_invalid: int = 0
     files_unknown: int = 0
     missing_sample: List[dict] = field(default_factory=list)
+    invalid_sample: List[dict] = field(default_factory=list)
 
     @property
     def is_complete(self) -> bool:
-        return self.files_missing == 0 and self.files_unknown == 0
+        return self.files_missing == 0 and self.files_invalid == 0 and self.files_unknown == 0
 
 
 @dataclass
@@ -33,8 +35,10 @@ class ReconcileResult:
     forms_with_missing_files: int = 0
     files_expected: int = 0
     files_missing: int = 0
+    files_invalid: int = 0
     files_unknown: int = 0
     list_requests: int = 0
+    head_requests: int = 0
     pages_loaded: int = 0
     window_start: Optional[int] = None
     window_end: Optional[int] = None
@@ -177,8 +181,28 @@ class ReconcileFormFilesUsecase:
                 reconciliation.files_missing += 1
                 if len(reconciliation.missing_sample) < self.MAX_MISSING_SAMPLE:
                     reconciliation.missing_sample.append(stored.to_dict())
+                continue
+            if self._has_integrity_expectation(stored):
+                result.head_requests += 1
+                actual = self.file_repo.get_file_metadata(file_path)
+                if not self._matches_integrity(stored, actual):
+                    reconciliation.files_invalid += 1
+                    if len(reconciliation.invalid_sample) < self.MAX_MISSING_SAMPLE:
+                        reconciliation.invalid_sample.append({"expected": stored.to_dict(), "actual": actual})
 
         return reconciliation
+
+    @staticmethod
+    def _has_integrity_expectation(stored) -> bool:
+        return any(value is not None for value in (stored.mimetype, stored.size_bytes, stored.checksum_sha256))
+
+    @staticmethod
+    def _matches_integrity(stored, actual: dict) -> bool:
+        return (
+            (stored.mimetype is None or actual.get("mimetype") == stored.mimetype)
+            and (stored.size_bytes is None or actual.get("size_bytes") == stored.size_bytes)
+            and (stored.checksum_sha256 is None or actual.get("checksum_sha256") == stored.checksum_sha256)
+        )
 
     def _existing_paths(self, file_paths: Set[str], result: ReconcileResult) -> Set[str]:
         existing: Set[str] = set()
@@ -204,6 +228,7 @@ class ReconcileFormFilesUsecase:
     def _accumulate(self, result: ReconcileResult, reconciliation: FormReconciliation, logger) -> None:
         result.files_expected += reconciliation.files_expected
         result.files_missing += reconciliation.files_missing
+        result.files_invalid += reconciliation.files_invalid
         result.files_unknown += reconciliation.files_unknown
 
         if reconciliation.is_complete:
@@ -224,8 +249,10 @@ class ReconcileFormFilesUsecase:
             "status": reconciliation.status,
             "files_expected": reconciliation.files_expected,
             "files_missing": reconciliation.files_missing,
+            "files_invalid": reconciliation.files_invalid,
             "files_unknown": reconciliation.files_unknown,
             "missing_sample": reconciliation.missing_sample,
+            "invalid_sample": reconciliation.invalid_sample,
         }
 
     @staticmethod
@@ -243,8 +270,10 @@ class ReconcileFormFilesUsecase:
                 "forms_with_missing_files": result.forms_with_missing_files,
                 "files_expected": result.files_expected,
                 "files_missing": result.files_missing,
+                "files_invalid": result.files_invalid,
                 "files_unknown": result.files_unknown,
                 "list_requests": result.list_requests,
+                "head_requests": result.head_requests,
                 "pages_loaded": result.pages_loaded,
             },
         )

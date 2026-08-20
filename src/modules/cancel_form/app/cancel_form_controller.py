@@ -30,6 +30,8 @@ class CancelFormController:
                 justification_image = FileUploadRequest(
                     filename=payload.file.filename,
                     mimetype=payload.file.mimetype,
+                    size_bytes=payload.file.size_bytes,
+                    checksum_sha256=payload.file.checksum_sha256,
                 )
 
             file_upload = self.usecase(

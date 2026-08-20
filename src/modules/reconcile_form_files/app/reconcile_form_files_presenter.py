@@ -103,10 +103,10 @@ def lambda_handler(event, context):
         _push_kuma(
             envs.kuma_missing_files_push_url,
             "down",
-            f"{result.forms_with_missing_files} formulario(s) com arquivo faltando no S3",
+            f"{result.forms_with_missing_files} formulario(s) com arquivo ausente ou invalido no S3",
         )
     else:
-        _push_kuma(envs.kuma_missing_files_push_url, "up", "nenhum arquivo faltando")
+        _push_kuma(envs.kuma_missing_files_push_url, "up", "nenhum arquivo ausente ou invalido")
 
     metrics.add_metric("FormsScanned", MetricUnit.Count, result.forms_scanned)
     metrics.add_metric("FormsChecked", MetricUnit.Count, result.forms_checked)
@@ -115,8 +115,10 @@ def lambda_handler(event, context):
     metrics.add_metric("FormsWithMissingFiles", MetricUnit.Count, result.forms_with_missing_files)
     metrics.add_metric("FilesExpected", MetricUnit.Count, result.files_expected)
     metrics.add_metric("FilesMissing", MetricUnit.Count, result.files_missing)
+    metrics.add_metric("FilesInvalid", MetricUnit.Count, result.files_invalid)
     metrics.add_metric("FilesUnknown", MetricUnit.Count, result.files_unknown)
     metrics.add_metric("S3ListRequests", MetricUnit.Count, result.list_requests)
+    metrics.add_metric("S3HeadRequests", MetricUnit.Count, result.head_requests)
     metrics.add_metric("ReconcileDurationMs", MetricUnit.Milliseconds, duration_ms)
 
     for incomplete in result.incomplete_forms:
@@ -140,8 +142,10 @@ def lambda_handler(event, context):
             "forms_with_missing_files": result.forms_with_missing_files,
             "files_expected": result.files_expected,
             "files_missing": result.files_missing,
+            "files_invalid": result.files_invalid,
             "files_unknown": result.files_unknown,
             "list_requests": result.list_requests,
+            "head_requests": result.head_requests,
             "pages_loaded": result.pages_loaded,
         },
         "incomplete_forms": result.incomplete_forms,

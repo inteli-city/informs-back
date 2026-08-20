@@ -21,6 +21,9 @@ class StoredFile:
         section_instance: Optional[int] = None,
         field_key: Optional[str] = None,
         file_index: Optional[int] = None,
+        mimetype: Optional[str] = None,
+        size_bytes: Optional[int] = None,
+        checksum_sha256: Optional[str] = None,
     ):
         if not isinstance(file_url, str) or not file_url:
             raise EntityError("URL do arquivo deve ser uma string não vazia")
@@ -30,18 +33,34 @@ class StoredFile:
             raise EntityError("Campo 'field_key' deve ser uma string")
         ensure_non_negative_int(section_instance, "Campo 'section_instance'", allow_none=True)
         ensure_non_negative_int(file_index, "Campo 'file_index'", allow_none=True)
+        if mimetype is not None and (not isinstance(mimetype, str) or not mimetype):
+            raise EntityError("Campo 'mimetype' deve ser uma string não vazia")
+        if size_bytes is not None and (not isinstance(size_bytes, int) or isinstance(size_bytes, bool) or size_bytes < 0):
+            raise EntityError("Campo 'size_bytes' deve ser um inteiro não negativo")
+        if checksum_sha256 is not None and not isinstance(checksum_sha256, str):
+            raise EntityError("Campo 'checksum_sha256' deve ser uma string")
 
         self.file_url = file_url
         self.section_id = section_id
         self.section_instance = section_instance
         self.field_key = field_key
         self.file_index = file_index
+        self.mimetype = mimetype
+        self.size_bytes = size_bytes
+        self.checksum_sha256 = checksum_sha256
 
     def to_dict(self) -> dict:
-        return {
+        payload = {
             "file_url": self.file_url,
             "section_id": self.section_id,
             "section_instance": self.section_instance,
             "field_key": self.field_key,
             "file_index": self.file_index,
         }
+        if self.mimetype is not None:
+            payload["mimetype"] = self.mimetype
+        if self.size_bytes is not None:
+            payload["size_bytes"] = self.size_bytes
+        if self.checksum_sha256 is not None:
+            payload["checksum_sha256"] = self.checksum_sha256
+        return payload

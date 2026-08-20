@@ -1,4 +1,6 @@
 from abc import ABC
+import base64
+import binascii
 from typing import Optional
 
 from src.shared.domain.validators import ensure_non_negative_int
@@ -8,20 +10,45 @@ from src.shared.helpers.errors.domain_errors import EntityError
 class FileUploadBase(ABC):
     filename: str
     mimetype: str
+    size_bytes: Optional[int]
+    checksum_sha256: Optional[str]
 
-    def __init__(self, filename: str, mimetype: str):
+    def __init__(
+        self,
+        filename: str,
+        mimetype: str,
+        size_bytes: Optional[int] = None,
+        checksum_sha256: Optional[str] = None,
+    ):
         if not isinstance(filename, str) or not filename:
             raise EntityError("Nome do arquivo deve ser uma string não vazia")
         if not isinstance(mimetype, str) or not mimetype:
             raise EntityError("Tipo MIME deve ser uma string não vazia")
+        if size_bytes is not None and (not isinstance(size_bytes, int) or isinstance(size_bytes, bool) or size_bytes < 0):
+            raise EntityError("Tamanho do arquivo deve ser um inteiro não negativo")
+        if checksum_sha256 is not None:
+            if not isinstance(checksum_sha256, str):
+                raise EntityError("Checksum SHA-256 deve ser uma string")
+            try:
+                if len(base64.b64decode(checksum_sha256, validate=True)) != 32:
+                    raise ValueError
+            except (ValueError, binascii.Error):
+                raise EntityError("Checksum SHA-256 deve ser Base64 válido de 32 bytes")
         self.filename = filename
         self.mimetype = mimetype
+        self.size_bytes = size_bytes
+        self.checksum_sha256 = checksum_sha256
 
     def to_dict(self) -> dict:
-        return {
+        payload = {
             "filename": self.filename,
             "mimetype": self.mimetype,
         }
+        if self.size_bytes is not None:
+            payload["size_bytes"] = self.size_bytes
+        if self.checksum_sha256 is not None:
+            payload["checksum_sha256"] = self.checksum_sha256
+        return payload
 
 
 class FileUploadRequest(FileUploadBase):
@@ -71,8 +98,10 @@ class FileUpload(FileUploadBase):
         field_key: Optional[str] = None,
         file_index: Optional[int] = None,
         section_instance: Optional[int] = None,
+        size_bytes: Optional[int] = None,
+        checksum_sha256: Optional[str] = None,
     ):
-        super().__init__(filename=filename, mimetype=mimetype)
+        super().__init__(filename=filename, mimetype=mimetype, size_bytes=size_bytes, checksum_sha256=checksum_sha256)
         self._validate_fields(
             pre_signed_url, file_path, file_url,
             section_id, field_key, file_index, section_instance
