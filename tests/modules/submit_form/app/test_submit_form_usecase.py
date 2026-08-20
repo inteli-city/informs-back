@@ -112,26 +112,53 @@ class TestSubmitFormUsecase:
             file_type=FileType.IMAGE,
             min_quantity=1,
             max_quantity=1,
-            value={"filename": "a.jpg", "mimetype": "image/jpeg"},
+            value={"filename": "a.jpg", "mimetype": "image/jpeg", "size_bytes": 42, "checksum_sha256": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="},
         )
         form.sections = [Section(section_id=1, fields=[file_field])]
 
         files = usecase(
             user_id=form.user_id,
             form_id=form.id,
-            fields=[{"section_id": 1, "field_key": "file_key", "value": {"filename": "a.jpg", "mimetype": "image/jpeg"}}],
+            fields=[{"section_id": 1, "field_key": "file_key", "value": {"filename": "a.jpg", "mimetype": "image/jpeg", "size_bytes": 42, "checksum_sha256": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="}}],
             completed_at=123,
         )
 
         assert len(files) == 1
         assert files[0].filename == "a.jpg"
         assert files[0].mimetype == "image/jpeg"
+        assert files[0].size_bytes == 42
+        assert files[0].checksum_sha256 == "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
         # value sempre lista após o upload, mesmo com 1 único arquivo
         # (consistência com o caso multi-arquivos para o consumidor downstream — Apex)
         value = form.sections[0].fields[0].value
         assert isinstance(value, list)
         assert len(value) == 1
         assert value[0].startswith("https://")
+        assert form.sections[0].fields[0].file_integrity == [{
+            "mimetype": "image/jpeg",
+            "size_bytes": 42,
+            "checksum_sha256": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        }]
+
+    def test_rejeita_checksum_sha256_invalido(self):
+        repo = FormRepositoryMock()
+        file_repo = FileRepositoryMock()
+        usecase = SubmitFormUsecase(repo, file_repo)
+        form = repo.forms[0]
+        form.sections = [Section(section_id=1, fields=[FileField(
+            placeholder='file', required=True, key='file_key', file_type=FileType.IMAGE,
+            min_quantity=1, max_quantity=1,
+        )])]
+
+        with pytest.raises(EntityError):
+            usecase(
+                user_id=form.user_id,
+                form_id=form.id,
+                fields=[{"section_id": 1, "field_key": "file_key", "value": {
+                    "filename": "a.jpg", "mimetype": "image/jpeg", "checksum_sha256": "invalido"
+                }}],
+                completed_at=123,
+            )
 
     def test_submit_form_usecase_with_duplicated_section(self):
         repo = FormRepositoryMock()

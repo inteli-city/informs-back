@@ -442,8 +442,9 @@ class FileField(Field):
     min_quantity: Optional[int]
     max_quantity: Optional[int]
     value: Optional[Union[List[str], str, dict]]
+    file_integrity: Optional[List[dict]]
 
-    def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, file_type: FileType = None, min_quantity: Optional[int] = None, max_quantity: Optional[int] = None, value: Optional[Union[List[str], str, dict]] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
+    def __init__(self, label: Optional[str] = None, required: Optional[bool] = None, key: Optional[str] = None, order: int = 0, file_type: FileType = None, min_quantity: Optional[int] = None, max_quantity: Optional[int] = None, value: Optional[Union[List[str], str, dict]] = None, file_integrity: Optional[List[dict]] = None, help_text: Optional[str] = None, placeholder: Optional[str] = None):
         super().__init__(FieldType.FILE_FIELD, label, required, key, order, help_text, placeholder=placeholder)
         if not isinstance(file_type, FileType):
             raise EntityError('Tipo de arquivo inválido')
@@ -463,6 +464,14 @@ class FileField(Field):
         # Mesma validação de _validate_value (atributos já atribuídos acima).
         self._validate_value(value)
         self.value = value
+        self.set_file_integrity(file_integrity)
+
+    def set_file_integrity(self, file_integrity: Optional[List[dict]]):
+        if file_integrity is not None and (
+            not isinstance(file_integrity, list) or not all(isinstance(item, dict) for item in file_integrity)
+        ):
+            raise EntityError('Metadados de integridade devem ser uma lista de objetos')
+        self.file_integrity = file_integrity
 
     def _validate_value(self, value):
         if value is not None:
@@ -482,6 +491,7 @@ class FileField(Field):
             "file_type": self.file_type.name,
             "min_quantity": self.min_quantity,
             "max_quantity": self.max_quantity,
-            "value": self.value
+            "value": self.value,
+            "file_integrity": self.file_integrity,
         })
         return base

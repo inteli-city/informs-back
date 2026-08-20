@@ -84,7 +84,7 @@ class FieldDTO:
             FieldType.CHECKBOX_FIELD: {"value"},
             FieldType.CHECKBOX_GROUP_FIELD: {"options", "check_limit", "value"},
             FieldType.SWITCH_BUTTON_FIELD: {"value"},
-            FieldType.FILE_FIELD: {"file_type", "min_quantity", "max_quantity", "value"},
+            FieldType.FILE_FIELD: {"file_type", "min_quantity", "max_quantity", "value", "file_integrity"},
         }
 
         field_type = self.field.field_type
@@ -96,7 +96,12 @@ class FieldDTO:
             }
 
         for key in allowed_fields:
-            base[key] = _serialize_value(getattr(self.field, key, None))
+            value = getattr(self.field, key, None)
+            # Campo novo e opcional: omitir em registros antigos evita gravar
+            # `null` em toda atualização de formulário sem integridade ainda.
+            if key == "file_integrity" and value is None:
+                continue
+            base[key] = _serialize_value(value)
 
         return base
 
@@ -265,6 +270,7 @@ class FieldDTO:
             min_quantity=FieldDTO._to_int(field_dict.get("min_quantity")),
             max_quantity=FieldDTO._to_int(field_dict.get("max_quantity")),
             value=raw_value,
+            file_integrity=field_dict.get("file_integrity"),
         )
 
 
