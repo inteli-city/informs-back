@@ -1,6 +1,7 @@
 from importlib import import_module
+from typing import Set
 
-from src.shared.domain.repositories.file_repository_interface import IFileRepository
+from src.shared.domain.repositories.file_repository_interface import DEFAULT_PRESIGN_EXPIRES_IN, IFileRepository
 from src.shared.environments import Environments
 from src.shared.helpers.errors.usecase_errors import ErrorWithFile
 from src.shared.helpers.functions.exception_message import get_exception_message
@@ -31,7 +32,7 @@ class FileRepositoryS3(IFileRepository):
             config=config,
         )
 
-    def generate_presigned_url(self, file_path: str, mimetype: str, expires_in: int = 3600) -> str:
+    def generate_presigned_url(self, file_path: str, mimetype: str, expires_in: int = DEFAULT_PRESIGN_EXPIRES_IN) -> str:
         try:
             return self.client.generate_presigned_url(
                 ClientMethod="put_object",
@@ -43,5 +44,20 @@ class FileRepositoryS3(IFileRepository):
                 ExpiresIn=expires_in,
                 HttpMethod="PUT",
             )
+        except Exception as err:
+            raise ErrorWithFile(get_exception_message(err))
+
+    def list_file_paths(self, prefix: str) -> Set[str]:
+        try:
+            paginator = self.client.get_paginator("list_objects_v2")
+            pages = paginator.paginate(
+                Bucket=Environments.get_envs().bucket_name,
+                Prefix=prefix,
+            )
+            return {
+                item["Key"]
+                for page in pages
+                for item in page.get("Contents", [])
+            }
         except Exception as err:
             raise ErrorWithFile(get_exception_message(err))

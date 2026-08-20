@@ -27,6 +27,10 @@ from src.shared.helpers.contracts.endpoints.profile_contract import (
     DeleteProfileResponseSchema,
     LoginProfileResponseSchema,
 )
+from src.shared.helpers.contracts.endpoints.refresh_presign_contract import (
+    RefreshPresignRequestSchema,
+    RefreshPresignResponseSchema,
+)
 from src.shared.helpers.contracts.endpoints.start_form_contract import StartFormRequestSchema
 from src.shared.helpers.contracts.endpoints.submit_form_contract import SubmitFormRequestSchema, SubmitFormResponseSchema
 from src.shared.helpers.contracts.endpoints.sync_origin_callback_contract import (
@@ -83,6 +87,15 @@ _CONTRACTS = [
         summary="Inicia o preenchimento (Preenchedor)",
         success_status_code=204,
         request_model=StartFormRequestSchema,
+    ),
+    EndpointContract(
+        path="/forms/{formId}/files/refresh-presign",
+        method="post",
+        tag="Forms",
+        summary="Renova as presigned URLs de arquivos já registrados no formulário",
+        success_status_code=200,
+        request_model=RefreshPresignRequestSchema,
+        response_model=RefreshPresignResponseSchema,
     ),
     EndpointContract(
         path="/forms/{formId}/submit",

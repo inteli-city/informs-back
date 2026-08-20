@@ -154,10 +154,13 @@ class FormRepositoryMock(IFormRepository):
         user_id: Optional[str] = None,
         created_at_start: Optional[int] = None,
         created_at_end: Optional[int] = None,
+        updated_at_start: Optional[int] = None,
+        updated_at_end: Optional[int] = None,
         search: Optional[str] = None,
     ) -> tuple[List[Form], Optional[str]]:
         forms = self._filter_forms(
-            self.forms, user_id, status, system, created_at_start, created_at_end, search
+            self.forms, user_id, status, system, created_at_start, created_at_end, search,
+            updated_at_start, updated_at_end,
         )
 
         def sort_key(f: Form):
@@ -176,7 +179,10 @@ class FormRepositoryMock(IFormRepository):
         return deepcopy(page), next_key
 
     @staticmethod
-    def _filter_forms(forms, user_id, status, system, created_at_start, created_at_end, search):
+    def _filter_forms(
+        forms, user_id, status, system, created_at_start, created_at_end, search,
+        updated_at_start=None, updated_at_end=None,
+    ):
         if user_id is not None:
             forms = [form for form in forms if form.user_id == user_id]
 
@@ -192,6 +198,11 @@ class FormRepositoryMock(IFormRepository):
             forms = [form for form in forms if form.created_at >= created_at_start]
         if created_at_end is not None:
             forms = [form for form in forms if form.created_at <= created_at_end]
+
+        if updated_at_start is not None:
+            forms = [form for form in forms if (form.updated_at or 0) >= updated_at_start]
+        if updated_at_end is not None:
+            forms = [form for form in forms if (form.updated_at or 0) <= updated_at_end]
 
         if search is not None:
             search_lower = search.lower()
@@ -262,10 +273,14 @@ class FormRepositoryMock(IFormRepository):
         updated_at_end: Optional[int] = None,
         limit: Optional[int] = None,
         exclusive_start_key: Optional[dict] = None,
+        status: Optional[Union[FormStatus, List[FormStatus]]] = None,
     ) -> tuple[List[Form], Optional[str]]:
         forms = [form for form in self.forms if form.system == system and form.updated_at >= updated_at_start]
         if updated_at_end is not None:
             forms = [form for form in forms if form.updated_at <= updated_at_end]
+        if status is not None:
+            statuses = status if isinstance(status, list) else [status]
+            forms = [form for form in forms if form.status in statuses]
 
         forms = sorted(forms, key=lambda form: (form.updated_at, form.id))
 

@@ -28,7 +28,7 @@ class SectionDTO:
             raise MissingParameters('fields')
         fields_data = section_dict['fields']
 
-        fields = [FieldDTO.from_dynamo(field_dict=field_data).to_entity() for field_data in fields_data]
+        fields = [FieldDTO.from_dynamo(field_dict=field_data, trusted=False).to_entity() for field_data in fields_data]
 
         # section_instance só é criado via submissão (Form._materialize_section_instance).
         # Aceitar um valor diferente de 0 aqui daria a impressão de que a criação
