@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 
 from src.shared.domain.entities.field import CheckBoxGroupField, CheckboxField, DateField, DropDownField, FileField, NumberField, RadioGroupField, SwitchButtonField, TextField, TypeAheadField
@@ -229,6 +231,26 @@ class TestFieldDTO:
         field_dto = FieldDTO.from_dynamo(field_dict)
 
         assert field_dto.field.value == ["https://bucket.s3.amazonaws.com/file.jpg"]
+
+    def test_field_dto_from_dynamo_file_field_normalizes_integrity_size_decimal(self):
+        field_dto = FieldDTO.from_dynamo({
+            "field_type": "FILE_FIELD",
+            "placeholder": "placeholder",
+            "required": True,
+            "key": "key",
+            "value": ["https://bucket.s3.amazonaws.com/file.jpg"],
+            "file_type": "IMAGE",
+            "min_quantity": 1,
+            "max_quantity": 1,
+            "file_integrity": [{
+                "mimetype": "image/jpeg",
+                "size_bytes": Decimal("36737"),
+                "checksum_sha256": "checksum",
+            }],
+        })
+
+        assert field_dto.field.file_integrity[0]["size_bytes"] == 36737
+        assert isinstance(field_dto.field.file_integrity[0]["size_bytes"], int)
 
     def test_field_dto_from_dynamo_file_field_untrusted_ignora_value_do_cliente(self):
         # value de FILE_FIELD só é atribuído pelo backend no upload via
