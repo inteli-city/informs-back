@@ -8,6 +8,7 @@ from src.shared.helpers.contracts.endpoints.create_form_contract import CreateFo
 from src.shared.helpers.contracts.endpoints.create_template_contract import CreateTemplateRequestSchema
 from src.shared.helpers.contracts.endpoints.plan_route_contract import PlanRouteRequestSchema
 from src.shared.helpers.contracts.endpoints.profile_contract import CreateProfileRequestSchema
+from src.shared.helpers.contracts.endpoints.refresh_presign_contract import RefreshPresignRequestSchema
 from src.shared.helpers.contracts.endpoints.start_form_contract import StartFormRequestSchema
 from src.shared.helpers.contracts.endpoints.submit_form_contract import SubmitFormFieldFlatSchema, SubmitFormRequestSchema
 from src.shared.helpers.contracts.endpoints.location_history_contract import LocationHistoryRequestSchema
@@ -81,6 +82,11 @@ class SubmitFormControllerRequestSchema(SubmitFormRequestSchema):
     requester_user: RequesterUserSchema
     form_id: str
     fields: list[SubmitFormFieldFlatControllerSchema]
+
+
+class RefreshPresignControllerRequestSchema(RefreshPresignRequestSchema):
+    requester_user: RequesterUserSchema
+    form_id: str
 
 
 class PlanRouteControllerRequestSchema(PlanRouteRequestSchema):

@@ -25,6 +25,7 @@ def test_openapi_contract_registry_covers_http_routes():
         ("/forms/{formId}", "get"),
         ("/forms/{formId}/start", "post"),
         ("/forms/{formId}/submit", "post"),
+        ("/forms/{formId}/files/refresh-presign", "post"),
         ("/forms/{formId}/cancel", "post"),
         ("/forms/route-plan", "post"),
         ("/profiles", "post"),

@@ -15,7 +15,7 @@ class FieldDTO:
         self.field = field
     
     @staticmethod
-    def from_dynamo(field_dict: dict):
+    def from_dynamo(field_dict: dict, trusted: bool = True):
         if field_dict.get('field_type') is None:
             raise MissingParameters('field_type')
         
@@ -47,9 +47,12 @@ class FieldDTO:
 
         required_fields, builder = spec
         FieldDTO._ensure_required(field_dict, required_fields)
-        field = builder(base_args, field_dict)
-        
-        return FieldDTO(field)    
+        if field_type == FieldType.FILE_FIELD:
+            field = builder(base_args, field_dict, trusted)
+        else:
+            field = builder(base_args, field_dict)
+
+        return FieldDTO(field)
 
     def to_dynamo(self) -> dict:
         def _serialize_value(value):
@@ -239,15 +242,22 @@ class FieldDTO:
         )
 
     @staticmethod
-    def _build_file_field(base_args: dict, field_dict: dict) -> FileField:
+    def _build_file_field(base_args: dict, field_dict: dict, trusted: bool = True) -> FileField:
         file_type = field_dict.get("file_type")
         if file_type not in [file_type.value for file_type in FileType]:
             raise EntityError(f"Tipo de arquivo '{file_type}' inválido")
-        # Normaliza valores legacy gravados como string única para lista,
-        # garantindo que consumidores (Apex sync, API) sempre vejam list[str].
-        # Mantém dict / list[dict] intactos pois são entradas de upload em curso.
         raw_value = field_dict.get("value")
-        if isinstance(raw_value, str):
+        if not trusted:
+            # value de FILE_FIELD só é atribuído pelo backend, durante o upload
+            # via presigned URL (submit_form). Aceitar um valor vindo direto do
+            # request de create/update permitiria plantar a URL de um arquivo
+            # de OUTRO formulário aqui — e depois pedir renovação de presigned
+            # URL para ela. Ver refresh_presign_usecase._belongs_to_form.
+            raw_value = None
+        elif isinstance(raw_value, str):
+            # Normaliza valores legacy gravados como string única para lista,
+            # garantindo que consumidores (Apex sync, API) sempre vejam list[str].
+            # Mantém dict / list[dict] intactos pois são entradas de upload em curso.
             raw_value = [raw_value]
         return FileField(
             **base_args,

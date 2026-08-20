@@ -79,12 +79,14 @@ class FormRepositoryDynamo(IFormRepository):
         user_id: Optional[str] = None,
         created_at_start: Optional[int] = None,
         created_at_end: Optional[int] = None,
+        updated_at_start: Optional[int] = None,
+        updated_at_end: Optional[int] = None,
         search: Optional[str] = None,
     ) -> Tuple[List[Form], Optional[str]]:
         forms: List[Form] = []
 
         filter_expression = self._build_forms_filter_expression(
-            status, system, created_at_start, created_at_end
+            status, system, created_at_start, created_at_end, updated_at_start, updated_at_end
         )
         # limit paginado só se aplica via Dynamo quando não há busca textual
         # (search é filtrado pós-query, então precisamos varrer tudo).
@@ -161,12 +163,25 @@ class FormRepositoryDynamo(IFormRepository):
         return None
 
     @staticmethod
-    def _build_forms_filter_expression(status, system, created_at_start, created_at_end):
+    def _updated_at_filter(updated_at_start, updated_at_end):
+        if updated_at_start is not None and updated_at_end is not None:
+            return Attr('updated_at').between(Decimal(updated_at_start), Decimal(updated_at_end))
+        if updated_at_start is not None:
+            return Attr('updated_at').gte(Decimal(updated_at_start))
+        if updated_at_end is not None:
+            return Attr('updated_at').lte(Decimal(updated_at_end))
+        return None
+
+    @staticmethod
+    def _build_forms_filter_expression(
+        status, system, created_at_start, created_at_end, updated_at_start=None, updated_at_end=None
+    ):
         filter_expression = None
         for part in (
             FormRepositoryDynamo._status_filter(status),
             FormRepositoryDynamo._system_filter(system),
             FormRepositoryDynamo._created_at_filter(created_at_start, created_at_end),
+            FormRepositoryDynamo._updated_at_filter(updated_at_start, updated_at_end),
         ):
             if part is not None:
                 filter_expression = FormRepositoryDynamo._and(filter_expression, part)
@@ -314,6 +329,7 @@ class FormRepositoryDynamo(IFormRepository):
         updated_at_end: Optional[int] = None,
         limit: Optional[int] = None,
         exclusive_start_key: Optional[dict] = None,
+        status: Optional[Union[FormStatus, List[FormStatus]]] = None,
     ) -> Tuple[List[Form], Optional[str]]:
         start_ms = max(0, int(updated_at_start))
         end_ms = int(updated_at_end) if updated_at_end is not None else int(datetime.now(timezone.utc).timestamp() * 1000)
@@ -331,6 +347,9 @@ class FormRepositoryDynamo(IFormRepository):
             query_kwargs["Limit"] = limit
         if exclusive_start_key is not None:
             query_kwargs["ExclusiveStartKey"] = exclusive_start_key
+        status_filter = self._status_filter(status)
+        if status_filter is not None:
+            query_kwargs["FilterExpression"] = status_filter
 
         resp = self.dynamo.query(**query_kwargs)
         items = resp.get("Items", [])
