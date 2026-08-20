@@ -32,13 +32,17 @@ class CancelFormUsecase:
 
         expected_status = form.status
         file_upload: Optional[FileUpload] = None
+        justification_image_integrity = None
         if justification_image:
             mimetype = justification_image.mimetype
             filename = justification_image.filename
+            size_bytes = justification_image.size_bytes
+            checksum_sha256 = justification_image.checksum_sha256
             file_path = f'{utc_year()}/{form.system}/{form_id}/justification/{str(uuid.uuid4())}.{mimetype.split("/")[-1]}'
             presigned_url = self.file_repo.generate_presigned_url(
                 file_path=file_path,
                 mimetype=mimetype,
+                checksum_sha256=checksum_sha256,
             )
             file_url = build_s3_url(file_path)
             justification_image = file_url
@@ -48,7 +52,14 @@ class CancelFormUsecase:
                 pre_signed_url=presigned_url,
                 file_path=file_path,
                 file_url=file_url,
+                size_bytes=size_bytes,
+                checksum_sha256=checksum_sha256,
             )
+            justification_image_integrity = {
+                "mimetype": mimetype,
+                "size_bytes": size_bytes,
+                "checksum_sha256": checksum_sha256,
+            }
 
         updated_at = now_timestamp_ms()
 
@@ -58,6 +69,7 @@ class CancelFormUsecase:
             justification_image=justification_image,
             cancelled_at=cancelled_at if cancelled_at is not None else updated_at,
             updated_at=updated_at,
+            justification_image_integrity=justification_image_integrity,
         )
 
         self.form_repo.update_form(

@@ -9,15 +9,17 @@ class JustificationDTO:
     selected_option: Optional[str]
     justification_text: Optional[str]
     justification_image: Optional[str]
+    justification_image_integrity: Optional[dict]
 
-    def __init__(self, options: Optional[List[JustificationOption]], selected: Optional[SelectedJustification] = None, selected_option: Optional[str] = None, justification_text: Optional[str] = None, justification_image: Optional[str] = None):
+    def __init__(self, options: Optional[List[JustificationOption]], selected: Optional[SelectedJustification] = None, selected_option: Optional[str] = None, justification_text: Optional[str] = None, justification_image: Optional[str] = None, justification_image_integrity: Optional[dict] = None):
         self.options = options
         if selected is None and selected_option is not None:
-            selected = SelectedJustification(option=selected_option, text=justification_text, image_url=justification_image)
+            selected = SelectedJustification(option=selected_option, text=justification_text, image_url=justification_image, image_integrity=justification_image_integrity)
         self.selected = selected
         self.selected_option = self.selected.option if self.selected else None
         self.justification_text = self.selected.text if self.selected else None
         self.justification_image = self.selected.image_url if self.selected else None
+        self.justification_image_integrity = self.selected.image_integrity if self.selected else None
 
     @staticmethod
     def from_request(justification_dict: dict) -> "JustificationDTO":
@@ -47,7 +49,8 @@ class JustificationDTO:
             selected_dict = {
                 "option": justification_dict.get('selected_option'),
                 "text": justification_dict.get('justification_text'),
-                "image_url": justification_dict.get('justification_image')
+                "image_url": justification_dict.get('justification_image'),
+                "image_integrity": justification_dict.get('justification_image_integrity')
             }
 
         if not selected_dict:
@@ -58,7 +61,8 @@ class JustificationDTO:
         return SelectedJustification(
             option=selected_dict.get('option'),
             text=selected_dict.get('text'),
-            image_url=selected_dict.get('image_url')
+            image_url=selected_dict.get('image_url'),
+            image_integrity=selected_dict.get('image_integrity')
         )
 
     @staticmethod
@@ -75,11 +79,13 @@ class JustificationDTO:
             "selected": {
                 "option": self.selected.option,
                 "text": self.selected.text,
-                "image_url": self.selected.image_url
+                "image_url": self.selected.image_url,
+                "image_integrity": self.selected.image_integrity
             } if self.selected is not None else None,
             "selected_option": self.selected.option if self.selected else None,
             "justification_text": self.selected.text if self.selected else None,
-            "justification_image": self.selected.image_url if self.selected else None
+            "justification_image": self.selected.image_url if self.selected else None,
+            "justification_image_integrity": self.selected.image_integrity if self.selected else None
         }
 
     @staticmethod
@@ -95,14 +101,16 @@ class JustificationDTO:
             selected = SelectedJustification(
                 option=selected_dict.get('option'),
                 text=selected_dict.get('text'),
-                image_url=selected_dict.get('image_url')
+                image_url=selected_dict.get('image_url'),
+                image_integrity=selected_dict.get('image_integrity')
             )
 
         selected_option = justification_dict.get('selected_option') if selected is None else None
         justification_text = justification_dict.get('justification_text') if selected is None else None
         justification_image = justification_dict.get('justification_image') if selected is None else None
+        justification_image_integrity = justification_dict.get('justification_image_integrity') if selected is None else None
 
-        return JustificationDTO(options=options, selected=selected, selected_option=selected_option, justification_text=justification_text, justification_image=justification_image)
+        return JustificationDTO(options=options, selected=selected, selected_option=selected_option, justification_text=justification_text, justification_image=justification_image, justification_image_integrity=justification_image_integrity)
 
     def to_entity(self) -> Justification:
         return Justification(options=self.options, selected=self.selected)

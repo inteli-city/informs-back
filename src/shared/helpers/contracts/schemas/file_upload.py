@@ -4,6 +4,8 @@ from src.shared.helpers.contracts.base import RequestContractModel, ResponseCont
 class FileUploadParamsSchema(RequestContractModel):
     filename: str
     mimetype: str
+    size_bytes: int | None = None
+    checksum_sha256: str | None = None
 
 
 class FileUploadSchema(ResponseContractModel):
@@ -16,3 +18,5 @@ class FileUploadSchema(ResponseContractModel):
     section_instance: int | None = None
     field_key: str | None = None
     file_index: int | None = None
+    size_bytes: int | None = None
+    checksum_sha256: str | None = None

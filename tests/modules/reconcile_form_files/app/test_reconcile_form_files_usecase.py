@@ -30,7 +30,7 @@ class TestReconcileFormFilesUsecase:
 
         self.form = self.form_repo.forms[0]
 
-    def _prepare_form(self, paths, status=FormStatus.COMPLETED, updated_at=None):
+    def _prepare_form(self, paths, status=FormStatus.COMPLETED, updated_at=None, file_integrity=None):
         urls = [build_s3_url(path) for path in paths]
         self.form.status = status
         self.form.created_at = self.now - ONE_HOUR_MS
@@ -39,7 +39,7 @@ class TestReconcileFormFilesUsecase:
         self.form.sections = [
             Section(section_id=1, fields=[FileField(
                 label='fotos', required=False, key='FOTOS0', order=1,
-                file_type=FileType.IMAGE, value=urls,
+                file_type=FileType.IMAGE, value=urls, file_integrity=file_integrity,
             )])
         ]
         return urls
@@ -84,6 +84,55 @@ class TestReconcileFormFilesUsecase:
 
         assert result.list_requests == 1
         assert self.file_repo.list_calls == [f"2026/GAIA/{self.form.id}/"]
+        assert self.file_repo.head_calls == []
+
+    def test_valida_tamanho_mime_e_checksum_dos_arquivos_novos(self):
+        path = self._paths(1)[0]
+        checksum = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        self._prepare_form(
+            [path],
+            file_integrity=[{
+                "mimetype": "image/jpeg",
+                "size_bytes": 42,
+                "checksum_sha256": checksum,
+            }],
+        )
+        self.file_repo.existing_file_paths = {path}
+        self.file_repo.file_metadata[path] = {
+            "mimetype": "image/jpeg",
+            "size_bytes": 42,
+            "checksum_sha256": checksum,
+        }
+
+        result = self.usecase()
+
+        assert result.files_invalid == 0
+        assert result.forms_with_missing_files == 0
+        assert self.file_repo.head_calls == [path]
+
+    def test_acusa_objeto_existente_com_integridade_divergente(self):
+        path = self._paths(1)[0]
+        self._prepare_form(
+            [path],
+            file_integrity=[{
+                "mimetype": "image/jpeg",
+                "size_bytes": 42,
+                "checksum_sha256": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            }],
+        )
+        self.file_repo.existing_file_paths = {path}
+        self.file_repo.file_metadata[path] = {
+            "mimetype": "text/xml",
+            "size_bytes": 12,
+            "checksum_sha256": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
+        }
+
+        result = self.usecase()
+
+        assert result.files_missing == 0
+        assert result.files_invalid == 1
+        assert result.forms_with_missing_files == 1
+        assert result.incomplete_forms[0]["invalid_sample"][0]["actual"]["mimetype"] == "text/xml"
 
     def test_respeita_a_carencia_de_formulario_recem_concluido(self):
         paths = self._paths(3)
