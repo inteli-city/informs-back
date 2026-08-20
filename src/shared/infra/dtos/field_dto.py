@@ -1,3 +1,4 @@
+from decimal import Decimal
 from enum import Enum
 from typing import Dict, Any, Union
 
@@ -270,8 +271,25 @@ class FieldDTO:
             min_quantity=FieldDTO._to_int(field_dict.get("min_quantity")),
             max_quantity=FieldDTO._to_int(field_dict.get("max_quantity")),
             value=raw_value,
-            file_integrity=field_dict.get("file_integrity"),
+            file_integrity=FieldDTO._normalize_file_integrity(field_dict.get("file_integrity")),
         )
+
+    @staticmethod
+    def _normalize_file_integrity(file_integrity):
+        """DynamoDB desserializa números internos como Decimal; o domínio usa int."""
+        if not isinstance(file_integrity, list):
+            return file_integrity
+
+        normalized = []
+        for metadata in file_integrity:
+            if not isinstance(metadata, dict):
+                normalized.append(metadata)
+                continue
+            item = dict(metadata)
+            if isinstance(item.get("size_bytes"), Decimal):
+                item["size_bytes"] = int(item["size_bytes"])
+            normalized.append(item)
+        return normalized
 
 
 FieldDTO._FIELD_BUILDERS = {
