@@ -7,14 +7,8 @@ from aws_lambda_powertools.metrics import MetricUnit, single_metric
 from src.shared.environments import Environments
 from src.shared.helpers.external_interfaces.event_bridge_requests import LambdaEventBridgeRequest
 from src.shared.helpers.external_interfaces.http_lambda_requests import LambdaHttpResponse
+from src.shared.known_systems import SYSTEM_TO_ORIGIN, KNOWN_SYSTEMS as SYNC_SYSTEMS
 from .sync_forms_origin_usecase import SyncFormsOriginUsecase
-
-
-SYSTEM_TO_ORIGIN = {
-    "GAIA": "gaia",
-    "GIPAV": "servicos_poa",
-}
-SYNC_SYSTEMS = tuple(SYSTEM_TO_ORIGIN)
 
 SERVICE_NAME = "sync_forms_origin"
 METRICS_NAMESPACE = "Informs"

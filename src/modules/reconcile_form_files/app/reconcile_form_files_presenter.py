@@ -10,6 +10,7 @@ from aws_lambda_powertools.metrics import MetricUnit, single_metric
 from src.shared.environments import Environments
 from src.shared.helpers.external_interfaces.event_bridge_requests import LambdaEventBridgeRequest
 from src.shared.helpers.external_interfaces.http_lambda_requests import LambdaHttpResponse
+from src.shared.known_systems import KNOWN_SYSTEMS
 from .reconcile_form_files_usecase import ReconcileFormFilesUsecase
 
 KUMA_PUSH_TIMEOUT_SECONDS = 5
@@ -50,6 +51,16 @@ def _build_kuma_push_url(url: str, status: str, msg: str) -> str:
     return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urlencode(query), parsed.fragment))
 
 
+def _unmonitored_systems(reconcile_systems) -> list:
+    """
+    RECONCILE_SYSTEMS é uma lista mantida à mão; comparar contra KNOWN_SYSTEMS
+    (a mesma fonte que o sync_forms_origin usa) é o jeito barato de perceber
+    que um sistema novo foi integrado e ninguém atualizou a reconciliação —
+    sem repetir o Scan da tabela inteira que RECONCILE_SYSTEMS existe para evitar.
+    """
+    return sorted(set(KNOWN_SYSTEMS) - set(reconcile_systems))
+
+
 def _push_kuma(url: Optional[str], status: str, msg: str) -> None:
     """
     Heartbeat/observabilidade via Kuma (padrão já usado na Intelicity) em vez
@@ -82,6 +93,14 @@ def lambda_handler(event, context):
     envs = Environments.get_envs()
     if not envs.reconcile_systems:
         raise RuntimeError("RECONCILE_SYSTEMS deve listar os sistemas a reconciliar")
+
+    unmonitored_systems = _unmonitored_systems(envs.reconcile_systems)
+    if unmonitored_systems:
+        logger.warning(
+            "sistema conhecido fora do RECONCILE_SYSTEMS — não está sendo reconciliado",
+            extra={"unmonitored_systems": unmonitored_systems},
+        )
+    metrics.add_metric("ReconcileSystemsCoverageGap", MetricUnit.Count, len(unmonitored_systems))
 
     result = usecase(
         systems=envs.reconcile_systems,
