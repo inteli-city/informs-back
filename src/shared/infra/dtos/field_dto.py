@@ -253,13 +253,16 @@ class FieldDTO:
         if file_type not in [file_type.value for file_type in FileType]:
             raise EntityError(f"Tipo de arquivo '{file_type}' inválido")
         raw_value = field_dict.get("value")
+        raw_file_integrity = field_dict.get("file_integrity")
         if not trusted:
-            # value de FILE_FIELD só é atribuído pelo backend, durante o upload
-            # via presigned URL (submit_form). Aceitar um valor vindo direto do
-            # request de create/update permitiria plantar a URL de um arquivo
-            # de OUTRO formulário aqui — e depois pedir renovação de presigned
-            # URL para ela. Ver refresh_presign_usecase._belongs_to_form.
+            # value e file_integrity de FILE_FIELD só são atribuídos pelo
+            # backend, durante o upload via presigned URL (submit_form).
+            # Aceitar um vindo direto do request de create/update permitiria
+            # plantar a URL (e a integridade esperada) de um arquivo de OUTRO
+            # formulário aqui — e depois pedir renovação de presigned URL para
+            # ela. Ver refresh_presign_usecase._belongs_to_form.
             raw_value = None
+            raw_file_integrity = None
         elif isinstance(raw_value, str):
             # Normaliza valores legacy gravados como string única para lista,
             # garantindo que consumidores (Apex sync, API) sempre vejam list[str].
@@ -271,7 +274,7 @@ class FieldDTO:
             min_quantity=FieldDTO._to_int(field_dict.get("min_quantity")),
             max_quantity=FieldDTO._to_int(field_dict.get("max_quantity")),
             value=raw_value,
-            file_integrity=FieldDTO._normalize_file_integrity(field_dict.get("file_integrity")),
+            file_integrity=FieldDTO._normalize_file_integrity(raw_file_integrity),
         )
 
     @staticmethod
