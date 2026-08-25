@@ -1,3 +1,6 @@
+import base64
+import binascii
+
 from src.shared.helpers.errors.domain_errors import EntityError
 
 
@@ -11,3 +14,16 @@ def ensure_non_negative_int(value, label: str, *, allow_none: bool = False) -> N
         return
     if not isinstance(value, int) or isinstance(value, bool) or value < 0:
         raise EntityError(f"{label} deve ser um inteiro não negativo")
+
+
+def ensure_valid_sha256_checksum(value, label: str, *, allow_none: bool = False) -> None:
+    """Valida Base64 que decodifica para exatamente 32 bytes (digest SHA-256)."""
+    if value is None and allow_none:
+        return
+    if not isinstance(value, str):
+        raise EntityError(f"{label} deve ser uma string")
+    try:
+        if len(base64.b64decode(value, validate=True)) != 32:
+            raise ValueError
+    except (ValueError, binascii.Error):
+        raise EntityError(f"{label} deve ser Base64 válido de 32 bytes")
