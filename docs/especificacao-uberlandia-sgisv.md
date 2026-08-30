@@ -9,14 +9,19 @@
 
 ## 1. Objetivo e recorte
 
-Uberlândia contrata o Informs para operar o app de campo de tapa-buraco do SGISV, substituindo o app hoje gerado pelo Apex. A diferença estrutural em relação ao contrato Gaia — hoje o único em produção plena — é o **modelo de distribuição de trabalho**:
+Uberlândia contrata o Informs para operar o app de campo de tapa-buraco do SGISV, substituindo o app hoje gerado pelo Apex. A lacuna estrutural em relação ao que o Informs faz hoje é um **segundo modo de distribuição de trabalho**: a OS aberta, que qualquer equipe do escopo vê e a primeira que reivindicar leva.
 
-| | Gaia (hoje) | Uberlândia (novo) |
+**Os dois modos coexistem no mesmo contrato**, decididos OS a OS pelo sistema origem — não são configurações mutuamente exclusivas. Uberlândia usará predominantemente o modo aberto, mas continua podendo direcionar uma OS a uma pessoa específica quando quiser.
+
+| | Direcionada (existe hoje) | Aberta (a construir) |
 | --- | --- | --- |
-| Criação da OS | Sistema origem cria já direcionada a uma pessoa | Sistema origem cria **aberta**, sem dono |
+| Criação da OS | Sistema origem informa o responsável | Sistema origem **omite** o responsável |
 | Visibilidade | Só o destinatário vê | **Todas as equipes do escopo veem** |
 | Posse | Definida na criação | **Quem reivindica primeiro fica com ela** |
 | Efeito da posse | — | **Some da lista dos demais** |
+| Passo de reivindicar | não existe — já é do destinatário | obrigatório antes de executar |
+
+O que muda no domínio é, portanto, que **a posse deixa de ser obrigatória na criação** — não que ela deixe de existir.
 
 Todo o resto da especificação do gestor (mapa, fichas, execução, cancelamento, geração de OS em campo, perfil, offline, tempo real, geofencing) é lido aqui contra o que o Informs já faz, para separar o que é reuso do que é construção.
 
@@ -33,6 +38,7 @@ Este documento **não** é um plano de implementação linha a linha: é o contr
 | D5 | Entrada das OS: **Apex chama `POST /forms`**, como o Gaia hoje | §9 |
 | D6 | Tempo real: **reaproveitar o WebSocket** já existente (`ws_server`) | §10 |
 | D7 | Geofencing: **sim**, genérico e **configurável por system**, validado no cliente e no backend | §11 |
+| D8 | **Direcionamento continua disponível**: o sistema origem pode criar a OS já com responsável. Pool e direcionamento **coexistem no mesmo contrato**, decididos OS a OS | §6 |
 
 ---
 
@@ -204,8 +210,9 @@ Itens herdados da branch que continuam valendo como trabalho pendente (do própr
 
 ### 6.1 Modelo
 
-- `Form.user_id` passa a ser **opcional**. `null` significa **aberta no pool**.
-- Novos campos: `claimed_at`, `released_at`, `completed_by`.
+- `Form.user_id` passa a ser **opcional**. `null` significa **aberta no pool**; preenchido significa **direcionada**, com o comportamento idêntico ao de hoje.
+- Novos campos: `claimed_at`, `released_at`, `completed_by`, `assignment_source`.
+- `assignment_source` ∈ `ORIGIN_SYSTEM` (direcionada na criação) · `CLAIM` (reivindicada no pool) · `MANAGER` (atribuída por Gestor/Fiscal). É o que permite ao Apex distinguir uma OS que ele direcionou de uma que a equipe pegou sozinha — e detectar quando um direcionamento seu foi rompido.
 - `created_by` permanece como autoria de **abertura** (alimenta a tabela "na equipe" do Apex); `completed_by` passa a ser a autoria de **fechamento** (tabela "concluído") — RF-036 e RN-010.
 - **Posse e execução são eventos distintos**: reivindicar (`claim`) tira a OS do pool sem mudar a cor do pin; o pin só fica amarelo ao salvar execução sem concluir (`start`), conforme RN-008.
 
@@ -213,7 +220,7 @@ Itens herdados da branch que continuam valendo como trabalho pendente (do própr
 
 | Regra | Enunciado |
 | --- | --- |
-| **RN-UBE-001** | OS com `user_id = null` e status `PENDING` está **aberta**: visível a todo usuário cujo escopo (§7) cubra os atributos da OS. |
+| **RN-UBE-001** | OS com `user_id = null` e status `PENDING` está **aberta**: visível a todo usuário cujo escopo (§7) cubra os atributos da OS. OS com `user_id` preenchido está **direcionada**: nasce fora do pool, não aparece para mais ninguém e dispensa a reivindicação. **Os dois casos convivem no mesmo `system`** (decisão D8). |
 | **RN-UBE-002** | A reivindicação é **exclusiva e atômica**. Implementada com `ConditionExpression` no DynamoDB (`attribute_not_exists(user_id)`), reaproveitando o padrão de `expected_status` já usado em `update_form`. O segundo a chegar recebe **409** com o nome do responsável atual. |
 | **RN-UBE-003** | Reivindicada, a OS **sai da listagem de todos os demais usuários**, inclusive Gestor e Fiscal (decisão D2). ⚠️ **Diverge da spec**, cuja tabela de RBAC dá "cidade toda" a Gestor e Fiscal — ver **Pendência P3**. |
 | **RN-UBE-004** | O dono pode **devolver ao pool** enquanto a OS não estiver concluída nem cancelada: `user_id` volta a `null`, `status` volta a `PENDING`, `in_progress_at` é limpo e `released_at` registrado. |
@@ -221,6 +228,8 @@ Itens herdados da branch que continuam valendo como trabalho pendente (do própr
 | **RN-UBE-006** | O **cancelamento encerra** a OS (`CANCELLED`); não devolve ao pool. Mantém o comportamento atual do domínio. |
 | **RN-UBE-007** | **Reivindicar, devolver e reatribuir exigem conectividade** — não entram na fila offline. Justificativa em §13. |
 | **RN-UBE-008** | Toda transição de posse é registrada em histórico imutável (`claim`, `release`, `assign`), com autor, alvo e carimbo de tempo. |
+| **RN-UBE-009** | **O responsável de uma OS direcionada sempre a enxerga**, mesmo que seu escopo regional não cubra os atributos dela. O escopo filtra o **pool**, não o trabalho que foi explicitamente atribuído a alguém — do contrário, o Apex direcionaria uma OS que a pessoa nunca veria. |
+| **RN-UBE-010** | Devolver ao pool uma OS **direcionada** rompe a intenção do sistema origem, então o evento é registrado com `assignment_source` anterior e propagado ao Apex. Se a operação é permitida ao executor ou apenas ao Gestor/Fiscal — **Pendência P11**. |
 
 > Expiração automática por tempo (a OS voltar sozinha ao pool) **não** entra nesta versão — fica registrada como evolução possível, já que exigiria um job de varredura e a definição de um prazo com o cliente.
 
@@ -281,9 +290,9 @@ Nova configuração por `system` (entidade `SystemConfig` no single-table, `PK =
 | `scope_keys` | `["bairro"]` | `[]` |
 | `scope_partition_key` | `"bairro"` | `null` |
 | `geofence_radius_m` | a confirmar (§11) | `null` (desligado) |
-| `pool_enabled` | `true` | `false` |
+| `allow_unassigned_forms` | `true` | `false` |
 
-`pool_enabled = false` mantém o Gaia com a validação atual de `user_id` obrigatório na criação — **nenhuma regressão no contrato em produção**.
+`allow_unassigned_forms` controla apenas se o contrato **aceita** OS sem responsável na criação. Com `false`, o Gaia mantém a validação atual de `user_id` obrigatório — **nenhuma regressão no contrato em produção**. Com `true`, Uberlândia pode enviar OS abertas **e** direcionadas, caso a caso: a flag habilita o modo aberto, não desliga o direcionado.
 
 ### 7.3 Papéis
 
@@ -323,6 +332,7 @@ Campos novos em `Form`, todos opcionais para não afetar os contratos existentes
 | `completed_by` | `str?` | RF-036, RN-010 | Autoria de fechamento |
 | `attributes` | `Dict[str, List[str]]` | §7 | Escopo genérico |
 | `claimed_at`, `released_at` | `int?` | §6 | Posse |
+| `assignment_source` | enum `ORIGIN_SYSTEM` / `CLAIM` / `MANAGER` | §6 | Como a OS ganhou responsável |
 
 No motor de campos, uma adição pequena: `Field.readonly: bool` — as horas de início e término do formulário de execução são pré-preenchidas e **não modificáveis** (RF-013), o que hoje não é expressável.
 
@@ -334,7 +344,7 @@ No motor de campos, uma adição pequena: `Field.readonly: bool` — as horas de
 
 Mesmo caminho já em produção com o Gaia. Ajustes necessários:
 
-1. Aceitar `user_id` nulo quando `pool_enabled = true` (§6.3).
+1. Aceitar `user_id` nulo quando `allow_unassigned_forms = true` (§6.3) — e continuar aceitando `user_id` preenchido no mesmo contrato, gravando `assignment_source = ORIGIN_SYSTEM`.
 2. Aceitar `attributes`, `external_id`, `origin`, `service_type`, `occurred_at`, `scheduled_start_at`.
 3. **Idempotência por `external_id` + `system`**: reenvio do Apex (ou retry de rede) não pode duplicar OS. Isso resolve simultaneamente o item bloqueado da criação offline no client (§5, item 2) — **a mesma implementação serve aos dois casos**.
 4. Ingestão inicial: ~5.000 OS em estoque. Se a criação unitária se mostrar lenta demais no bootstrap, o mesmo controller aceita lote — decidir com números reais, não por antecipação.
@@ -437,7 +447,7 @@ Três problemas distintos, hoje mascarados pelo fato de o Gaia sempre consultar 
    GSI3SK = priority#{p}#created_at#{ts}
    ```
 
-   O atributo `GSI3PK` **só existe enquanto `user_id` é nulo**. Ao reivindicar, o atributo é removido e o item **sai do índice sozinho** — o pool fica sendo exatamente o conteúdo do índice, sem filtro nem varredura. É o desenho mais barato possível para "quem clicar tira da lista dos outros".
+   O atributo `GSI3PK` **só existe enquanto `user_id` é nulo** — uma OS direcionada nunca entra no índice, e uma devolvida ao pool volta a entrar. Ao reivindicar, o atributo é removido e o item **sai do índice sozinho** — o pool fica sendo exatamente o conteúdo do índice, sem filtro nem varredura. É o desenho mais barato possível para "quem clicar tira da lista dos outros".
 
    Restrição aceita: a chave de particionamento de escopo (`scope_partition_key`) admite **um valor por OS**. As demais chaves de `attributes` são filtro pós-query, sobre um conjunto já pequeno.
 
@@ -481,6 +491,7 @@ As fases 0 a 2 são o caminho crítico e têm dependência dura da definição d
 | **P8** | Reverse geocoding para o passo 1 de "Gerar OS em campo" (RF-028): provedor, custo e comportamento offline | Equipe técnica | Fase 6 |
 | **P9** | Fonte da lista de logradouros e bairros para os autocompletes (RF-006, RF-022) — provavelmente o Apex | Apex | Fase 5 |
 | **P10** | "Início esperado" e "término esperado" (RF-008): campos novos ou reuso de `expiration_date`? | Apex | Fase 0 |
+| **P11** | Uma OS **direcionada** pelo sistema origem pode ser devolvida ao pool pelo próprio executor, ou só o Gestor/Fiscal pode redistribuí-la? **Recomendação: permitir ao executor**, porque o motivo de devolver ("não vou conseguir fazer esta") independe de como a OS chegou — registrando o rompimento do direcionamento no histórico e no sync | Gestor Intelicity | Fase 1 |
 
 ---
 
@@ -491,6 +502,6 @@ As fases 0 a 2 são o caminho crítico e têm dependência dura da definição d
 | Contrato do Apex definido tarde | Trava as fases 0–2, que são o caminho crítico | Priorizar P2; até lá, desenvolver contra os mocks (`origin_repository_mock`) |
 | `ws_server` não aguentar o volume | RN-006 não atendido em produção | P7 antes da fase 3; caminho de Redis pub/sub já previsto no ADR-0018 |
 | Reivindicação offline pedida depois pelo cliente | Reabre o desenho de conflito | Política de §13 registrada agora, com o motivo — decisão consciente, não omissão |
-| Regressão no Gaia | Contrato em produção | `pool_enabled`, `scope` vazio e `geofence_radius_m` nulo preservam o comportamento atual por construção; a suíte de 107 arquivos de teste é a rede de segurança |
+| Regressão no Gaia | Contrato em produção | `allow_unassigned_forms`, `scope` vazio e `geofence_radius_m` nulo preservam o comportamento atual por construção; a suíte de 107 arquivos de teste é a rede de segurança |
 | 10.000 pins no PWA | RNF-009 | Teste de carga na fase 5, antes do piloto; clustering já ligado |
 | Divergência P3 descoberta em homologação | Retrabalho de visibilidade | Confirmar com o gestor antes da fase 1 |
