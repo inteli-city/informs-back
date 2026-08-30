@@ -39,6 +39,9 @@ Este documento **não** é um plano de implementação linha a linha: é o contr
 | D6 | Tempo real: **reaproveitar o WebSocket** já existente (`ws_server`) | §10 |
 | D7 | Geofencing: **sim**, genérico e **configurável por system**, validado no cliente e no backend | §11 |
 | D8 | **Direcionamento continua disponível**: o sistema origem pode criar a OS já com responsável. Pool e direcionamento **coexistem no mesmo contrato**, decididos OS a OS | §6 |
+| D9 | **O contrato de integração é o do Informs** — o time do Apex se adapta à API existente, sem negociação campo a campo | §9.4 |
+| D10 | **O Apex fornece a base de logradouros e bairros**, ingerida pelo Informs e cacheada no PWA — resolve autocomplete e endereço reverso, offline | §16.1 |
+| D11 | **Login permanece o do PWA** (Cognito PKCE por redirect); as telas próprias de usuário/senha da spec não serão construídas | §4.1 |
 
 ---
 
@@ -120,18 +123,18 @@ Monorepo Yarn workspaces: `clients/native` (Expo/React Native, **em produção**
 
 ## 4. Matriz de rastreabilidade da especificação
 
-Legenda: **A** = atendido · **P** = parcial · **F** = falta.
+Legenda: **A** = atendido · **P** = parcial · **F** = falta · **—** = fora do escopo por decisão.
 
 ### 4.1 Requisitos funcionais
 
 | Req | Resumo | | Situação e lacuna |
 | --- | --- | --- | --- |
-| RF-001 a RF-003 | Login com usuário/senha, lembrar, esqueci a senha, mensagens de erro | P | Hoje o login é Cognito PKCE por redirect (Hosted UI). Tela própria de usuário/senha exige `USER_PASSWORD_AUTH`/SRP e assumir os fluxos de recuperação. **Pendência P4** |
+| RF-001 a RF-003 | Login com usuário/senha, lembrar, esqueci a senha, mensagens de erro | — | **Fora do escopo por decisão P4**: mantém-se o fluxo Cognito PKCE por redirect já usado no PWA. As telas 01 e 02 da spec não serão construídas |
 | RF-004 | Sessão ≥ 20 min; sessões Informs/Apex segregadas | A | Tokens Cognito com refresh; sessões já são independentes |
 | RF-005 | Home com abas Mapa e Fichas, padrão Mapa | P | Abas existem (`_tabs/`); rota padrão hoje é a lista. Ajuste de rota |
-| RF-006 | Filtros: status, prioridade, programados, endereço/bairro e nº OS (autocomplete), limpar | P | UI de filtro existe; `get_all_forms` aceita status, system, intervalo de datas e busca textual em título/observação. **Faltam** prioridade, bairro, nº da OS e "início hoje" no backend, e a lista pré-carregada de logradouros. **Pendência P9** |
+| RF-006 | Filtros: status, prioridade, programados, endereço/bairro e nº OS (autocomplete), limpar | P | UI de filtro existe; `get_all_forms` aceita status, system, intervalo de datas e busca textual em título/observação. **Faltam** prioridade, bairro, nº da OS e "início hoje" no backend. A lista pré-carregada vem do Apex (§16.1) |
 | RF-007 | Cor por prioridade + tarja de andamento | P | Hoje a cor é por status (`form-status-variants.ts`); prioridade já vem no dado. Ajuste visual |
-| RF-008 | Ficha: endereço, nº OS, início e término esperados | P | Endereço existe. **Faltam** `external_id` (nº da OS do Apex) e `scheduled_start_at`; "término esperado" provavelmente mapeia em `expiration_date`. **Pendência P10** |
+| RF-008 | Ficha: endereço, nº OS, início e término esperados | P | Endereço existe. **Faltam** `external_id`, `scheduled_start_at` e `scheduled_end_at` — campos novos opcionais (decisão P10) |
 | RF-009 | Ficha detalhada: + tipo de serviço, data da ocorrência, origem, foto da solicitação | P | Foto e textos via `information_fields`. **Faltam** `origin` e `service_type` estruturados |
 | RF-010 | "Ver no mapa" abrindo Google Maps web | A | `linking-maps.ts` no native; equivalente trivial no web |
 | RF-011, RF-012 | Ações Executar/Cancelar; X e Voltar | A | `use-form-actions.ts`, `form-cancel-sheet.tsx` |
@@ -142,12 +145,12 @@ Legenda: **A** = atendido · **P** = parcial · **F** = falta.
 | RF-018 | Execução bloqueada fora do raio | **F** | Geofencing inexistente (§11) |
 | RF-019, RF-020 | Cancelamento: motivo, justificativa, evidência | A | `Justification` cobre inclusive obrigatoriedade condicional |
 | RF-021 | Centralizar na posição do usuário | P | **Falta** botão "Centralizar" e marcador da própria posição no web |
-| RF-022 | Busca autocompletável + escala em metros | P | Escala é config do MapLibre; **falta** a base de logradouros/bairros. **Pendência P9** |
+| RF-022 | Busca autocompletável + escala em metros | P | Escala é config do MapLibre; a base de logradouros/bairros vem do Apex (§16.1) |
 | RF-023, RF-024 | Pins por status; ação pelo pin | A | `forms-marker-cluster.tsx`, `map-form-card.tsx` |
 | RF-025 | Camadas mapa e satélite | **F** | Hoje só o estilo vetorial OSM; precisa de uma fonte raster de satélite |
 | RF-026 | Posição própria com heading | P | Geolocalização existe; heading no PWA depende de `DeviceOrientationEvent` (permissão explícita, precisão variável) |
 | RF-027 | "Gerar OS em campo" só para perfis autorizados | P | A tela existe para todos; **falta** o gate por papel (§7.3) |
-| RF-028 | Passo 1: pin arrastável estilo Uber, endereço reverso | **F** | Exige **reverse geocoding** — dependência externa nova. **Pendência P8** |
+| RF-028 | Passo 1: pin arrastável estilo Uber, endereço reverso | **F** | Endereço reverso resolvido **contra a base do Apex cacheada** (§16.1) — sem provedor externo e funcionando offline |
 | RF-029, RF-030 | Passo 2: hora e endereço automáticos, fotos, controles fixos | P | Formulário existe; falta o desenho de 2 passos e os controles ancorados |
 | RF-031 | Novo pin visível a todos em tempo real | **F** | Depende de §10 |
 | RF-032 | Perfil: credenciais e regiões de atuação | P | Mostra nome/e-mail/papel; **falta** o escopo (§7) |
@@ -181,7 +184,7 @@ Legenda: **A** = atendido · **P** = parcial · **F** = falta.
 | RN-004 geofencing | **F** | §11 |
 | RN-005 cores por status | A | Mapeamento no §2 |
 | RN-006 propagação em tempo real | **F** | §10 |
-| RN-007 concluída fica visível em verde por ≥ 7 dias | **F** | Regra nova. **Pendência P6** |
+| RN-007 concluída fica visível em verde por ≥ 7 dias | **F** | Regra nova, já especificada: visível só para quem concluiu — RN-UBE-011 |
 | RN-008 transições de status | A | `Form.start/complete/cancel` |
 | RN-009 origem da OS | **F** | Campo novo (§8) |
 | RN-010 autoria segregada abertura/fechamento | P | Falta `completed_by` e o de-para no sync |
@@ -222,14 +225,16 @@ Itens herdados da branch que continuam valendo como trabalho pendente (do própr
 | --- | --- |
 | **RN-UBE-001** | OS com `user_id = null` e status `PENDING` está **aberta**: visível a todo usuário cujo escopo (§7) cubra os atributos da OS. OS com `user_id` preenchido está **direcionada**: nasce fora do pool, não aparece para mais ninguém e dispensa a reivindicação. **Os dois casos convivem no mesmo `system`** (decisão D8). |
 | **RN-UBE-002** | A reivindicação é **exclusiva e atômica**. Implementada com `ConditionExpression` no DynamoDB (`attribute_not_exists(user_id)`), reaproveitando o padrão de `expected_status` já usado em `update_form`. O segundo a chegar recebe **409** com o nome do responsável atual. |
-| **RN-UBE-003** | Reivindicada, a OS **sai da listagem de todos os demais usuários**, inclusive Gestor e Fiscal (decisão D2). ⚠️ **Diverge da spec**, cuja tabela de RBAC dá "cidade toda" a Gestor e Fiscal — ver **Pendência P3**. |
-| **RN-UBE-004** | O dono pode **devolver ao pool** enquanto a OS não estiver concluída nem cancelada: `user_id` volta a `null`, `status` volta a `PENDING`, `in_progress_at` é limpo e `released_at` registrado. |
+| **RN-UBE-003** | Reivindicada, a OS **sai do pool** — deixa de aparecer na lista de trabalho disponível de todos os demais, que é o efeito pedido. Gestor e Fiscal continuam alcançando-a pela visão **"Todas"**, que mostra a OS e seu responsável (decisão P3). Executor só vê o pool do seu escopo e as suas próprias. Isso atende D2 e preserva o "cidade toda" do RBAC da spec — **a divergência anterior está encerrada**. |
+| **RN-UBE-004** | O dono pode **devolver ao pool** enquanto a OS não estiver concluída nem cancelada: `user_id` volta a `null`, `status` volta a `PENDING`, `in_progress_at` é limpo e `released_at` registrado. **O conteúdo preenchido é descartado** — respostas e anexos voltam ao estado em branco, para que o próximo executor não herde medições nem fotos de outra pessoa. **O rastro permanece**: o histórico registra que a OS passou por aquele usuário, com período e carimbos (decisão P5). |
 | **RN-UBE-005** | Gestor e Fiscal podem **reatribuir**: devolver ao pool uma OS de terceiro, ou atribuí-la diretamente a um usuário do escopo. |
 | **RN-UBE-006** | O **cancelamento encerra** a OS (`CANCELLED`); não devolve ao pool. Mantém o comportamento atual do domínio. |
 | **RN-UBE-007** | **Reivindicar, devolver e reatribuir exigem conectividade** — não entram na fila offline. Justificativa em §13. |
 | **RN-UBE-008** | Toda transição de posse é registrada em histórico imutável (`claim`, `release`, `assign`), com autor, alvo e carimbo de tempo. |
 | **RN-UBE-009** | **O responsável de uma OS direcionada sempre a enxerga**, mesmo que seu escopo regional não cubra os atributos dela. O escopo filtra o **pool**, não o trabalho que foi explicitamente atribuído a alguém — do contrário, o Apex direcionaria uma OS que a pessoa nunca veria. |
-| **RN-UBE-010** | Devolver ao pool uma OS **direcionada** rompe a intenção do sistema origem, então o evento é registrado com `assignment_source` anterior e propagado ao Apex. Se a operação é permitida ao executor ou apenas ao Gestor/Fiscal — **Pendência P11**. |
+| **RN-UBE-010** | Devolver ao pool uma OS **direcionada** é permitido **também ao executor** — o motivo de devolver ("não vou conseguir fazer esta") independe de como a OS chegou até ele. O evento é registrado com o `assignment_source` anterior e propagado ao Apex, para que o sistema origem saiba que um direcionamento seu foi rompido (decisão P11). |
+| **RN-UBE-011** | **Retenção do verde (RN-007)**: concluída, a OS permanece visível por 7 dias **apenas para quem a concluiu** (`completed_by`) — some do mapa e da lista dos demais executores imediatamente. Gestor e Fiscal continuam alcançando-a pela visão "Todas" (decisão P6). |
+| **RN-UBE-012** | Descartar o conteúdo na devolução implica **remover também os arquivos já enviados ao S3** daquele preenchimento. A varredura de órfãos do `reconcile_form_files` é a rede de segurança, mas a remoção deve ser explícita no `release` — não deixada para o job. |
 
 > Expiração automática por tempo (a OS voltar sozinha ao pool) **não** entra nesta versão — fica registrada como evolução possível, já que exigiria um job de varredura e a definição de um prazo com o cliente.
 
@@ -328,7 +333,8 @@ Campos novos em `Form`, todos opcionais para não afetar os contratos existentes
 | `origin` | enum `CITIZEN` / `AI` / `FIELD` / `ORIGIN_SYSTEM` | RF-009, RN-009 | Origem da demanda |
 | `service_type` | `str?` | RF-009 | Tipo de serviço |
 | `occurred_at` | `int?` | RF-009 | Data da ocorrência |
-| `scheduled_start_at` | `int?` | RF-008 | "Início esperado" (**Pendência P10**) |
+| `scheduled_start_at` | `int?` | RF-008 | "Início esperado" — campo novo opcional (decisão P10) |
+| `scheduled_end_at` | `int?` | RF-008 | "Término esperado" — campo novo opcional, **não** reusa `expiration_date` (decisão P10) |
 | `completed_by` | `str?` | RF-036, RN-010 | Autoria de fechamento |
 | `attributes` | `Dict[str, List[str]]` | §7 | Escopo genérico |
 | `claimed_at`, `released_at` | `int?` | §6 | Posse |
@@ -361,9 +367,11 @@ O `sync_forms_origin` (EventBridge a cada 5 min, com checkpoint por `system`, fi
 - Incluir os eventos de posse do §6.4, se o Apex quiser refletir "quem está com a OS".
 - Nova URL de destino para o system de Uberlândia — `OriginRepositoryApex` já resolve a URL por `system` (`_build_url`), então é configuração.
 
-### 9.4 Pendência de contrato
+### 9.4 Direção da adaptação
 
-A spec exige respeitar os protocolos do app atual gerado pelo Apex. Nomes de campos, tipos, autenticação e formato de payload **precisam ser conciliados com a equipe do Apex** antes da implementação — **Pendência P2**.
+**O contrato é o do Informs; quem se adapta é o Apex** (decisão P2). A API já está publicada em OpenAPI e não será renegociada campo a campo: o time do Apex constrói a integração contra o que já existe, acrescido dos campos novos da §8.
+
+Vale registrar o contexto: a spec do gestor diz que "todos os protocolos de integração já existentes devem ser respeitados". A leitura da Intelicity é que isso vale para a **continuidade da operação** — nenhuma OS pode se perder na troca —, não para obrigar o Informs a espelhar o formato interno do app antigo. Consequência prática: **as fases 0 a 2 deixam de depender de uma negociação de contrato** e o caminho crítico fica desbloqueado.
 
 ---
 
@@ -403,7 +411,8 @@ Genérico e configurável por `system` (`SystemConfig.geofence_radius_m`; `null`
 - **Cliente**: bloqueia a ação com aviso explícito antes de abrir o formulário de execução (RF-018, RNF-006/008). Funciona offline — a coordenada da OS está em cache.
 - **Backend**: `start` e `submit` passam a aceitar `device_latitude`, `device_longitude` e `accuracy`. Se o system tiver raio configurado e a distância exceder `raio + accuracy`, responde **403** com erro tipado `OutsideGeofence`. Reaproveita `haversine_km`, já existente em `src/shared/helpers/functions/nearest_neighbor.py`.
 - **Offline**: a coordenada enviada é a **capturada no momento do ato**, não a atual no momento da sincronização — a fila de mutations já carrega payload próprio por mutation, então isso é campo novo, não mecanismo novo.
-- **Tolerância a GPS impreciso**: somar a `accuracy` reportada ao raio evita o modo de falha mais comum (o executor está no local, o GPS erra 80 m e a execução é negada). Comportamento exato a confirmar — **Pendência P1**.
+- **Tolerância a GPS impreciso**: somar a `accuracy` reportada ao raio evita o modo de falha mais comum (o executor está no local, o GPS erra 80 m e a execução é negada).
+- **A regra é nossa, não herdada** (decisão P1): quem executa o geofencing é o app, então não há comportamento do Apex a reproduzir. Adotamos os **200 m** de referência da spec como valor inicial de `geofence_radius_m`, ajustável por contrato sem deploy.
 
 ---
 
@@ -467,31 +476,41 @@ Cada fase é entregável e testável isoladamente; nenhuma quebra o contrato Gai
 | --- | --- | --- |
 | **0 — Fundação** | `SystemConfig` por contrato; campos novos de `Form` (§8); idempotência por `external_id`; `PUT /profiles/{user_id}`; de-para de contrato com o Apex | Uberlândia consegue **criar** OS no Informs |
 | **1 — Pool e posse** | `user_id` opcional; `claim`/`release`/`assign` com condicional atômica; histórico; GSI3 esparso; `scope=pool` em `GET /forms` | **A feature que motiva o contrato** |
-| **2 — Escopo e RBAC** | `attributes` + `Profile.scope`; papéis Gestor/Fiscal; gate de "Gerar OS em campo"; perfil exibindo regiões | RN-001 e a seção 4 da spec |
+| **2 — Escopo e RBAC** | `attributes` + `Profile.scope`; papéis Gestor/Fiscal; **visão "Todas" para Gestor/Fiscal** (P3); gate de "Gerar OS em campo"; perfil exibindo regiões | RN-001 e a seção 4 da spec |
 | **3 — Tempo real** | DynamoDB Streams → publicadora → `ws_server`; salas por escopo; consumo incremental no client | RN-006, RNF-004, RF-031 |
 | **4 — Geofencing e campos da spec** | Raio por system, validação cliente + backend; origem, nº da OS, tipo de serviço, datas; `Field.readonly` | RF-018, RF-008/009, RN-004 |
-| **5 — Escala e mapa** | `GET /forms/pins`; delta incremental; camada satélite; centralizar; heading; busca por logradouro | RNF-009, RF-021/022/025/026 |
-| **6 — Perfil, métricas e acabamento** | Métricas de 30 dias; retenção do verde; fluxo de 2 passos de "Gerar OS"; passada de UI de campo | RF-028/029/033, RN-007, RNF-006/007/008 |
+| **5 — Escala e mapa** | `GET /forms/pins`; delta incremental; **ingestão e distribuição da base de endereços** (§16.1); camada satélite; centralizar; heading; busca por logradouro | RNF-009, RF-021/022/025/026 |
+| **6 — Perfil, métricas e acabamento** | Métricas de 30 dias; retenção do verde (RN-UBE-011); "Gerar OS" em 2 passos com endereço reverso local; passada de UI de campo | RF-028/029/033, RN-007, RNF-006/007/008 |
 
-As fases 0 a 2 são o caminho crítico e têm dependência dura da definição do contrato com o Apex (**Pendência P2**).
+As fases 0 a 2 são o caminho crítico. Com a decisão P2 — o contrato é o do Informs — **elas não dependem mais de nenhuma negociação externa e podem começar de imediato**. A única dependência de terceiro que resta é a entrega da base de endereços pelo Apex, e ela só é cobrada na fase 5.
 
 ---
 
-## 16. Pendências e decisões em aberto
+## 16. Decisões consolidadas
 
-| # | Pendência | Quem decide | Bloqueia |
+As onze pendências levantadas na primeira versão foram todas respondidas. A numeração é preservada porque os dois documentos de repositório a referenciam.
+
+| # | Pergunta | Decisão | Consequência |
 | --- | --- | --- | --- |
-| **P1** | Raio de geofencing e comportamento com GPS impreciso/indoor — a spec manda replicar o que o Curci já implementou no app atual | Curci / Apex | Fase 4 |
-| **P2** | Contrato de dados do Apex: nomes de campos, tipos, autenticação, formato dos payloads de entrada e saída | Intelicity + Apex | Fases 0–2 |
-| **P3** | ⚠️ **Divergência**: por D2, a OS reivindicada some **também** para Gestor e Fiscal, mas a spec (seção 4) dá a eles "cidade toda". Confirmar com o gestor | Gestor Intelicity | Fase 1 |
-| **P4** | Login: manter Cognito Hosted UI (redirect) ou construir tela própria de usuário/senha com "lembrar" e "esqueci minha senha" (RF-001/003) | Intelicity | Fase 6 |
-| **P5** | Ao devolver a OS ao pool, as respostas e fotos já preenchidas são preservadas ou descartadas? **Recomendação: preservar**, marcando no histórico quem iniciou — descartar destrói trabalho e evidência | Gestor Intelicity | Fase 1 |
-| **P6** | RN-007 (verde por ≥ 7 dias): a OS concluída fica visível só para quem executou ou para todo o escopo? | Gestor Intelicity | Fase 6 |
-| **P7** | Capacidade do `ws_server` (instância única, presença em memória — ADR-0018) para o volume de Uberlândia | Equipe técnica | Fase 3 |
-| **P8** | Reverse geocoding para o passo 1 de "Gerar OS em campo" (RF-028): provedor, custo e comportamento offline | Equipe técnica | Fase 6 |
-| **P9** | Fonte da lista de logradouros e bairros para os autocompletes (RF-006, RF-022) — provavelmente o Apex | Apex | Fase 5 |
-| **P10** | "Início esperado" e "término esperado" (RF-008): campos novos ou reuso de `expiration_date`? | Apex | Fase 0 |
-| **P11** | Uma OS **direcionada** pelo sistema origem pode ser devolvida ao pool pelo próprio executor, ou só o Gestor/Fiscal pode redistribuí-la? **Recomendação: permitir ao executor**, porque o motivo de devolver ("não vou conseguir fazer esta") independe de como a OS chegou — registrando o rompimento do direcionamento no histórico e no sync | Gestor Intelicity | Fase 1 |
+| **P1** | Raio de geofencing e GPS impreciso | **A regra é do app, não do Apex.** 200 m da spec como valor inicial, configurável por contrato | Nada a levantar com terceiros; §11 fechada |
+| **P2** | Contrato de dados do Apex | **O contrato é o do Informs**; o time do Apex integra contra a API que já existe | **Desbloqueia o caminho crítico** — fases 0–2 deixam de esperar negociação |
+| **P3** | Visibilidade da OS reivindicada | **Sai do pool**; Gestor e Fiscal a alcançam pela visão **"Todas"**, com o responsável | Divergência com a spec **encerrada**; nova visão "Todas" entra na fase 2 |
+| **P4** | Login com tela própria? | **Não** — mantém o fluxo Cognito do PWA | RF-001 a RF-003 saem do escopo; **–3 requisitos a construir** |
+| **P5** | Conteúdo preenchido ao devolver ao pool | **Descartar o conteúdo, preservar o rastro**: fica registrado que a OS passou por aquela pessoa, sem herdar medições nem fotos | RN-UBE-004 e RN-UBE-012; exige remoção dos arquivos no S3 |
+| **P6** | Quem vê a OS concluída nos 7 dias | **Só quem concluiu** | RN-UBE-011 |
+| **P7** | Capacidade do `ws_server` | **Sem restrição de infraestrutura** | Sai dos riscos; a nota do ADR-0018 permanece como observação técnica |
+| **P8 + P9** | Endereço reverso e base de logradouros | **O Apex fornece a base**, ingerida pelo Informs e cacheada no PWA | Um endpoint resolve RF-006, RF-022 e RF-028; **sem provedor externo, sem custo por chamada e funciona offline** |
+| **P10** | "Início esperado" e "término esperado" | **Campos novos opcionais** (`scheduled_start_at`, `scheduled_end_at`), sem reusar `expiration_date` | §8 |
+| **P11** | Quem devolve uma OS direcionada | **Também o executor**, com registro do rompimento | RN-UBE-010 |
+
+### 16.1 Base de endereços (P8 + P9)
+
+A decisão de tirar a base do Apex resolve três requisitos com uma peça só, e é a melhor das opções que estavam na mesa: o cadastro que alimenta as OS é o mesmo que o app precisa para autocompletar e para resolver o endereço de um ponto arrastado no mapa.
+
+- **Ingestão**: o Apex expõe logradouros e bairros; o Informs armazena e versiona.
+- **Distribuição**: `GET /systems/{system}/addresses` devolve a base para o PWA cachear — é o "lista pré-carregada" que a spec pede em RF-006 e RF-022.
+- **Endereço reverso (RF-028)**: resolvido localmente contra a base cacheada, pelo logradouro mais próximo do ponto. **Funciona offline**, que é justamente onde "Gerar OS em campo" mais acontece — um provedor externo não funcionaria ali.
+- Dimensionar o volume da base e a estratégia de atualização incremental na fase 5.
 
 ---
 
@@ -499,9 +518,11 @@ As fases 0 a 2 são o caminho crítico e têm dependência dura da definição d
 
 | Risco | Impacto | Mitigação |
 | --- | --- | --- |
-| Contrato do Apex definido tarde | Trava as fases 0–2, que são o caminho crítico | Priorizar P2; até lá, desenvolver contra os mocks (`origin_repository_mock`) |
-| `ws_server` não aguentar o volume | RN-006 não atendido em produção | P7 antes da fase 3; caminho de Redis pub/sub já previsto no ADR-0018 |
-| Reivindicação offline pedida depois pelo cliente | Reabre o desenho de conflito | Política de §13 registrada agora, com o motivo — decisão consciente, não omissão |
+| Base de endereços do Apex atrasar | Trava RF-006, RF-022 e RF-028 nas fases 5 e 6 | Única dependência externa que resta; cobrar cedo, embora só seja necessária na fase 5. O resto da entrega segue sem ela |
+| Descarte do conteúdo na devolução ser percebido como perda | Executor devolve sem saber que perde o que preencheu | Confirmação explícita antes de devolver, dizendo o que será descartado; o rastro de que a OS passou por ele permanece (RN-UBE-004) |
+| Arquivos órfãos no S3 após devoluções | Custo e ruído na reconciliação | Remoção explícita no `release`, com o `reconcile_form_files` como rede de segurança (RN-UBE-012) |
 | Regressão no Gaia | Contrato em produção | `allow_unassigned_forms`, `scope` vazio e `geofence_radius_m` nulo preservam o comportamento atual por construção; a suíte de 107 arquivos de teste é a rede de segurança |
 | 10.000 pins no PWA | RNF-009 | Teste de carga na fase 5, antes do piloto; clustering já ligado |
-| Divergência P3 descoberta em homologação | Retrabalho de visibilidade | Confirmar com o gestor antes da fase 1 |
+| Reivindicação offline pedida depois pelo cliente | Reabre o desenho de conflito | Política de §13 registrada com o motivo — decisão consciente, não omissão |
+
+**Riscos encerrados nesta versão**: a negociação de contrato com o Apex (decisão P2) e a capacidade do `ws_server` (decisão P7) deixaram de ser riscos.
