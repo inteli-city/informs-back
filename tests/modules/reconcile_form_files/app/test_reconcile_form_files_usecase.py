@@ -86,6 +86,24 @@ class TestReconcileFormFilesUsecase:
         assert self.file_repo.list_calls == [f"2026/GAIA/{self.form.id}/"]
         assert self.file_repo.head_calls == []
 
+    def test_mimetype_e_size_sozinhos_nao_disparam_head(self):
+        # mimetype é declarado pelo cliente (nunca verificado) e size sozinho
+        # não pega corrupção — gatilhar HEAD nesses dois reverteria a otimização
+        # de 1 LIST por formulário para 1 HEAD por arquivo, já que praticamente
+        # todo upload novo tem mimetype/size preenchidos.
+        path = self._paths(1)[0]
+        self._prepare_form(
+            [path],
+            file_integrity=[{"mimetype": "image/jpeg", "size_bytes": 42, "checksum_sha256": None}],
+        )
+        self.file_repo.existing_file_paths = {path}
+
+        result = self.usecase()
+
+        assert self.file_repo.head_calls == []
+        assert result.files_invalid == 0
+        assert result.forms_with_missing_files == 0
+
     def test_valida_tamanho_mime_e_checksum_dos_arquivos_novos(self):
         path = self._paths(1)[0]
         checksum = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
@@ -133,6 +151,33 @@ class TestReconcileFormFilesUsecase:
         assert result.files_invalid == 1
         assert result.forms_with_missing_files == 1
         assert result.incomplete_forms[0]["invalid_sample"][0]["actual"]["mimetype"] == "text/xml"
+
+    def test_falha_no_head_de_um_arquivo_nao_derruba_a_execucao(self):
+        # Regressão: um HeadObject falhando (arquivo removido entre o LIST e o
+        # HEAD, erro passageiro do S3) não pode propagar e abortar o job inteiro
+        # — isso silenciaria o heartbeat do Kuma e pularia o resto do lote.
+        checksum_a = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        checksum_b = "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="
+        paths = self._paths(2)
+        self._prepare_form(
+            paths,
+            file_integrity=[
+                {"mimetype": "image/jpeg", "size_bytes": 1, "checksum_sha256": checksum_a},
+                {"mimetype": "image/jpeg", "size_bytes": 2, "checksum_sha256": checksum_b},
+            ],
+        )
+        self.file_repo.existing_file_paths = set(paths)
+        self.file_repo.file_metadata[paths[1]] = {"mimetype": "image/jpeg", "size_bytes": 2, "checksum_sha256": checksum_b}
+        self.file_repo.raise_on_head = {paths[0]}
+
+        result = self.usecase()
+
+        assert result.forms_checked == 1
+        assert result.files_missing == 0
+        assert result.files_unknown == 1
+        assert result.files_invalid == 0
+        assert result.forms_with_missing_files == 1
+        assert self.file_repo.head_calls == paths
 
     def test_respeita_a_carencia_de_formulario_recem_concluido(self):
         paths = self._paths(3)

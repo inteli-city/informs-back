@@ -343,16 +343,26 @@ class FormRepositoryDynamo(IFormRepository):
             "Select": "ALL_ATTRIBUTES",
             "ScanIndexForward": True,
         }
-        if limit is not None:
-            query_kwargs["Limit"] = limit
-        if exclusive_start_key is not None:
-            query_kwargs["ExclusiveStartKey"] = exclusive_start_key
         status_filter = self._status_filter(status)
         if status_filter is not None:
             query_kwargs["FilterExpression"] = status_filter
 
-        resp = self.dynamo.query(**query_kwargs)
-        items = resp.get("Items", [])
+        # Dynamo aplica Limit ANTES do FilterExpression: uma única chamada podia
+        # devolver 0 formulários casando o status pedido (mas com
+        # LastEvaluatedKey ainda presente), como se a janela tivesse acabado.
+        # O loop, igual a _query_forms_by_user/_scan_forms, insiste até juntar
+        # `limit` itens já filtrados ou esgotar a janela de verdade.
+        use_dynamo_limit = limit is not None
+        items: List[dict] = []
+        page_start_key = exclusive_start_key
+        while True:
+            if not self._apply_pagination_kwargs(query_kwargs, items, page_start_key, limit, use_dynamo_limit):
+                break
+            resp = self.dynamo.query(**query_kwargs)
+            items.extend(resp.get("Items", []))
+            page_start_key = resp.get("LastEvaluatedKey")
+            if page_start_key is None:
+                break
+
         forms = [FormDynamoDTO.from_dynamo(item).to_entity() for item in items]
-        next_key = resp.get("LastEvaluatedKey")
-        return forms, encode_pagination_token(next_key)
+        return forms, encode_pagination_token(page_start_key)

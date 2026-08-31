@@ -310,3 +310,27 @@ def test_form_repository_dynamo_get_forms_updated_since():
     assert repo.dynamo.query_kwargs["IndexName"] == "SystemUpdatedAtIndex"
     assert repo.dynamo.query_kwargs["ScanIndexForward"] is True
     assert "FilterExpression" in repo.dynamo.query_kwargs
+
+
+def test_form_repository_dynamo_get_forms_updated_since_insiste_apos_pagina_filtrada_vazia():
+    # Dynamo aplica Limit antes do FilterExpression: uma página pode voltar
+    # sem nenhum item que bata o status pedido mas ainda com LastEvaluatedKey.
+    # Sem o loop, isso parecia "janela esgotada" quando na verdade só faltava
+    # pedir a próxima página.
+    repo, form, item = _make_repo_with_item()
+    repo.dynamo.query_responses = [
+        {"Items": [], "LastEvaluatedKey": {"PK": "form#cursor1", "SK": "METADATA"}},
+        {"Items": [item], "LastEvaluatedKey": None},
+    ]
+
+    forms, next_key = repo.get_forms_updated_since(
+        system=form.system,
+        updated_at_start=1,
+        updated_at_end=9999999999999,
+        limit=10,
+        status=[FormStatus.COMPLETED, FormStatus.SENT],
+    )
+
+    assert len(forms) == 1
+    assert next_key is None
+    assert len(repo.dynamo.query_calls) == 2

@@ -5,6 +5,7 @@ from src.shared.domain.entities.form import Form
 from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.repositories.file_repository_interface import IFileRepository
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
+from src.shared.helpers.errors.usecase_errors import ErrorWithFile
 from src.shared.helpers.functions.datetime_utils import now_timestamp_ms
 from src.shared.helpers.functions.pagination_token import try_decode_pagination_token
 from src.shared.helpers.functions.s3_url import extract_file_path
@@ -184,7 +185,18 @@ class ReconcileFormFilesUsecase:
                 continue
             if self._has_integrity_expectation(stored):
                 result.head_requests += 1
-                actual = self.file_repo.get_file_metadata(file_path)
+                try:
+                    actual = self.file_repo.get_file_metadata(file_path)
+                except ErrorWithFile as err:
+                    # HeadObject falhando (arquivo apagado entre o LIST e aqui, S3
+                    # com erro passageiro) não pode derrubar a execução inteira —
+                    # isso silenciaria o heartbeat do Kuma e pularia todo o resto
+                    # do lote/sistema. Degrada como "unknown", mesmo tratamento já
+                    # dado à URL fora do bucket configurado.
+                    reconciliation.files_unknown += 1
+                    if len(reconciliation.invalid_sample) < self.MAX_MISSING_SAMPLE:
+                        reconciliation.invalid_sample.append({"expected": stored.to_dict(), "error": err.message})
+                    continue
                 if not self._matches_integrity(stored, actual):
                     reconciliation.files_invalid += 1
                     if len(reconciliation.invalid_sample) < self.MAX_MISSING_SAMPLE:
@@ -194,7 +206,12 @@ class ReconcileFormFilesUsecase:
 
     @staticmethod
     def _has_integrity_expectation(stored) -> bool:
-        return any(value is not None for value in (stored.mimetype, stored.size_bytes, stored.checksum_sha256))
+        # Só o checksum é sinal de integridade que vale um HEAD: mimetype é
+        # declarado pelo próprio cliente (nunca verificado), e size sozinho não
+        # pega corrupção de conteúdo. Gatilhar em qualquer um dos três reverteria
+        # a otimização de "1 LIST resolve o formulário" de volta para 1 HEAD por
+        # arquivo, já que mimetype está presente em praticamente todo upload.
+        return stored.checksum_sha256 is not None
 
     @staticmethod
     def _matches_integrity(stored, actual: dict) -> bool:

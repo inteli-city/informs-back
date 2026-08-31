@@ -32,7 +32,7 @@ COPY --chown=informsws:informsws pyproject.toml uv.lock ./
 # uv sync roda como root durante o build e cria /app/.cache/uv com files
 # owned by root. Depois USER informsws não consegue ler/atualizar — uv run
 # crasha. Fix: chown -R do cache pro user de runtime no mesmo RUN.
-RUN uv sync --frozen --no-dev --no-install-project \
+RUN uv sync --frozen --no-dev --no-install-project --no-build \
  && chown -R informsws:informsws /app/.cache
 
 # Código da app — copia pra subpasta /app/ws_server/ pra preservar o
