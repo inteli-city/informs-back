@@ -39,15 +39,15 @@ jobs:
 
       - name: Generate OpenAPI from Pydantic Contracts
         run: |
-          python -m pip install --upgrade pip
-          pip install pydantic==2.9.2
+          python -m pip install --upgrade pip==26.2.1
+          pip install --only-binary :all: pydantic==2.9.2
           PYTHONPATH=. python -m src.shared.helpers.functions.generate_openapi_from_contracts
 
       - name: Installing Dependencies
         run: |
-          npm install -g aws-cdk
+          npm install -g aws-cdk@2.1139.0 --ignore-scripts
           cd iac
-          pip install -r requirements.txt
+          pip install --only-binary :all: -r requirements.txt
 
       - name: DeployWithCDK
         run: |
