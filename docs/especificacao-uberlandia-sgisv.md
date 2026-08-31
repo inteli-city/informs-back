@@ -219,11 +219,24 @@ Itens herdados da branch que continuam valendo como trabalho pendente (do própr
 - `created_by` permanece como autoria de **abertura** (alimenta a tabela "na equipe" do Apex); `completed_by` passa a ser a autoria de **fechamento** (tabela "concluído") — RF-036 e RN-010.
 - **Posse e execução são eventos distintos**: reivindicar (`claim`) tira a OS do pool sem mudar a cor do pin; o pin só fica amarelo ao salvar execução sem concluir (`start`), conforme RN-008.
 
+#### 6.1.1 `possession` — campo próprio, não inferido
+
+`status` (`PENDING`/`IN_PROGRESS`/`COMPLETED`/`CANCELLED`) já é o ciclo de **execução**. Posse é um segundo eixo, hoje só inferido pela presença ou ausência de `user_id` — e essa inferência esconde um caso ambíguo: o Vermelho do §2 cobre tanto "aberta no pool" quanto "reivindicada mas ainda não iniciada", diferenciados só por um `if user_id is None` implícito em algum lugar do código.
+
+Em vez de inferir, `Form` ganha `possession: OPEN | OWNED` como campo próprio, companheiro de `status`, não substituto dele:
+
+- `possession = OPEN` ⟺ `user_id` **ausente do item** (não gravado como `null` — ver nota de implementação abaixo) ⟺ está no pool.
+- `possession = OWNED` ⟺ `user_id` presente, direcionada ou reivindicada.
+- É `possession`, não a ausência de um atributo, que decide se o item entra no GSI1 (`user#{user_id}`, hoje só a criação escreve) e no GSI3 do pool (§14.1). Um sinal explícito e único em vez de dois lugares (código de criação, código de release) precisando lembrar da mesma regra implícita de forma independente.
+- **Acoplamento esperado, não acidental**: `release` (RN-UBE-004) muda `possession` **e** `status` na mesma transição — `possession → OPEN` e `status → PENDING` — porque o conteúdo é descartado (decisão P5) e um formulário sem conteúdo não pode honestamente continuar `IN_PROGRESS`. Não é os dois campos sendo a mesma coisa; é uma transição específica que mexe nos dois por causa do que ela faz aos dados. Em qualquer transição que não descarte conteúdo, os dois eixos variam de forma independente.
+
+> **Nota de implementação — GSI1 hoje não sabe de `claim`/`release`/`assign`.** `update_form` (`form_repository_dynamo.py`) recalcula GSI2 a cada chamada mas nunca toca em GSI1PK/GSI1SK — eles são escritos uma única vez, em `create_form`. Sem ajuste, uma OS reivindicada não aparece em "Minhas" pra ninguém (o índice continua com o dono antigo, ou com o `"user#None"` literal de quando nasceu no pool — que também faz **toda** OS aberta do sistema colidir na mesma partição). `claim`/`assign` precisam escrever GSI1PK/GSI1SK do novo dono; `release` precisa **remover** os dois atributos, não zerá-los. E isso expõe uma segunda lacuna: hoje `update_form` trata `None` como "campo não informado, não mexer" (`if value is not None: update_dict[key] = ...`) — não existe um jeito de dizer "limpe este campo". `release` precisa disso pra `user_id`, `in_progress_at` e o próprio `possession`. Resolver com um sentinel de "limpar" reservado, ou um método dedicado a `release` que monta o próprio `UpdateExpression` com `REMOVE` — decidir isso antes de codar a Fase 1, já que `claim`/`release`/`assign` herdam o mesmo repositório.
+
 ### 6.2 Regras de negócio novas
 
 | Regra | Enunciado |
 | --- | --- |
-| **RN-UBE-001** | OS com `user_id = null` e status `PENDING` está **aberta**: visível a todo usuário cujo escopo (§7) cubra os atributos da OS. OS com `user_id` preenchido está **direcionada**: nasce fora do pool, não aparece para mais ninguém e dispensa a reivindicação. **Os dois casos convivem no mesmo `system`** (decisão D8). |
+| **RN-UBE-001** | OS com `possession = OPEN` (⟺ `user_id` ausente) e status `PENDING` está **aberta**: visível a todo usuário cujo escopo (§7) cubra os atributos da OS. OS com `possession = OWNED` está **direcionada ou reivindicada**: nasce/entra fora do pool, não aparece para mais ninguém e dispensa a reivindicação. **Os dois casos convivem no mesmo `system`** (decisão D8). |
 | **RN-UBE-002** | A reivindicação é **exclusiva e atômica**. Implementada com `ConditionExpression` no DynamoDB (`attribute_not_exists(user_id)`), reaproveitando o padrão de `expected_status` já usado em `update_form`. O segundo a chegar recebe **409** com o nome do responsável atual. |
 | **RN-UBE-003** | Reivindicada, a OS **sai do pool** — deixa de aparecer na lista de trabalho disponível de todos os demais, que é o efeito pedido. Gestor e Fiscal continuam alcançando-a pela visão **"Todas"**, que mostra a OS e seu responsável (decisão P3). Executor só vê o pool do seu escopo e as suas próprias. Isso atende D2 e preserva o "cidade toda" do RBAC da spec — **a divergência anterior está encerrada**. |
 | **RN-UBE-004** | O dono pode **devolver ao pool** enquanto a OS não estiver concluída nem cancelada: `user_id` volta a `null`, `status` volta a `PENDING`, `in_progress_at` é limpo e `released_at` registrado. **O conteúdo preenchido é descartado** — respostas e anexos voltam ao estado em branco, para que o próximo executor não herde medições nem fotos de outra pessoa. **O rastro permanece**: o histórico registra que a OS passou por aquele usuário, com período e carimbos (decisão P5). |
@@ -242,9 +255,9 @@ Itens herdados da branch que continuam valendo como trabalho pendente (do própr
 
 | Método e rota | Quem pode | Efeito |
 | --- | --- | --- |
-| `POST /forms/{form_id}/claim` | qualquer usuário do escopo | `user_id = requester`, `claimed_at`. **409** se já tiver dono |
-| `POST /forms/{form_id}/release` | dono; ou Gestor/Fiscal | `user_id = null`, `status = PENDING`, `released_at` |
-| `POST /forms/{form_id}/assign` | Gestor/Fiscal | `user_id = alvo`, `claimed_at`. Corpo: `{ "user_id": "..." }` |
+| `POST /forms/{form_id}/claim` | qualquer usuário do escopo | `user_id = requester`, `possession = OWNED`, `claimed_at`, GSI1 do novo dono. **409** com o responsável atual — pede `ReturnValuesOnConditionCheckFailure=ALL_OLD` no `update_item` pra não custar uma leitura extra |
+| `POST /forms/{form_id}/release` | dono; ou Gestor/Fiscal | `user_id` **removido**, `possession = OPEN`, `status = PENDING`, `released_at`, GSI1 removido, conteúdo do formulário resetado (§6.1.1, RN-UBE-004) |
+| `POST /forms/{form_id}/assign` | Gestor/Fiscal | `user_id = alvo`, `possession = OWNED`, `claimed_at`, GSI1 do novo dono. Corpo: `{ "user_id": "..." }` |
 
 Alterações em endpoints existentes:
 
@@ -339,6 +352,7 @@ Campos novos em `Form`, todos opcionais para não afetar os contratos existentes
 | `attributes` | `Dict[str, List[str]]` | §7 | Escopo genérico |
 | `claimed_at`, `released_at` | `int?` | §6 | Posse |
 | `assignment_source` | enum `ORIGIN_SYSTEM` / `CLAIM` / `MANAGER` | §6 | Como a OS ganhou responsável |
+| `possession` | enum `OPEN` / `OWNED` | §6.1.1 | Campo próprio pra posse, companheiro de `status` — não inferido da presença de `user_id`. Interno; o Apex não precisa conhecê-lo (§9.1) |
 
 No motor de campos, uma adição pequena: `Field.readonly: bool` — as horas de início e término do formulário de execução são pré-preenchidas e **não modificáveis** (RF-013), o que hoje não é expressável.
 
@@ -350,10 +364,12 @@ No motor de campos, uma adição pequena: `Field.readonly: bool` — as horas de
 
 Mesmo caminho já em produção com o Gaia. Ajustes necessários:
 
-1. Aceitar `user_id` nulo quando `allow_unassigned_forms = true` (§6.3) — e continuar aceitando `user_id` preenchido no mesmo contrato, gravando `assignment_source = ORIGIN_SYSTEM`.
+1. Aceitar `user_id` nulo (ou ausente do corpo — o controller trata os dois igual) quando `allow_unassigned_forms = true` (§6.3) — e continuar aceitando `user_id` preenchido no mesmo contrato, gravando `assignment_source = ORIGIN_SYSTEM`.
 2. Aceitar `attributes`, `external_id`, `origin`, `service_type`, `occurred_at`, `scheduled_start_at`.
-3. **Idempotência por `external_id` + `system`**: reenvio do Apex (ou retry de rede) não pode duplicar OS. Isso resolve simultaneamente o item bloqueado da criação offline no client (§5, item 2) — **a mesma implementação serve aos dois casos**.
+3. **Idempotência por `external_id` + `system`**: reenvio do Apex (ou retry de rede) não pode duplicar OS. Isso resolve simultaneamente o item bloqueado da criação offline no client (§5, item 2) — **a mesma implementação serve aos dois casos**. Ressalva sobre o lado do client: a OS criada **em campo** (RF-028/029) ainda não tem `external_id` do Apex nesse momento — quem cria é o próprio app. Pra usar o mesmo mecanismo, o client precisa gerar e **persistir** um id próprio antes do primeiro `POST` e reenviar exatamente esse valor em cada retentativa; sem isso, duas tentativas geram duas OS. Não é trabalho do Apex, mas é uma peça que falta nomear na Fase 0/1.
 4. Ingestão inicial: ~5.000 OS em estoque. Se a criação unitária se mostrar lenta demais no bootstrap, o mesmo controller aceita lote — decidir com números reais, não por antecipação.
+
+**O que muda pro time do Apex, na prática, é só isto: itens 1 e 2.** `possession` (§6.1.1), a manutenção do GSI1/GSI3 e a distinção `REMOVE` vs `null` na escrita são inteiramente internas ao Informs — o Apex nunca envia nem lê `possession`, só omite (ou envia `null` em) `user_id` pra abrir uma OS no pool, e manda os campos novos do item 2 quando tiver o dado. O trabalho de ajuste do lado do Apex é, então: (a) passar a decidir, OS a OS, se manda `user_id` ou não; (b) popular os campos novos quando disponíveis; (c) garantir que reenvio/retry usa o mesmo `external_id` de antes. Não precisam entender nada do modelo de posse interno — só o contrato de request de sempre, com um campo a menos sendo obrigatório e alguns a mais sendo aceitos.
 
 ### 9.2 Atualização de OS pelo Apex (RN-001, RN-002)
 
@@ -456,7 +472,9 @@ Três problemas distintos, hoje mascarados pelo fato de o Gaia sempre consultar 
    GSI3SK = priority#{p}#created_at#{ts}
    ```
 
-   O atributo `GSI3PK` **só existe enquanto `user_id` é nulo** — uma OS direcionada nunca entra no índice, e uma devolvida ao pool volta a entrar. Ao reivindicar, o atributo é removido e o item **sai do índice sozinho** — o pool fica sendo exatamente o conteúdo do índice, sem filtro nem varredura. É o desenho mais barato possível para "quem clicar tira da lista dos outros".
+   O atributo `GSI3PK` **só existe enquanto `possession = OPEN`** (§6.1.1) — uma OS direcionada nunca entra no índice, e uma devolvida ao pool volta a entrar. Ao reivindicar, o atributo é removido e o item **sai do índice sozinho** — o pool fica sendo exatamente o conteúdo do índice, sem filtro nem varredura. É o desenho mais barato possível para "quem clicar tira da lista dos outros".
+
+   **O mesmo cuidado vale pro GSI1**, que já existe (`user#{user_id}`, usado por "Minhas OS") e que o desenho original não menciona: hoje só `create_form` o escreve, e `update_form` nunca o toca. Sem ajuste em `claim`/`release`/`assign`, GSI1PK fica congelado no valor de quando a OS nasceu — errado assim que a posse mudar uma vez. `claim`/`assign` escrevem GSI1PK/GSI1SK do novo dono, no mesmo `UpdateExpression` que muda `possession`; `release` remove os dois, junto com `GSI3PK` voltando a existir. Ver nota de implementação em §6.1.1.
 
    Restrição aceita: a chave de particionamento de escopo (`scope_partition_key`) admite **um valor por OS**. As demais chaves de `attributes` são filtro pós-query, sobre um conjunto já pequeno.
 
