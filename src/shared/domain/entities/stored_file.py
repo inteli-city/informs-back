@@ -1,6 +1,6 @@
 from typing import Optional
 
-from src.shared.domain.validators import ensure_non_negative_int
+from src.shared.domain.validators import ensure_non_negative_int, ensure_valid_sha256_checksum
 from src.shared.helpers.errors.domain_errors import EntityError
 
 
@@ -35,10 +35,8 @@ class StoredFile:
         ensure_non_negative_int(file_index, "Campo 'file_index'", allow_none=True)
         if mimetype is not None and (not isinstance(mimetype, str) or not mimetype):
             raise EntityError("Campo 'mimetype' deve ser uma string não vazia")
-        if size_bytes is not None and (not isinstance(size_bytes, int) or isinstance(size_bytes, bool) or size_bytes < 0):
-            raise EntityError("Campo 'size_bytes' deve ser um inteiro não negativo")
-        if checksum_sha256 is not None and not isinstance(checksum_sha256, str):
-            raise EntityError("Campo 'checksum_sha256' deve ser uma string")
+        ensure_non_negative_int(size_bytes, "Campo 'size_bytes'", allow_none=True)
+        ensure_valid_sha256_checksum(checksum_sha256, "Campo 'checksum_sha256'", allow_none=True)
 
         self.file_url = file_url
         self.section_id = section_id

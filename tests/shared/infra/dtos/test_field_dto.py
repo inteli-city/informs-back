@@ -272,6 +272,26 @@ class TestFieldDTO:
 
         assert field_dto.field.value is None
 
+    def test_field_dto_from_dynamo_file_field_untrusted_ignora_file_integrity_do_cliente(self):
+        # Mesma regra do teste acima, agora para file_integrity: sem isto, um
+        # request não confiável podia gravar mimetype/size/checksum fabricados
+        # ao lado do value bloqueado — inconsistente com a fronteira de
+        # confiança que o bloqueio do value documenta duas linhas acima.
+        field_dict = {
+            "field_type": "FILE_FIELD",
+            "placeholder": "placeholder",
+            "required": True,
+            "key": "key",
+            "file_integrity": [{"mimetype": "x", "size_bytes": "not-an-int", "checksum_sha256": 123}],
+            "file_type": "IMAGE",
+            "min_quantity": 1,
+            "max_quantity": 2
+        }
+
+        field_dto = FieldDTO.from_dynamo(field_dict, trusted=False)
+
+        assert field_dto.field.file_integrity is None
+
     def test_field_dto_to_dynamo_text_field(self):
         field = TextField(placeholder='placeholder', required=True, key='key', regex='regex', formatting='formatting', max_length=10, value='value')
 

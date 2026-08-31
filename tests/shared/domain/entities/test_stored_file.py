@@ -26,6 +26,19 @@ class TestStoredFile:
         with pytest.raises(EntityError):
             StoredFile(file_url="https://bucket/key.jpeg", section_id=True)
 
+    def test_recusa_checksum_com_tamanho_invalido(self):
+        # Mesma regra de FileUploadBase (base64 de 32 bytes) — antes StoredFile
+        # só checava isinstance(str), então um checksum corrompido chegava
+        # inteiro até a comparação de integridade da reconciliação.
+        with pytest.raises(EntityError):
+            StoredFile(file_url="https://bucket/key.jpeg", checksum_sha256="nao-eh-base64-de-32-bytes")
+
+    def test_aceita_checksum_valido(self):
+        checksum = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        stored = StoredFile(file_url="https://bucket/key.jpeg", checksum_sha256=checksum)
+
+        assert stored.checksum_sha256 == checksum
+
 
 class TestFormStoredFiles:
 
