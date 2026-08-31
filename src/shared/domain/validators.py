@@ -1,5 +1,4 @@
 import base64
-import binascii
 
 from src.shared.helpers.errors.domain_errors import EntityError
 
@@ -25,5 +24,6 @@ def ensure_valid_sha256_checksum(value, label: str, *, allow_none: bool = False)
     try:
         if len(base64.b64decode(value, validate=True)) != 32:
             raise ValueError
-    except (ValueError, binascii.Error):
+    except ValueError:
+        # binascii.Error é subclasse de ValueError — capturar os dois é redundante.
         raise EntityError(f"{label} deve ser Base64 válido de 32 bytes")
