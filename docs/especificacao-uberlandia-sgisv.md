@@ -230,7 +230,9 @@ Em vez de inferir, `Form` ganha `possession: OPEN | OWNED` como campo próprio, 
 - É `possession`, não a ausência de um atributo, que decide se o item entra no GSI1 (`user#{user_id}`, hoje só a criação escreve) e no GSI3 do pool (§14.1). Um sinal explícito e único em vez de dois lugares (código de criação, código de release) precisando lembrar da mesma regra implícita de forma independente.
 - **Acoplamento esperado, não acidental**: `release` (RN-UBE-004) muda `possession` **e** `status` na mesma transição — `possession → OPEN` e `status → PENDING` — porque o conteúdo é descartado (decisão P5) e um formulário sem conteúdo não pode honestamente continuar `IN_PROGRESS`. Não é os dois campos sendo a mesma coisa; é uma transição específica que mexe nos dois por causa do que ela faz aos dados. Em qualquer transição que não descarte conteúdo, os dois eixos variam de forma independente.
 
-> **Nota de implementação — GSI1 hoje não sabe de `claim`/`release`/`assign`.** `update_form` (`form_repository_dynamo.py`) recalcula GSI2 a cada chamada mas nunca toca em GSI1PK/GSI1SK — eles são escritos uma única vez, em `create_form`. Sem ajuste, uma OS reivindicada não aparece em "Minhas" pra ninguém (o índice continua com o dono antigo, ou com o `"user#None"` literal de quando nasceu no pool — que também faz **toda** OS aberta do sistema colidir na mesma partição). `claim`/`assign` precisam escrever GSI1PK/GSI1SK do novo dono; `release` precisa **remover** os dois atributos, não zerá-los. E isso expõe uma segunda lacuna: hoje `update_form` trata `None` como "campo não informado, não mexer" (`if value is not None: update_dict[key] = ...`) — não existe um jeito de dizer "limpe este campo". `release` precisa disso pra `user_id`, `in_progress_at` e o próprio `possession`. Resolver com um sentinel de "limpar" reservado, ou um método dedicado a `release` que monta o próprio `UpdateExpression` com `REMOVE` — decidir isso antes de codar a Fase 1, já que `claim`/`release`/`assign` herdam o mesmo repositório.
+> **Nota de implementação — GSI1 hoje não sabe de `claim`/`release`/`assign`.** `update_form` (`form_repository_dynamo.py`) recalcula GSI2 a cada chamada mas nunca toca em GSI1PK/GSI1SK — eles são escritos uma única vez, em `create_form`. Sem ajuste, uma OS reivindicada não aparece em "Minhas" pra ninguém (o índice continua com o dono antigo, ou com o `"user#None"` literal de quando nasceu no pool — que também faz **toda** OS aberta do sistema colidir na mesma partição). `claim`/`assign` precisam escrever GSI1PK/GSI1SK do novo dono; `release` precisa **remover** os dois atributos, não zerá-los.
+>
+> **Decisão P12 — como `release` limpa campo.** `update_form` trata `None` como "campo não informado, não mexer" (`if value is not None: update_dict[key] = ...`) — não existe hoje um jeito de dizer "limpe este campo", que `release` precisa pra `user_id`, `GSI1PK`/`GSI1SK`, `in_progress_at` e `possession`. Avaliadas três formas de resolver: **(a)** um sentinel reservado (`CLEAR`) reconhecido por `update_form`, que passaria a montar `SET` e `REMOVE` na mesma chamada; **(b)** um método novo e isolado, `release_form`, com `UpdateExpression` próprio; **(c)** redesenhar `update_form` inteiro para um contrato explícito (`set_fields`/`remove_fields`), migrando também `start`/`submit`/`cancel`. **Decidido: (b)**. `update_form` já é código de produção usado por todo o ciclo de vida do Gaia — isolar `release` num método dedicado não arrisca nada do que já funciona, e é o mesmo padrão que o repositório já usa para necessidades pontuais (`get_forms_updated_since` ao lado de `get_all_forms`). `claim`/`assign` não têm esse problema — só **setam** valor (user_id, GSI1PK/GSI1SK), o que `update_form` já sabe fazer; só precisam de um parâmetro novo e aditivo pra escrever o GSI1, sem tocar no método em si.
 
 ### 6.2 Regras de negócio novas
 
@@ -269,6 +271,51 @@ Alterações em endpoints existentes:
 ### 6.4 Histórico de posse
 
 Nova entidade `FormEvent` no single-table (`PK = form#{form_id}`, `SK = event#{timestamp}#{uuid}`), com `event_type`, `actor_user_id`, `target_user_id` e `payload`. Barato (mesma partição do formulário), auditável, e serve de base para a linha do tempo da OS no Apex.
+
+### 6.5 Resumo do modelo de dados no DynamoDB
+
+Só a parte de dados — nada de código ainda. Consolida o que os §6/7/8/14 descrevem espalhado, num lugar só.
+
+**Item `Form` (`PK = form#{form_id}`, `SK = METADATA`) — atributos novos**
+
+| Atributo | Tipo | Presente quando | Escrito/removido por |
+| --- | --- | --- | --- |
+| `possession` | `S` (`OPEN`\|`OWNED`) | **Sempre** — é o campo que nunca falta | `create`, `claim`, `release`, `assign` |
+| `user_id` | `S` | Só se `possession = OWNED` | Removido (não `null`) em `release`; escrito em `create` (direcionada), `claim`, `assign` |
+| `claimed_at` | `N` | Só após 1ª reivindicação/atribuição | `claim`, `assign` |
+| `released_at` | `N` | Só após 1ª devolução | `release` |
+| `completed_by` | `S` | Só quando `status = COMPLETED` | `submit` |
+| `assignment_source` | `S` (`ORIGIN_SYSTEM`\|`CLAIM`\|`MANAGER`) | Só se `possession = OWNED` | `create`, `claim`, `assign` |
+| `external_id` | `S` | Opcional — Apex ou UUID do client (P13) | `create` |
+| `origin` | `S` (`CITIZEN`\|`AI`\|`FIELD`\|`ORIGIN_SYSTEM`) | Opcional | `create` |
+| `service_type`, `occurred_at` | `S`, `N` | Opcionais | `create` |
+| `scheduled_start_at`, `scheduled_end_at` | `N` | Opcionais | `create`, `PATCH` do Apex (§9.2) |
+| `attributes` | `M` (`Dict[str, List[str]]`) | Opcional — vazio = sem restrição de escopo | `create`, `PATCH` do Apex |
+
+**Índices — o que muda em cada um**
+
+| Índice | Partição/ordenação | Hoje | Depois |
+| --- | --- | --- | --- |
+| **GSI1** (existente) | `user#{user_id}` / prioridade+status+criação | Só `create_form` escreve; nunca atualizado depois | Também escrito por `claim`/`assign` (novo dono) e **removido** por `release` — ausente quando `possession = OPEN` (P12) |
+| **GSI2** (existente) | `system#{system}` / `updated_at` | Recalculado em todo `update_form` | Sem mudança |
+| **GSI3** (novo, §14.1) | `pool#{system}#{valor do scope_partition_key}` / prioridade+criação | — | Presente **somente** quando `possession = OPEN`. Escrito em `create` (aberta) e `release`; removido em `claim`/`assign` — o pool é literalmente o conteúdo deste índice |
+
+**Entidades novas na mesma single-table**
+
+| Entidade | Chave | Conteúdo | Pra quê |
+| --- | --- | --- | --- |
+| `FormEvent` (§6.4) | `PK = form#{form_id}` / `SK = event#{ts}#{uuid}` | `event_type`, `actor_user_id`, `target_user_id`, `payload` | Histórico imutável de posse (RN-UBE-008) |
+| `SystemConfig` (§7.2) | `PK = system#{system}` / `SK = CONFIG` | `scope_keys`, `scope_partition_key`, `geofence_radius_m`, `allow_unassigned_forms` | Config por contrato — Gaia continua com os defaults de sempre |
+
+**Tabela `Profile` (separada, já existente — §7.3/7.4)**
+
+| Mudança | Detalhe |
+| --- | --- |
+| `role` | Enum ganha `MANAGER` e `SUPERVISOR`, ao lado de `ADMIN`/`INSPECTOR` já existentes |
+| `scope` | Atributo novo, `Dict[str, List[str]]` — vazio = sem restrição (comportamento atual de Gaia/Geovista/SGC preservado por construção) |
+| Escrita | Hoje só `create`/`soft_delete`. Ganha `PUT /profiles/{user_id}` (novo) pro Apex empurrar `role`/`scope` |
+
+**Por que o Gaia não sente nada disso**: toda coluna nova é opcional e ausente por padrão; `SystemConfig` do Gaia tem `allow_unassigned_forms = false` (então `user_id` continua obrigatório na criação, como hoje) e `geofence_radius_m = null` (geofencing desligado); `Profile.scope` vazio equivale a "vê tudo do sistema", que já é o comportamento atual. Nenhum item existente muda de formato — só formulários novos, de Uberlândia, começam a usar os campos novos.
 
 ---
 
@@ -366,7 +413,9 @@ Mesmo caminho já em produção com o Gaia. Ajustes necessários:
 
 1. Aceitar `user_id` nulo (ou ausente do corpo — o controller trata os dois igual) quando `allow_unassigned_forms = true` (§6.3) — e continuar aceitando `user_id` preenchido no mesmo contrato, gravando `assignment_source = ORIGIN_SYSTEM`.
 2. Aceitar `attributes`, `external_id`, `origin`, `service_type`, `occurred_at`, `scheduled_start_at`.
-3. **Idempotência por `external_id` + `system`**: reenvio do Apex (ou retry de rede) não pode duplicar OS. Isso resolve simultaneamente o item bloqueado da criação offline no client (§5, item 2) — **a mesma implementação serve aos dois casos**. Ressalva sobre o lado do client: a OS criada **em campo** (RF-028/029) ainda não tem `external_id` do Apex nesse momento — quem cria é o próprio app. Pra usar o mesmo mecanismo, o client precisa gerar e **persistir** um id próprio antes do primeiro `POST` e reenviar exatamente esse valor em cada retentativa; sem isso, duas tentativas geram duas OS. Não é trabalho do Apex, mas é uma peça que falta nomear na Fase 0/1.
+3. **Idempotência por `external_id` + `system`**: reenvio do Apex (ou retry de rede) não pode duplicar OS. Isso resolve simultaneamente o item bloqueado da criação offline no client (§5, item 2) — **a mesma implementação serve aos dois casos**.
+
+   **Decisão P13 — de onde vem o `external_id` de uma OS criada em campo.** A OS criada **em campo** (RF-028/029) ainda não tem `external_id` do Apex nesse momento — quem cria é o próprio app, offline. Três formas avaliadas: **(a)** o client gera um UUID no momento de "Gerar OS", persiste na mutation local, e reenvia exatamente esse valor em cada retentativa, usando-o como `external_id`; **(b)** o client pede ao backend um id reservado antes de começar a preencher; **(c)** um campo separado (`client_request_id`) só para dedup, deixando `external_id` vazio até o Apex atribuir o número dele na sincronização. **Decidido: (a)**. (b) exige rede pra *começar* a criar um formulário offline — inviabiliza exatamente o cenário que RF-028 existe pra cobrir ("bairro afastado, sem sinal"). (c) resolve com mais pureza semântica, mas mantém dois mecanismos de dedup em vez de um, e a spec já parte do princípio de que é a mesma implementação nos dois casos. Efeito colateral aceito: o "número da OS" de uma OS criada em campo é um UUID até o Apex sincronizar de volta com o número real — tratamento de UI (ex.: "aguardando número"), não de dado.
 4. Ingestão inicial: ~5.000 OS em estoque. Se a criação unitária se mostrar lenta demais no bootstrap, o mesmo controller aceita lote — decidir com números reais, não por antecipação.
 
 **O que muda pro time do Apex, na prática, é só isto: itens 1 e 2.** `possession` (§6.1.1), a manutenção do GSI1/GSI3 e a distinção `REMOVE` vs `null` na escrita são inteiramente internas ao Informs — o Apex nunca envia nem lê `possession`, só omite (ou envia `null` em) `user_id` pra abrir uma OS no pool, e manda os campos novos do item 2 quando tiver o dado. O trabalho de ajuste do lado do Apex é, então: (a) passar a decidir, OS a OS, se manda `user_id` ou não; (b) popular os campos novos quando disponíveis; (c) garantir que reenvio/retry usa o mesmo `external_id` de antes. Não precisam entender nada do modelo de posse interno — só o contrato de request de sempre, com um campo a menos sendo obrigatório e alguns a mais sendo aceitos.
@@ -506,7 +555,7 @@ As fases 0 a 2 são o caminho crítico. Com a decisão P2 — o contrato é o do
 
 ## 16. Decisões consolidadas
 
-As onze pendências levantadas na primeira versão foram todas respondidas. A numeração é preservada porque os dois documentos de repositório a referenciam.
+As onze pendências levantadas na primeira versão foram todas respondidas — a numeração é preservada porque os dois documentos de repositório a referenciam. P12 e P13 vieram da revisão técnica seguinte, sobre a implementação do núcleo de posse.
 
 | # | Pergunta | Decisão | Consequência |
 | --- | --- | --- | --- |
@@ -520,6 +569,8 @@ As onze pendências levantadas na primeira versão foram todas respondidas. A nu
 | **P8 + P9** | Endereço reverso e base de logradouros | **O Apex fornece a base**, ingerida pelo Informs e cacheada no PWA | Um endpoint resolve RF-006, RF-022 e RF-028; **sem provedor externo, sem custo por chamada e funciona offline** |
 | **P10** | "Início esperado" e "término esperado" | **Campos novos opcionais** (`scheduled_start_at`, `scheduled_end_at`), sem reusar `expiration_date` | §8 |
 | **P11** | Quem devolve uma OS direcionada | **Também o executor**, com registro do rompimento | RN-UBE-010 |
+| **P12** | Como `release` limpa campo (`user_id`, GSI1, `in_progress_at`) | **Método dedicado `release_form`**, com `UpdateExpression` próprio — em vez de mexer no `update_form` que start/submit/cancel já usam em produção | §6.1.1; zero risco de regressão no Gaia |
+| **P13** | `external_id` de OS criada em campo, sem rede | **O client gera o UUID e persiste antes do 1º `POST`**, reenviando em toda retentativa | §9.1; "número da OS" aparece como UUID até o Apex sincronizar — ajuste de UI, não de dado |
 
 ### 16.1 Base de endereços (P8 + P9)
 
