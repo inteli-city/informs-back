@@ -6,8 +6,10 @@ from botocore.exceptions import ClientError
 
 sys.path.append(os.getcwd())
 
+from src.shared.domain.entities.form import Form
 from src.shared.domain.enums.form_status_enum import FormStatus
-from src.shared.helpers.errors.usecase_errors import ForbiddenAction
+from src.shared.domain.enums.priority_enum import Priority
+from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction
 from src.shared.helpers.functions.pagination_token import encode_pagination_token
 from src.shared.infra.dtos.form_dynamo_dto import FormDynamoDTO
 from src.shared.infra.repositories.form_repository_dynamo import FormRepositoryDynamo
@@ -27,13 +29,20 @@ class FakeDynamoTable:
         return {"Items": self.items, "LastEvaluatedKey": None}
 
 
+class _ConditionalCheckFailed(ClientError):
+    def __init__(self):
+        super().__init__({"Error": {"Code": "ConditionalCheckFailedException", "Message": "exists"}}, "PutItem")
+
+
 class FakeFormDynamo:
     def __init__(self, items):
         self.partition_key = "PK"
         self.sort_key = "SK"
         self.dynamo_table = FakeDynamoTable(items)
         self.put_calls = []
+        self.put_should_conflict_once = False
         self.get_item_response = {}
+        self.get_item_responses = None
         self.query_kwargs = None
         self.query_calls = []
         self.query_response = {"Items": items, "LastEvaluatedKey": None}
@@ -46,11 +55,16 @@ class FakeFormDynamo:
         self.update_exception = None
         self.last_update = None
 
-    def put_item(self, item, partition_key, sort_key, is_decimal=False):
-        self.put_calls.append((item, partition_key, sort_key, is_decimal))
+    def put_item(self, item, partition_key, sort_key, is_decimal=False, **kwargs):
+        if kwargs.get("ConditionExpression") and self.put_should_conflict_once:
+            self.put_should_conflict_once = False
+            raise _ConditionalCheckFailed()
+        self.put_calls.append((item, partition_key, sort_key, is_decimal, kwargs))
         return {"ok": True}
 
     def get_item(self, partition_key, sort_key):
+        if self.get_item_responses:
+            return self.get_item_responses.pop(0)
         return self.get_item_response
 
     def query(self, **kwargs):
@@ -103,7 +117,7 @@ def test_form_repository_dynamo_create_and_get_by_user():
     repo, form, item = _make_repo_with_item()
     repo.create_form(form)
     assert repo.dynamo.put_calls
-    saved_item, pk, sk, _ = repo.dynamo.put_calls[0]
+    saved_item, pk, sk, _, _ = repo.dynamo.put_calls[0]
     assert saved_item["GSI1PK"] == f"user#{form.user_id}"
     assert "GSI1SK" in saved_item
     assert saved_item["GSI2PK"] == f"system#{form.system}"
@@ -334,3 +348,118 @@ def test_form_repository_dynamo_get_forms_updated_since_insiste_apos_pagina_filt
     assert len(forms) == 1
     assert next_key is None
     assert len(repo.dynamo.query_calls) == 2
+
+
+def _uberlandia_form(**overrides) -> Form:
+    base = FormRepositoryMock().forms[0]
+    kwargs = dict(
+        id=base.id,
+        form_title=base.form_title,
+        created_by=base.created_by,
+        user_id=None,
+        system="UBERLANDIA",
+        street=base.street,
+        city=base.city,
+        latitude=base.latitude,
+        longitude=base.longitude,
+        priority=base.priority,
+        status=FormStatus.PENDING,
+        created_at=base.created_at,
+        updated_at=base.updated_at,
+        justification=base.justification,
+        sections=base.sections,
+        external_id="OS-7514",
+    )
+    kwargs.update(overrides)
+    return Form(**kwargs)
+
+
+class TestFormRepositoryDynamoExternalIdIdempotency:
+    """Especificação Uberlândia §9.1: idempotência de `create_form` por (system, external_id)
+    via item de lock (`PK = externalid#{system}#{external_id}`, `SK = LOCK`)."""
+
+    def test_create_form_without_external_id_skips_lock(self):
+        repo = FormRepositoryDynamo.__new__(FormRepositoryDynamo)
+        repo.dynamo = FakeFormDynamo([])
+        form = _uberlandia_form(external_id=None)
+
+        repo.create_form(form)
+
+        assert len(repo.dynamo.put_calls) == 1  # só o form, sem lock
+
+    def test_create_form_with_free_lock_writes_lock_then_form(self):
+        repo = FormRepositoryDynamo.__new__(FormRepositoryDynamo)
+        repo.dynamo = FakeFormDynamo([])
+        form = _uberlandia_form()
+
+        created = repo.create_form(form)
+
+        assert created.id == form.id
+        assert len(repo.dynamo.put_calls) == 2
+        lock_item, lock_pk, lock_sk, _, lock_kwargs = repo.dynamo.put_calls[0]
+        assert lock_pk == "externalid#UBERLANDIA#OS-7514"
+        assert lock_sk == "LOCK"
+        assert lock_kwargs["ConditionExpression"] == "attribute_not_exists(PK)"
+        assert lock_item["form_id"] == form.id
+
+    def test_create_form_with_user_id_none_does_not_write_gsi1(self):
+        repo = FormRepositoryDynamo.__new__(FormRepositoryDynamo)
+        repo.dynamo = FakeFormDynamo([])
+        form = _uberlandia_form(external_id=None)
+
+        repo.create_form(form)
+
+        saved_item, _, _, _, _ = repo.dynamo.put_calls[0]
+        assert "GSI1PK" not in saved_item
+        assert "GSI1SK" not in saved_item
+        assert "GSI2PK" in saved_item
+
+    def test_create_form_replay_returns_existing_form_without_duplicate_put(self):
+        existing_form = _uberlandia_form()
+        existing_item = FormDynamoDTO.from_entity(existing_form).to_dynamo()
+        existing_item["PK"] = f"form#{existing_form.id}"
+        existing_item["SK"] = "METADATA"
+        lock_item = {"form_id": existing_form.id}
+
+        repo = FormRepositoryDynamo.__new__(FormRepositoryDynamo)
+        repo.dynamo = FakeFormDynamo([])
+        repo.dynamo.put_should_conflict_once = True
+        repo.dynamo.get_item_responses = [{"Item": lock_item}, {"Item": existing_item}]
+
+        replay = _uberlandia_form(id="d61dbf66-a10f-11ed-a8fc-0242ac120099")
+        result = repo.create_form(replay)
+
+        assert result.id == existing_form.id
+        assert repo.dynamo.put_calls == []  # nem lock nem form foram regravados
+
+    def test_create_form_lock_exists_but_form_missing_raises_duplicated_item(self):
+        # Janela rara: lock gravado, form correspondente ainda não (crash entre as duas escritas).
+        repo = FormRepositoryDynamo.__new__(FormRepositoryDynamo)
+        repo.dynamo = FakeFormDynamo([])
+        repo.dynamo.put_should_conflict_once = True
+        repo.dynamo.get_item_responses = [{"Item": {"form_id": "missing-form-id"}}, {}]
+
+        with pytest.raises(DuplicatedItem):
+            repo.create_form(_uberlandia_form())
+
+    def test_get_form_by_external_id_not_found(self):
+        repo = FormRepositoryDynamo.__new__(FormRepositoryDynamo)
+        repo.dynamo = FakeFormDynamo([])
+        repo.dynamo.get_item_response = {}
+
+        assert repo.get_form_by_external_id("UBERLANDIA", "OS-UNKNOWN") is None
+
+
+def test_form_repository_dynamo_update_form_sets_completed_by():
+    repo, form, item = _make_repo_with_item()
+    repo.dynamo.update_response = {"Attributes": item}
+    repo.dynamo.get_item_response = {"Item": item}
+
+    repo.update_form(
+        user_id=form.user_id,
+        form_id=form.id,
+        completed_by=form.user_id,
+        updated_at=1,
+    )
+
+    assert repo.dynamo.last_update["update_dict"]["completed_by"] == form.user_id

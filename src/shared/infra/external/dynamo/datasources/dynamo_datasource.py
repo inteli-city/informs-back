@@ -51,13 +51,14 @@ class DynamoDatasource:
         @return: dict with the response from DynamoDB
         """
 
-        item = DynamoDatasource._parse_float_to_decimal(item) if not kwargs.get("is_decimal", False) else item
+        is_decimal = kwargs.pop("is_decimal", False)
+        item = DynamoDatasource._parse_float_to_decimal(item) if not is_decimal else item
 
         item[self.partition_key] = partition_key
         if sort_key:
             item[self.sort_key] = sort_key
 
-        return self.dynamo_table.put_item(Item=item)
+        return self.dynamo_table.put_item(Item=item, **kwargs)
 
     def get_item(self, partition_key: str, sort_key: str = None):
         """

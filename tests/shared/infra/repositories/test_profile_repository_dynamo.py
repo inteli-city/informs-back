@@ -148,3 +148,33 @@ class TestProfileRepositoryDynamo:
             {"Count": 3},
         ]
         assert repo.count_active_by_role(ProfileRole.ADMIN) == 5
+
+    def test_update_profile_writes_role_and_recalculates_gsi1(self):
+        repo = _repo()
+        stored = _stored_item()
+        stored["role"] = ProfileRole.MANAGER.value
+        repo.dynamo.update_response = {"Attributes": stored}
+
+        profile = repo.update_profile(USER_ID, role=ProfileRole.MANAGER, updated_at=2000)
+        assert profile.role == ProfileRole.MANAGER
+
+    def test_update_profile_writes_scope_without_touching_role(self):
+        repo = _repo()
+        stored = _stored_item()
+        stored["scope"] = {"bairro": ["Santa Mônica"]}
+        repo.dynamo.update_response = {"Attributes": stored}
+
+        profile = repo.update_profile(USER_ID, scope={"bairro": ["Santa Mônica"]})
+        assert profile.scope == {"bairro": ["Santa Mônica"]}
+
+    def test_update_profile_conditional_failure_raises_not_found(self):
+        repo = _repo()
+        repo.dynamo.update_should_fail = True
+        with pytest.raises(NoItemsFound):
+            repo.update_profile(USER_ID, role=ProfileRole.MANAGER)
+
+    def test_update_profile_without_attributes_raises_not_found(self):
+        repo = _repo()
+        repo.dynamo.update_response = {}
+        with pytest.raises(NoItemsFound):
+            repo.update_profile(USER_ID, role=ProfileRole.MANAGER)

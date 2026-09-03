@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from src.shared.domain.entities.profile import Profile
 from src.shared.domain.enums.profile_role_enum import ProfileRole
@@ -64,3 +64,21 @@ class ProfileRepositoryMock(IProfileRepository):
 
     def count_active_by_role(self, role: ProfileRole) -> int:
         return sum(1 for p in self.profiles if p.role == role and p.active)
+
+    def update_profile(
+        self,
+        user_id: str,
+        role: Optional[ProfileRole] = None,
+        scope: Optional[Dict[str, List[str]]] = None,
+        updated_at: Optional[int] = None,
+    ) -> Profile:
+        for profile in self.profiles:
+            if profile.user_id == user_id:
+                if role is not None:
+                    profile.role = role
+                if scope is not None:
+                    profile.scope = scope
+                if updated_at is not None:
+                    profile.updated_at = updated_at
+                return deepcopy(profile)
+        raise NoItemsFound(f"Perfil não encontrado para user_id={user_id}")

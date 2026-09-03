@@ -46,6 +46,10 @@ class IFormRepository(ABC):
         pass
 
     @abstractmethod
+    def get_form_by_external_id(self, system: str, external_id: str) -> Optional[Form]:
+        pass
+
+    @abstractmethod
     def create_form(self, form: Form) -> Form:
         pass
 
@@ -62,5 +66,6 @@ class IFormRepository(ABC):
         sections: Optional[List[Section]] = None,
         justification: Optional[Justification] = None,
         expected_status: Optional[FormStatus] = None,
+        completed_by: Optional[str] = None,
     ) -> Optional[Form]:
         pass

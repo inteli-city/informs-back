@@ -28,7 +28,8 @@ class TestSubmitFormUsecase:
         assert form.status == FormStatus.COMPLETED
         assert form.sections[0].fields[0].value == 'poggers'
         assert form.completed_at == 123
-    
+        assert form.completed_by == 'd61dbf66-a10f-11ed-a8fc-0242ac120001'
+
     def test_submit_form_usecase_user_disabled(self):
         repo = FormRepositoryMock()
         file_repo = FileRepositoryMock()

@@ -14,7 +14,7 @@ from src.shared.infra.dtos.justification_dto import JustificationDTO
 from src.shared.infra.dtos.section_dto import SectionDTO
 from src.shared.infra.external.dynamo.conditions import Attr, Key
 from src.shared.infra.external.dynamo.datasources.dynamo_datasource import DynamoDatasource
-from src.shared.helpers.errors.usecase_errors import ForbiddenAction
+from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction
 from src.shared.helpers.functions.pagination_token import encode_pagination_token
 
 class FormRepositoryDynamo(IFormRepository):
@@ -43,6 +43,13 @@ class FormRepositoryDynamo(IFormRepository):
     def form_gsi2_sort_key_format(updated_at: int, form_id: str) -> str:
         return f"updated_at#{int(updated_at):013d}#form#{form_id}"
 
+    @staticmethod
+    def form_external_id_lock_partition_key_format(system: str, external_id: str) -> str:
+        return f"externalid#{system}#{external_id}"
+
+    @staticmethod
+    def form_external_id_lock_sort_key_format() -> str:
+        return "LOCK"
 
     def __init__(self):
         self.dynamo = DynamoDatasource(
@@ -242,11 +249,56 @@ class FormRepositoryDynamo(IFormRepository):
                 break
         return items, start_key
 
+    def get_form_by_external_id(self, system: str, external_id: str) -> Optional[Form]:
+        lock = self.dynamo.get_item(
+            partition_key=self.form_external_id_lock_partition_key_format(system, external_id),
+            sort_key=self.form_external_id_lock_sort_key_format(),
+        )
+        form_id = lock.get("Item", {}).get("form_id")
+        if not form_id:
+            return None
+        return self.get_form_by_id(user_id="", form_id=form_id)
+
+    def _claim_external_id(self, form: Form) -> Optional[Form]:
+        """Reivindica o par (system, external_id) para este form_id via lock
+        atômico. Retorna o form já existente se outra chamada já o criou
+        (idempotência de `POST /forms`, especificação Uberlândia §9.1); `None`
+        se o lock foi conquistado por este form.
+        """
+        lock_pk = self.form_external_id_lock_partition_key_format(form.system, form.external_id)
+        try:
+            self.dynamo.put_item(
+                item={"form_id": form.id},
+                partition_key=lock_pk,
+                sort_key=self.form_external_id_lock_sort_key_format(),
+                ConditionExpression="attribute_not_exists(PK)",
+            )
+            return None
+        except ClientError as err:
+            if err.response.get("Error", {}).get("Code") != "ConditionalCheckFailedException":
+                raise
+
+        existing = self.get_form_by_external_id(form.system, form.external_id)
+        if existing is None:
+            # Janela rara: o lock foi gravado mas o form correspondente ainda
+            # não (crash/timeout entre as duas escritas). Pede retry em vez
+            # de duplicar ou travar o external_id para sempre.
+            raise DuplicatedItem(
+                "Formulário com este external_id está sendo criado por outra requisição; tente novamente em instantes"
+            )
+        return existing
+
     def create_form(self, form: Form) -> Form:
+        if form.external_id is not None:
+            existing = self._claim_external_id(form)
+            if existing is not None:
+                return existing
+
         item = FormDynamoDTO.from_entity(form).to_dynamo()
 
-        item["GSI1PK"] = self.form_gsi1_partition_key_format(form.user_id)
-        item["GSI1SK"] = self.form_gsi1_sort_key_format(priority=form.priority.value, status=form.status, created_at=form.created_at)
+        if form.user_id is not None:
+            item["GSI1PK"] = self.form_gsi1_partition_key_format(form.user_id)
+            item["GSI1SK"] = self.form_gsi1_sort_key_format(priority=form.priority.value, status=form.status, created_at=form.created_at)
         item["GSI2PK"] = self.form_gsi2_partition_key_format(form.system)
         item["GSI2SK"] = self.form_gsi2_sort_key_format(updated_at=form.updated_at, form_id=form.id)
 
@@ -255,7 +307,7 @@ class FormRepositoryDynamo(IFormRepository):
             partition_key=self.form_partition_key_format(form.id),
             sort_key=self.form_sort_key_format()
         )
-        
+
         return form
 
     def update_form(
@@ -270,6 +322,7 @@ class FormRepositoryDynamo(IFormRepository):
         sections: Optional[List[Section]] = None,
         justification: Optional[Justification] = None,
         expected_status: Optional[FormStatus] = None,
+        completed_by: Optional[str] = None,
     ) -> Optional[Form]:
         update_dict = {}
         current_form = self.get_form_by_id(user_id=user_id, form_id=form_id)
@@ -282,6 +335,7 @@ class FormRepositoryDynamo(IFormRepository):
             "updated_at": updated_at,
             "sections": sections,
             "justification": justification,
+            "completed_by": completed_by,
         }
         for key, value in candidate_updates.items():
             if value is not None:

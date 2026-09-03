@@ -19,7 +19,7 @@ def _is_uuid(value: str) -> bool:
 
 class CreateFormRequestSchema(RequestContractModel):
     form_title: str
-    user_id: str
+    user_id: str | None = None
     system: str
     city: str
     street: str
@@ -32,6 +32,13 @@ class CreateFormRequestSchema(RequestContractModel):
     observation: str | None = None
     expiration_date: int | None = None
     information_fields: list[InformationFieldInputSchema] | None = None
+    external_id: str | None = None
+    origin: str | None = Field(default=None, pattern="^(CITIZEN|AI|FIELD|ORIGIN_SYSTEM)$")
+    service_type: str | None = None
+    occurred_at: int | None = None
+    scheduled_start_at: int | None = None
+    scheduled_end_at: int | None = None
+    attributes: dict[str, list[str]] | None = None
 
     @model_validator(mode="after")
     def validate_sections_when_template_absent(self) -> "CreateFormRequestSchema":

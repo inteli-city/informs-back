@@ -177,4 +177,12 @@ def build_form_dict(
             else None
         ),
         "number": form.number,
+        "external_id": form.external_id,
+        "origin": form.origin.value if form.origin else None,
+        "service_type": form.service_type,
+        "occurred_at": form.occurred_at,
+        "scheduled_start_at": form.scheduled_start_at,
+        "scheduled_end_at": form.scheduled_end_at,
+        "attributes": form.attributes,
+        "completed_by": form.completed_by,
     }

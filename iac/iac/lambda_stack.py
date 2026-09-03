@@ -173,6 +173,14 @@ class LambdaStack(Construct):
             authorizer=authorizer,
         )
 
+        self.update_profile = self.create_lambda_api_gateway_integration(
+            module_name="update_profile",
+            method="PUT",
+            api_resource=profile_user_id_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
         self.get_location_history = self.create_lambda_api_gateway_integration(
             module_name="get_location_history",
             method="GET",
@@ -377,6 +385,7 @@ class LambdaStack(Construct):
             self.create_profile,
             self.login_profile,
             self.delete_profile,
+            self.update_profile,
             self.get_location_history,
         ]
 

@@ -131,7 +131,7 @@ class SubmitFormUsecase:
 
     def _complete_and_persist(self, form: Form, user_id: str, form_id: str, completed_at: int) -> None:
         updated_at = now_timestamp_ms()
-        form.complete(completed_at=completed_at, updated_at=updated_at)
+        form.complete(completed_at=completed_at, updated_at=updated_at, completed_by=user_id)
 
         self.form_repo.update_form(
             user_id=user_id,
@@ -140,5 +140,6 @@ class SubmitFormUsecase:
             sections=form.sections,
             completed_at=form.completed_at,
             updated_at=form.updated_at,
+            completed_by=form.completed_by,
             expected_status=FormStatus.IN_PROGRESS,
         )

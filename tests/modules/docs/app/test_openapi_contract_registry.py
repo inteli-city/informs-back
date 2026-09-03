@@ -31,6 +31,7 @@ def test_openapi_contract_registry_covers_http_routes():
         ("/profiles", "post"),
         ("/profiles/login", "post"),
         ("/profiles/{user_id}", "delete"),
+        ("/profiles/{user_id}", "put"),
         ("/templates", "post"),
         ("/templates", "get"),
         ("/templates/{template_id}", "put"),

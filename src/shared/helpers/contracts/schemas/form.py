@@ -24,7 +24,7 @@ class FormResponseSchema(ResponseContractModel):
     id: str
     status: str
     form_title: str
-    user_id: str
+    user_id: str | None = None
     template: str | None = None
     area: str | None = None
     system: str
@@ -45,3 +45,11 @@ class FormResponseSchema(ResponseContractModel):
     updated_at: int
     information_fields: list[InformationFieldSchema] | None = None
     number: int | None = None
+    external_id: str | None = None
+    origin: str | None = None
+    service_type: str | None = None
+    occurred_at: int | None = None
+    scheduled_start_at: int | None = None
+    scheduled_end_at: int | None = None
+    attributes: dict[str, list[str]] = Field(default_factory=dict)
+    completed_by: str | None = None

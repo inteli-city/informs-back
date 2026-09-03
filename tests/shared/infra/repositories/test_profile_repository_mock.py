@@ -68,3 +68,20 @@ class TestProfileRepositoryMock:
 
         repo.soft_delete(user_id=repo.profiles[1].user_id, updated_at=1)
         assert repo.count_active_by_role(ProfileRole.INSPECTOR) == 0
+
+    def test_update_profile_sets_role_and_scope_independently(self):
+        repo = ProfileRepositoryMock()
+        target = repo.profiles[1]
+
+        updated = repo.update_profile(user_id=target.user_id, role=ProfileRole.MANAGER, updated_at=2000)
+        assert updated.role == ProfileRole.MANAGER
+        assert updated.scope == {}  # não tocado
+
+        updated = repo.update_profile(user_id=target.user_id, scope={"bairro": ["Santa Mônica"]})
+        assert updated.role == ProfileRole.MANAGER  # não tocado
+        assert updated.scope == {"bairro": ["Santa Mônica"]}
+
+    def test_update_profile_missing_raises(self):
+        repo = ProfileRepositoryMock()
+        with pytest.raises(NoItemsFound):
+            repo.update_profile(user_id="00000000-0000-0000-0000-000000000000", role=ProfileRole.MANAGER)

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Dict, List, Optional
 
 from src.shared.domain.entities.profile import Profile
 from src.shared.domain.enums.profile_role_enum import ProfileRole
@@ -7,12 +7,14 @@ from src.shared.domain.enums.profile_role_enum import ProfileRole
 
 class IProfileRepository(ABC):
     """
-    Operações mínimas necessárias para o v1 (sem UPDATE):
+    Operações mínimas necessárias para o v1:
 
     - get_by_user_id: busca direta para login e validações.
     - create: usado tanto no admin-create quanto no auto-create do login.
     - soft_delete: marca active=False em vez de remover o item.
     - count_active_admins: necessário para impedir a remoção do último ADMIN.
+    - update_profile: integração Apex (especificação Uberlândia §7.4) — empurra
+      `role`/`scope` quando a permissão regional do Apex muda.
     """
 
     @abstractmethod
@@ -29,4 +31,14 @@ class IProfileRepository(ABC):
 
     @abstractmethod
     def count_active_by_role(self, role: ProfileRole) -> int:
+        pass
+
+    @abstractmethod
+    def update_profile(
+        self,
+        user_id: str,
+        role: Optional[ProfileRole] = None,
+        scope: Optional[Dict[str, List[str]]] = None,
+        updated_at: Optional[int] = None,
+    ) -> Profile:
         pass

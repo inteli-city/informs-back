@@ -26,6 +26,8 @@ from src.shared.helpers.contracts.endpoints.profile_contract import (
     CreateProfileResponseSchema,
     DeleteProfileResponseSchema,
     LoginProfileResponseSchema,
+    UpdateProfileRequestSchema,
+    UpdateProfileResponseSchema,
 )
 from src.shared.helpers.contracts.endpoints.refresh_presign_contract import (
     RefreshPresignRequestSchema,
@@ -148,6 +150,15 @@ _CONTRACTS = [
         summary="Soft delete de perfil (admin)",
         success_status_code=200,
         response_model=DeleteProfileResponseSchema,
+    ),
+    EndpointContract(
+        path="/profiles/{user_id}",
+        method="put",
+        tag="Profiles",
+        summary="Admin atualiza role e scope de um perfil (integração Apex)",
+        success_status_code=200,
+        request_model=UpdateProfileRequestSchema,
+        response_model=UpdateProfileResponseSchema,
     ),
     EndpointContract(
         path="/templates",

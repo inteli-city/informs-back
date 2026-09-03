@@ -11,13 +11,17 @@ from src.shared.domain.entities.field import TextField
 from src.shared.domain.entities.information_field import FileInformationField, TextInformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption
 from src.shared.domain.entities.section import Section
+from src.shared.domain.entities.system_config import SystemConfig
 from src.shared.domain.entities.file_upload import FileUploadRequest
+from src.shared.domain.enums.form_origin_enum import FormOrigin
 from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.enums.priority_enum import Priority
+from src.shared.helpers.errors.controller_errors import MissingParameters
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
+from src.shared.infra.repositories.system_config_repository_mock import SystemConfigRepositoryMock
 from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
 
 
@@ -171,3 +175,86 @@ class TestCreateFormUsecase:
             assert False, "Expected EntityError"
         except EntityError as err:
             assert "Chaves de campo duplicadas na seção" in err.message
+
+
+class TestCreateFormUsecaseUberlandiaPool:
+    """Especificação Uberlândia §6/§9.1: `user_id` opcional (pool) via `SystemConfig`,
+    e idempotência de criação por `external_id`."""
+
+    def test_user_id_none_without_system_config_repo_raises(self):
+        usecase, payload, _ = _make_usecase_and_payload()
+        payload = deepcopy(payload)
+        payload["user_id"] = None
+
+        with pytest.raises(MissingParameters):
+            usecase(**payload)
+
+    def test_user_id_none_with_system_not_allowing_unassigned_raises(self):
+        repo = FormRepositoryMock()
+        file_repo = FileRepositoryMock()
+        system_config_repo = SystemConfigRepositoryMock()
+        system_config_repo.put(SystemConfig(system="GAIA", created_at=1, updated_at=1, allow_unassigned_forms=False))
+        usecase = CreateFormUsecase(repo, file_repo, system_config_repo=system_config_repo)
+        _, payload, _ = _make_usecase_and_payload()
+        payload = deepcopy(payload)
+        payload["user_id"] = None
+
+        with pytest.raises(MissingParameters):
+            usecase(**payload)
+
+    def test_user_id_none_with_allow_unassigned_forms_creates_pool_form(self):
+        repo = FormRepositoryMock()
+        file_repo = FileRepositoryMock()
+        system_config_repo = SystemConfigRepositoryMock()
+        system_config_repo.put(SystemConfig(system="GAIA", created_at=1, updated_at=1, allow_unassigned_forms=True))
+        usecase = CreateFormUsecase(repo, file_repo, system_config_repo=system_config_repo)
+        _, payload, _ = _make_usecase_and_payload()
+        payload = deepcopy(payload)
+        payload["user_id"] = None
+
+        form, files = usecase(**payload)
+
+        assert form.user_id is None
+        assert files == []
+
+    def test_new_domain_fields_reach_the_created_form(self):
+        usecase, payload, _ = _make_usecase_and_payload()
+        payload = deepcopy(payload)
+        payload.update(
+            external_id="OS-7514",
+            origin=FormOrigin.CITIZEN,
+            service_type="tapa-buraco",
+            occurred_at=1,
+            scheduled_start_at=2,
+            scheduled_end_at=3,
+            attributes={"bairro": ["Santa Mônica"]},
+        )
+
+        form, _ = usecase(**payload)
+
+        assert form.external_id == "OS-7514"
+        assert form.origin == FormOrigin.CITIZEN
+        assert form.service_type == "tapa-buraco"
+        assert form.occurred_at == 1
+        assert form.scheduled_start_at == 2
+        assert form.scheduled_end_at == 3
+        assert form.attributes == {"bairro": ["Santa Mônica"]}
+
+    def test_external_id_replay_returns_existing_form_without_reprocessing_uploads(self):
+        repo = FormRepositoryMock()
+        file_repo = FileRepositoryMock()
+        usecase = CreateFormUsecase(repo, file_repo)
+        _, payload, _ = _make_usecase_and_payload()
+        payload = deepcopy(payload)
+        payload["external_id"] = "OS-7514"
+        payload["information_fields"] = [FileInformationField(file_path="")]
+        payload["information_fields_uploads"] = [FileUploadRequest(filename="a.jpg", mimetype="image/jpeg")]
+
+        first_form, first_files = usecase(**payload)
+        assert len(first_files) == 1
+
+        second_form, second_files = usecase(**payload)
+
+        assert second_form.id == first_form.id
+        assert second_files == []
+        assert len([f for f in repo.forms if f.external_id == "OS-7514"]) == 1

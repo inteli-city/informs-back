@@ -27,3 +27,14 @@ def ensure_valid_sha256_checksum(value, label: str, *, allow_none: bool = False)
     except ValueError:
         # binascii.Error é subclasse de ValueError — capturar os dois é redundante.
         raise EntityError(f"{label} deve ser Base64 válido de 32 bytes")
+
+
+def ensure_str_list_dict(value, label: str) -> dict:
+    """Valida o formato `Dict[str, List[str]]` usado por `Form.attributes` e
+    `Profile.scope` (escopo genérico por atributos, especificação Uberlândia §7)."""
+    if not isinstance(value, dict):
+        raise EntityError(f"{label} deve ser um dicionário de listas de strings")
+    for key, values in value.items():
+        if not isinstance(key, str) or not isinstance(values, list) or not all(isinstance(v, str) for v in values):
+            raise EntityError(f"{label} deve ser um dicionário de listas de strings")
+    return value

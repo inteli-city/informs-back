@@ -1,17 +1,14 @@
-from .create_form_controller import CreateFormController
-from .create_form_usecase import CreateFormUsecase
+from .update_profile_controller import UpdateProfileController
+from .update_profile_usecase import UpdateProfileUsecase
 from src.shared.environments import Environments
 from src.shared.helpers.error_handler import lambda_error_handler
 from src.shared.helpers.logging_handler import lambda_logging_handler
 from src.shared.helpers.external_interfaces.http_lambda_requests import LambdaHttpRequest, LambdaHttpResponse
 
 
-repo = Environments.get_form_repo()
-file_repo = Environments.get_file_repo()
-template_repo = Environments.get_template_repo()
-system_config_repo = Environments.get_system_config_repo()
-usecase = CreateFormUsecase(repo, file_repo, template_repo, system_config_repo)
-controller = CreateFormController(usecase)
+repo = Environments.get_profile_repo()
+usecase = UpdateProfileUsecase(repo)
+controller = UpdateProfileController(usecase)
 
 
 @lambda_logging_handler
