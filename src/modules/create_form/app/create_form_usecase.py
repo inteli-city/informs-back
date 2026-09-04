@@ -8,11 +8,14 @@ from src.shared.domain.entities.information_field import FileInformationField, I
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.file_type_enum import FileType
+from src.shared.domain.enums.form_origin_enum import FormOrigin
 from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.enums.priority_enum import Priority
 from src.shared.domain.repositories.file_repository_interface import IFileRepository
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
+from src.shared.domain.repositories.system_config_repository_interface import ISystemConfigRepository
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
+from src.shared.helpers.errors.controller_errors import MissingParameters
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.helpers.functions.datetime_utils import now_timestamp_ms, utc_year
@@ -25,16 +28,24 @@ class CreateFormUsecase:
         form_repo: IFormRepository,
         file_repo: IFileRepository,
         template_repo: Optional[ITemplateRepository] = None,
+        system_config_repo: Optional[ISystemConfigRepository] = None,
     ):
         self.form_repo = form_repo
         self.file_repo = file_repo
         self.template_repo = template_repo
+        self.system_config_repo = system_config_repo
+
+    def _allows_unassigned_forms(self, system: str) -> bool:
+        if self.system_config_repo is None:
+            return False
+        config = self.system_config_repo.get_by_system(system)
+        return bool(config and config.allow_unassigned_forms)
 
     def __call__(
         self,
         form_title: str,
         created_by: str,
-        user_id: str,
+        user_id: Optional[str],
         system: str,
         street: str,
         city: str,
@@ -50,9 +61,24 @@ class CreateFormUsecase:
         information_fields: Optional[List[InformationField]] = None,
         information_fields_uploads: Optional[List[Optional[FileUploadRequest]]] = None,
         requester_systems: Optional[List[str]] = None,
+        external_id: Optional[str] = None,
+        origin: Optional[FormOrigin] = None,
+        service_type: Optional[str] = None,
+        occurred_at: Optional[int] = None,
+        scheduled_start_at: Optional[int] = None,
+        scheduled_end_at: Optional[int] = None,
+        attributes: Optional[dict] = None,
     ) -> tuple[Form, list[FileUpload]]:
         if requester_systems is not None and system not in requester_systems:
             raise ForbiddenAction("Usuário não tem permissão para acessar este sistema")
+
+        if external_id is not None:
+            existing_form = self.form_repo.get_form_by_external_id(system, external_id)
+            if existing_form is not None:
+                return existing_form, []
+
+        if user_id is None and not self._allows_unassigned_forms(system):
+            raise MissingParameters("user_id")
 
         form_id = str(uuid.uuid4())
         now_timestamp = now_timestamp_ms()
@@ -83,6 +109,13 @@ class CreateFormUsecase:
             expiration_date=expiration_date,
             justification=justification,
             information_fields=information_fields,
+            external_id=external_id,
+            origin=origin,
+            service_type=service_type,
+            occurred_at=occurred_at,
+            scheduled_start_at=scheduled_start_at,
+            scheduled_end_at=scheduled_end_at,
+            attributes=attributes,
         )
 
         created_form = self.form_repo.create_form(form)

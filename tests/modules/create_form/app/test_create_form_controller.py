@@ -5,15 +5,16 @@ sys.path.append(os.getcwd())
 
 from src.modules.create_form.app.create_form_controller import CreateFormController
 from src.modules.create_form.app.create_form_usecase import CreateFormUsecase
+from src.shared.domain.entities.system_config import SystemConfig
 from src.shared.helpers.external_interfaces.http_models import HttpRequest
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
+from src.shared.infra.repositories.system_config_repository_mock import SystemConfigRepositoryMock
 from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
 
 
-class TestCreateFormController:
-    def _make_base_body(self):
-        return {
+def _make_base_body():
+    return {
             "requester_user": {
                 "sub": "d61dbf66-a10f-11ed-a8fc-0242ac120001",
                 "name": "Gabriel Godoy",
@@ -53,12 +54,14 @@ class TestCreateFormController:
             "observation": "obs"
         }
 
+
+class TestCreateFormController:
     def test_create_form_controller_success(self):
         repo = FormRepositoryMock()
         file_repo = FileRepositoryMock()
         controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
-        request = HttpRequest(body=self._make_base_body())
+        request = HttpRequest(body=_make_base_body())
         response = controller(request)
 
         assert response.status_code == 201
@@ -72,7 +75,7 @@ class TestCreateFormController:
         file_repo = FileRepositoryMock()
         controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
-        body = self._make_base_body()
+        body = _make_base_body()
         body["information_fields"] = [
             {
                 "information_field_type": "FILE_INFORMATION_FIELD",
@@ -92,7 +95,7 @@ class TestCreateFormController:
         file_repo = FileRepositoryMock()
         controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
-        body = self._make_base_body()
+        body = _make_base_body()
         body["information_fields"] = [
             {
                 "information_field_type": "URL_INFORMATION_FIELD",
@@ -116,7 +119,7 @@ class TestCreateFormController:
         file_repo = FileRepositoryMock()
         controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
-        body = self._make_base_body()
+        body = _make_base_body()
         body.pop("information_fields")
         request = HttpRequest(body=body)
         response = controller(request)
@@ -130,7 +133,7 @@ class TestCreateFormController:
         file_repo = FileRepositoryMock()
         controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
-        body = self._make_base_body()
+        body = _make_base_body()
         body.pop("requester_user")
         request = HttpRequest(body=body)
 
@@ -143,7 +146,7 @@ class TestCreateFormController:
         file_repo = FileRepositoryMock()
         controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
-        body = self._make_base_body()
+        body = _make_base_body()
         body.pop("user_id")
         request = HttpRequest(body=body)
 
@@ -156,7 +159,7 @@ class TestCreateFormController:
         file_repo = FileRepositoryMock()
         controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
-        body = self._make_base_body()
+        body = _make_base_body()
         body.pop("system")
         request = HttpRequest(body=body)
 
@@ -169,7 +172,7 @@ class TestCreateFormController:
         file_repo = FileRepositoryMock()
         controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
-        body = self._make_base_body()
+        body = _make_base_body()
         body.pop("street")
         request = HttpRequest(body=body)
 
@@ -182,7 +185,7 @@ class TestCreateFormController:
         file_repo = FileRepositoryMock()
         controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
-        body = self._make_base_body()
+        body = _make_base_body()
         body.pop("city")
         request = HttpRequest(body=body)
 
@@ -195,7 +198,7 @@ class TestCreateFormController:
         file_repo = FileRepositoryMock()
         controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
-        body = self._make_base_body()
+        body = _make_base_body()
         body.pop("latitude")
         request = HttpRequest(body=body)
 
@@ -208,7 +211,7 @@ class TestCreateFormController:
         file_repo = FileRepositoryMock()
         controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
-        body = self._make_base_body()
+        body = _make_base_body()
         body.pop("longitude")
         request = HttpRequest(body=body)
 
@@ -221,7 +224,7 @@ class TestCreateFormController:
         file_repo = FileRepositoryMock()
         controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
-        body = self._make_base_body()
+        body = _make_base_body()
         body.pop("priority")
         request = HttpRequest(body=body)
 
@@ -234,7 +237,7 @@ class TestCreateFormController:
         file_repo = FileRepositoryMock()
         controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
-        body = self._make_base_body()
+        body = _make_base_body()
         body.pop("justifications")
         request = HttpRequest(body=body)
 
@@ -247,7 +250,7 @@ class TestCreateFormController:
         file_repo = FileRepositoryMock()
         controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
-        body = self._make_base_body()
+        body = _make_base_body()
         body.pop("sections")
         request = HttpRequest(body=body)
 
@@ -261,7 +264,7 @@ class TestCreateFormController:
         template_repo = TemplateRepositoryMock()
         controller = CreateFormController(CreateFormUsecase(repo, file_repo, template_repo))
 
-        body = self._make_base_body()
+        body = _make_base_body()
         body["template"] = template_repo.templates[0].id
         body.pop("sections")
         request = HttpRequest(body=body)
@@ -276,7 +279,7 @@ class TestCreateFormController:
         template_repo = TemplateRepositoryMock()
         controller = CreateFormController(CreateFormUsecase(repo, file_repo, template_repo))
 
-        body = self._make_base_body()
+        body = _make_base_body()
         body["template"] = "d61dbf66-a10f-11ed-a8fc-0242ac1200ab"
         body.pop("sections")
         request = HttpRequest(body=body)
@@ -290,7 +293,7 @@ class TestCreateFormController:
         file_repo = FileRepositoryMock()
         controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
-        body = self._make_base_body()
+        body = _make_base_body()
         body["priority"] = "INVALID"
         request = HttpRequest(body=body)
 
@@ -303,7 +306,7 @@ class TestCreateFormController:
         file_repo = FileRepositoryMock()
         controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
-        body = self._make_base_body()
+        body = _make_base_body()
         body["expiration_date"] = "invalid"
         request = HttpRequest(body=body)
 
@@ -316,7 +319,7 @@ class TestCreateFormController:
         file_repo = FileRepositoryMock()
         controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
-        body = self._make_base_body()
+        body = _make_base_body()
         body["latitude"] = "invalid"
         request = HttpRequest(body=body)
 
@@ -329,7 +332,7 @@ class TestCreateFormController:
         file_repo = FileRepositoryMock()
         controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
-        body = self._make_base_body()
+        body = _make_base_body()
         body["sections"] = [
             {
                 "section_id": 1,
@@ -362,10 +365,65 @@ class TestCreateFormController:
         file_repo = FileRepositoryMock()
         controller = CreateFormController(CreateFormUsecase(repo, file_repo))
 
-        body = self._make_base_body()
+        body = _make_base_body()
         body["requester_user"]["cognito:groups"] = "FORMULARIOS,ORION"
         request = HttpRequest(body=body)
 
         response = controller(request)
         assert response.status_code == 403
         assert "permissão" in response.body
+
+
+class TestCreateFormControllerUberlandiaPool:
+    """Especificação Uberlândia §6/§9.1: `user_id` opcional (pool) + campos novos."""
+
+    def test_missing_user_id_with_allow_unassigned_forms_creates_pool_form(self):
+        repo = FormRepositoryMock()
+        file_repo = FileRepositoryMock()
+        system_config_repo = SystemConfigRepositoryMock()
+        system_config_repo.put(SystemConfig(system="GAIA", created_at=1, updated_at=1, allow_unassigned_forms=True))
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo, system_config_repo=system_config_repo))
+
+        body = _make_base_body()
+        body.pop("user_id")
+        request = HttpRequest(body=body)
+
+        response = controller(request)
+        assert response.status_code == 201
+        assert response.body["user_id"] is None
+
+    def test_invalid_origin_returns_bad_request(self):
+        repo = FormRepositoryMock()
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
+
+        body = _make_base_body()
+        body["origin"] = "NOT_A_VALID_ORIGIN"
+        request = HttpRequest(body=body)
+
+        response = controller(request)
+        assert response.status_code == 400
+
+    def test_new_fields_are_returned_in_response(self):
+        repo = FormRepositoryMock()
+        file_repo = FileRepositoryMock()
+        controller = CreateFormController(CreateFormUsecase(repo, file_repo))
+
+        body = _make_base_body()
+        body.update(
+            external_id="OS-7514",
+            origin="CITIZEN",
+            service_type="tapa-buraco",
+            occurred_at=1,
+            scheduled_start_at=2,
+            scheduled_end_at=3,
+            attributes={"bairro": ["Santa Mônica"]},
+        )
+        request = HttpRequest(body=body)
+
+        response = controller(request)
+        assert response.status_code == 201
+        assert response.body["external_id"] == "OS-7514"
+        assert response.body["origin"] == "CITIZEN"
+        assert response.body["service_type"] == "tapa-buraco"
+        assert response.body["attributes"] == {"bairro": ["Santa Mônica"]}

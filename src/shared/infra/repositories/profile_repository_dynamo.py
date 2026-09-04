@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Dict, List, Optional
 
 from src.shared.domain.entities.profile import Profile
 from src.shared.domain.enums.profile_role_enum import ProfileRole
@@ -93,3 +93,34 @@ class ProfileRepositoryDynamo(IProfileRepository):
             if not last_evaluated_key:
                 break
         return total
+
+    def update_profile(
+        self,
+        user_id: str,
+        role: Optional[ProfileRole] = None,
+        scope: Optional[Dict[str, List[str]]] = None,
+        updated_at: Optional[int] = None,
+    ) -> Profile:
+        update_dict = {}
+        if role is not None:
+            update_dict["role"] = role.value
+            update_dict["GSI1PK"] = ProfileDynamoDTO.build_gsi1_pk(role)
+        if scope is not None:
+            update_dict["scope"] = scope
+        if updated_at is not None:
+            update_dict["updated_at"] = updated_at
+
+        try:
+            resp = self.dynamo.update_item(
+                partition_key=ProfileDynamoDTO.build_pk(user_id),
+                sort_key=ProfileDynamoDTO.build_sk(),
+                update_dict=update_dict,
+                condition_expression="attribute_exists(PK)",
+            )
+        except self.dynamo.dynamo_table.meta.client.exceptions.ConditionalCheckFailedException as exc:
+            raise NoItemsFound(f"Perfil não encontrado para user_id={user_id}") from exc
+
+        item = resp.get("Attributes")
+        if item is None:
+            raise NoItemsFound(f"Perfil não encontrado para user_id={user_id}")
+        return ProfileDynamoDTO.from_dynamo(item).to_entity()

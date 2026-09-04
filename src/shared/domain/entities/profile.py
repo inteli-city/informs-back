@@ -1,7 +1,8 @@
 import abc
-from typing import Optional
+from typing import Dict, List, Optional
 
 from src.shared.domain.enums.profile_role_enum import ProfileRole
+from src.shared.domain.validators import ensure_str_list_dict
 from src.shared.helpers.errors.domain_errors import EntityError
 
 
@@ -29,6 +30,7 @@ class Profile(abc.ABC):
     active: bool
     created_at: int
     updated_at: int
+    scope: Dict[str, List[str]]
 
     def __init__(
         self,
@@ -41,6 +43,7 @@ class Profile(abc.ABC):
         created_at: int,
         updated_at: int,
         vehicle_plate: Optional[str] = None,
+        scope: Optional[Dict[str, List[str]]] = None,
     ):
         # Cada validação fica num método auxiliar pra manter o construtor
         # com baixa cognitive complexity (regra python:S3776).
@@ -53,6 +56,9 @@ class Profile(abc.ABC):
         self.active = self._validate_active(active)
         self.created_at = self._validate_timestamp(created_at, label="criação")
         self.updated_at = self._validate_timestamp(updated_at, label="atualização")
+        # Escopo genérico por atributos (especificação Uberlândia §7) — vazio
+        # equivale a "sem restrição", o comportamento atual de Gaia/Geovista/SGC.
+        self.scope = ensure_str_list_dict(scope if scope is not None else {}, "scope")
 
     # --- Validações --------------------------------------------------------
 

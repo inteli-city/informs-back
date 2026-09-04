@@ -36,6 +36,7 @@ class ProfileResponseSchema(ResponseContractModel):
     active: bool
     created_at: int
     updated_at: int
+    scope: dict[str, list[str]] = Field(default_factory=dict)
 
 
 class CreateProfileResponseSchema(ProfileResponseSchema):
@@ -56,3 +57,18 @@ class DeleteProfileResponseSchema(ResponseContractModel):
     user_id: str
     active: bool
     updated_at: int
+
+
+class UpdateProfileRequestSchema(RequestContractModel):
+    """
+    Body do PUT /profiles/{user_id}. Integração Apex (especificação
+    Uberlândia §7.4) — empurra `role`/`scope` quando a permissão regional
+    muda. Apenas ADMIN ativo pode chamar (validado no controller).
+    """
+
+    role: str = Field(pattern="^(ADMIN|INSPECTOR|MANAGER|SUPERVISOR)$")
+    scope: dict[str, list[str]] = Field(default_factory=dict)
+
+
+class UpdateProfileResponseSchema(ProfileResponseSchema):
+    pass

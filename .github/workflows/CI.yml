@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip==26.2.1
-          pip install --only-binary :all: -r requirements.txt
+          pip install --only-binary :all: --require-hashes -r requirements.txt
       - name: Generate OpenAPI from Pydantic Contracts
         run: |
           pip install --only-binary :all: pydantic==2.9.2
@@ -36,7 +36,7 @@ jobs:
           STAGE: TEST
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@ab904c41d6ece82784817410c45d8b8c02684457 # v3
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -53,7 +53,8 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install uv
-        run: pip install --only-binary :all: uv==0.12.7
+        run: |
+          pip install --only-binary :all: uv==0.12.7
       - name: Install ws_server deps from lock
         run: |
           cd ws_server

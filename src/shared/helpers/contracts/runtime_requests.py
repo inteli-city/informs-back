@@ -7,7 +7,7 @@ from src.shared.helpers.contracts.endpoints.cancel_form_contract import CancelFo
 from src.shared.helpers.contracts.endpoints.create_form_contract import CreateFormRequestSchema
 from src.shared.helpers.contracts.endpoints.create_template_contract import CreateTemplateRequestSchema
 from src.shared.helpers.contracts.endpoints.plan_route_contract import PlanRouteRequestSchema
-from src.shared.helpers.contracts.endpoints.profile_contract import CreateProfileRequestSchema
+from src.shared.helpers.contracts.endpoints.profile_contract import CreateProfileRequestSchema, UpdateProfileRequestSchema
 from src.shared.helpers.contracts.endpoints.refresh_presign_contract import RefreshPresignRequestSchema
 from src.shared.helpers.contracts.endpoints.start_form_contract import StartFormRequestSchema
 from src.shared.helpers.contracts.endpoints.submit_form_contract import SubmitFormFieldFlatSchema, SubmitFormRequestSchema
@@ -102,6 +102,11 @@ class LoginProfileControllerRequestSchema(RequestContractModel):
 
 
 class DeleteProfileControllerRequestSchema(RequestContractModel):
+    requester_user: RequesterUserSchema
+    user_id: str
+
+
+class UpdateProfileControllerRequestSchema(UpdateProfileRequestSchema):
     requester_user: RequesterUserSchema
     user_id: str
 

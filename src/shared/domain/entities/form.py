@@ -8,9 +8,10 @@ from src.shared.domain.entities.information_field import InformationField
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import MAX_SECTION_INSTANCE, Section
 from src.shared.domain.entities.stored_file import StoredFile
+from src.shared.domain.enums.form_origin_enum import FormOrigin
 from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.enums.priority_enum import Priority
-from src.shared.domain.validators import ensure_non_negative_int
+from src.shared.domain.validators import ensure_non_negative_int, ensure_str_list_dict
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction
 
@@ -42,6 +43,14 @@ class Form(abc.ABC):
     sections: List[Section]
     justification: Justification
     information_fields: Optional[List[InformationField]]
+    external_id: Optional[str]
+    origin: Optional[FormOrigin]
+    service_type: Optional[str]
+    occurred_at: Optional[int]
+    scheduled_start_at: Optional[int]
+    scheduled_end_at: Optional[int]
+    attributes: Dict[str, List[str]]
+    completed_by: Optional[str]
 
     ID_LENGTH = 36
 
@@ -58,7 +67,6 @@ class Form(abc.ABC):
     def __init__(
         self,
         form_title: str,
-        user_id: str,
         created_by: str,
         system: str,
         city: str,
@@ -71,6 +79,7 @@ class Form(abc.ABC):
         updated_at: int,
         sections: List[Section],
         id: Optional[str] = None,
+        user_id: Optional[str] = None,
         template: Optional[str] = None,
         area: Optional[str] = None,
         number: Optional[int] = None,
@@ -81,6 +90,14 @@ class Form(abc.ABC):
         completed_at: Optional[int] = None,
         justification: Optional[Justification] = None,
         information_fields: Optional[List[InformationField]] = None,
+        external_id: Optional[str] = None,
+        origin: Optional[FormOrigin] = None,
+        service_type: Optional[str] = None,
+        occurred_at: Optional[int] = None,
+        scheduled_start_at: Optional[int] = None,
+        scheduled_end_at: Optional[int] = None,
+        attributes: Optional[Dict[str, List[str]]] = None,
+        completed_by: Optional[str] = None,
     ):
 
         # Validação dividida em blocos para manter a complexidade de cada
@@ -90,6 +107,10 @@ class Form(abc.ABC):
         self._init_priority_status(priority, observation, expiration_date, status)
         self._init_timestamps(in_progress_at, cancelled_at, completed_at, created_at, updated_at)
         self._init_content(justification, sections, template, information_fields)
+        self._init_integration_fields(
+            external_id, origin, service_type, occurred_at,
+            scheduled_start_at, scheduled_end_at, attributes, completed_by,
+        )
 
     def _init_identity(self, form_title, id, user_id, created_by, template):
         if not isinstance(form_title, str):
@@ -100,7 +121,7 @@ class Form(abc.ABC):
             raise EntityError('ID do formulário inválido ou ausente')
         self.id = id
 
-        if not Form.validate_id(user_id):
+        if user_id is not None and not Form.validate_id(user_id):
             raise EntityError('ID do usuário inválido ou ausente')
         self.user_id = user_id
 
@@ -199,6 +220,41 @@ class Form(abc.ABC):
             if not isinstance(information_fields, list) or not all(isinstance(information_field, InformationField) for information_field in information_fields):
                 raise EntityError('Campos informativos devem ser uma lista válida')
         self.information_fields = information_fields
+
+    def _init_integration_fields(
+        self, external_id, origin, service_type, occurred_at,
+        scheduled_start_at, scheduled_end_at, attributes, completed_by,
+    ):
+        """Campos opcionais da integração com sistemas origem (especificação
+        Uberlândia §8) — nenhum deles é exigido pelo contrato atual (Gaia)."""
+        if external_id is not None and not isinstance(external_id, str):
+            raise EntityError('external_id deve ser uma string')
+        self.external_id = external_id
+
+        if origin is not None and not isinstance(origin, FormOrigin):
+            raise EntityError('origin inválido')
+        self.origin = origin
+
+        if service_type is not None and not isinstance(service_type, str):
+            raise EntityError('service_type deve ser uma string')
+        self.service_type = service_type
+
+        for label, value in (
+            ('occurred_at', occurred_at),
+            ('scheduled_start_at', scheduled_start_at),
+            ('scheduled_end_at', scheduled_end_at),
+        ):
+            if value is not None and not isinstance(value, int):
+                raise EntityError(f'{label} deve ser um timestamp inteiro')
+        self.occurred_at = occurred_at
+        self.scheduled_start_at = scheduled_start_at
+        self.scheduled_end_at = scheduled_end_at
+
+        self.attributes = ensure_str_list_dict(attributes if attributes is not None else {}, 'attributes')
+
+        if completed_by is not None and not Form.validate_id(completed_by):
+            raise EntityError('ID de quem concluiu inválido')
+        self.completed_by = completed_by
 
     @staticmethod
     def validate_id(id_to_validate: str) -> bool:
@@ -437,11 +493,13 @@ class Form(abc.ABC):
                 if field.required and field.value is None:
                     raise EntityError("Campo obrigatório não preenchido")
 
-    def complete(self, completed_at: int, updated_at: int):
+    def complete(self, completed_at: int, updated_at: int, completed_by: Optional[str] = None):
         if not isinstance(completed_at, int):
             raise EntityError('Timestamp de conclusão deve ser um inteiro')
         if not isinstance(updated_at, int):
             raise EntityError(_ERR_UPDATED_AT_MUST_BE_INT)
+        if completed_by is not None and not Form.validate_id(completed_by):
+            raise EntityError('ID de quem concluiu inválido')
         if self.status is not FormStatus.IN_PROGRESS:
             raise ForbiddenAction("Formulário não está em andamento")
 
@@ -449,6 +507,7 @@ class Form(abc.ABC):
         self.status = FormStatus.COMPLETED
         self.completed_at = completed_at
         self.updated_at = updated_at
+        self.completed_by = completed_by
 
     def cancel(
         self,

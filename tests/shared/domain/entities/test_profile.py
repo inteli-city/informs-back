@@ -83,3 +83,23 @@ class TestProfile:
         bad_timestamp = cast(int, "now")
         with pytest.raises(EntityError):
             profile.deactivate(updated_at=bad_timestamp)
+
+
+class TestProfileScope:
+    """Especificação Uberlândia §7: `scope` vazio = sem restrição (comportamento atual)."""
+
+    def test_scope_defaults_to_empty_dict(self):
+        profile = Profile(**_kwargs())
+        assert profile.scope == {}
+
+    def test_scope_accepts_custom_value(self):
+        profile = Profile(**_kwargs(scope={"bairro": ["Santa Mônica", "Tibery"]}))
+        assert profile.scope == {"bairro": ["Santa Mônica", "Tibery"]}
+
+    def test_scope_rejects_malformed_value(self):
+        with pytest.raises(EntityError):
+            Profile(**_kwargs(scope={"bairro": "Santa Mônica"}))
+
+    def test_manager_and_supervisor_roles_are_valid(self):
+        assert Profile(**_kwargs(role=ProfileRole.MANAGER)).role == ProfileRole.MANAGER
+        assert Profile(**_kwargs(role=ProfileRole.SUPERVISOR)).role == ProfileRole.SUPERVISOR

@@ -5,6 +5,7 @@ from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.information_field import FileInformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption, SelectedJustification
 from src.shared.domain.entities.section import MAX_SECTION_INSTANCE, Section
+from src.shared.domain.enums.form_origin_enum import FormOrigin
 from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.enums.priority_enum import Priority
 from src.shared.helpers.errors.domain_errors import EntityError
@@ -233,3 +234,64 @@ class TestFormApplyFieldValues:
             {"section_id": 1, "field_key": "obs", "value": "ok"},
         ])
         assert form.sections[0].fields[0].value == "João"
+
+
+class TestFormUberlandiaFields:
+    """Especificação Uberlândia §6/§8: `user_id` opcional (pool) + campos novos."""
+
+    def test_accepts_user_id_none(self):
+        form = make_form(user_id=None, justification=justification)
+        assert form.user_id is None
+
+    def test_rejects_invalid_user_id_when_not_none(self):
+        with pytest.raises(EntityError):
+            make_form(user_id="not-a-valid-uuid", justification=justification)
+
+    def test_new_fields_default_to_none_or_empty(self):
+        form = make_form(justification=justification)
+        assert form.external_id is None
+        assert form.origin is None
+        assert form.service_type is None
+        assert form.occurred_at is None
+        assert form.scheduled_start_at is None
+        assert form.scheduled_end_at is None
+        assert form.attributes == {}
+        assert form.completed_by is None
+
+    def test_accepts_all_new_fields_set(self):
+        form = make_form(
+            external_id="OS-7514",
+            origin=FormOrigin.CITIZEN,
+            service_type="tapa-buraco",
+            occurred_at=1,
+            scheduled_start_at=2,
+            scheduled_end_at=3,
+            attributes={"bairro": ["Santa Mônica"]},
+            justification=justification,
+        )
+        assert form.external_id == "OS-7514"
+        assert form.origin == FormOrigin.CITIZEN
+        assert form.attributes == {"bairro": ["Santa Mônica"]}
+
+    def test_rejects_malformed_attributes(self):
+        with pytest.raises(EntityError):
+            make_form(attributes={"bairro": "Santa Mônica"}, justification=justification)
+
+    def test_rejects_origin_not_enum(self):
+        with pytest.raises(EntityError):
+            make_form(origin="CITIZEN", justification=justification)
+
+    def test_complete_sets_completed_by(self):
+        form = make_form(status=FormStatus.IN_PROGRESS, justification=justification)
+        form.complete(completed_at=1, updated_at=1, completed_by=valid_id)
+        assert form.completed_by == valid_id
+
+    def test_complete_without_completed_by_keeps_none(self):
+        form = make_form(status=FormStatus.IN_PROGRESS, justification=justification)
+        form.complete(completed_at=1, updated_at=1)
+        assert form.completed_by is None
+
+    def test_complete_rejects_invalid_completed_by(self):
+        form = make_form(status=FormStatus.IN_PROGRESS, justification=justification)
+        with pytest.raises(EntityError):
+            form.complete(completed_at=1, updated_at=1, completed_by="not-a-valid-uuid")

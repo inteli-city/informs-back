@@ -145,3 +145,68 @@ class TestFormRepositoryMock:
                 updated_at=1,
                 expected_status=FormStatus.COMPLETED,
             )
+
+    def test_form_repository_mock_update_form_sets_completed_by(self):
+        repo = FormRepositoryMock()
+        form = repo.update_form(
+            user_id='d61dbf66-a10f-11ed-a8fc-0242ac120001',
+            form_id=repo.forms[0].id,
+            completed_by='d61dbf66-a10f-11ed-a8fc-0242ac120001',
+            updated_at=1,
+        )
+        assert form.completed_by == 'd61dbf66-a10f-11ed-a8fc-0242ac120001'
+
+
+class TestFormRepositoryMockExternalIdIdempotency:
+    """Especificação Uberlândia §9.1: `create_form` idempotente por (system, external_id)."""
+
+    def _form(self, **overrides) -> Form:
+        text_field = TextField(label='label', required=True, key='key', order=1, regex='regex', max_length=10, value='value')
+        section = Section(section_id=1, fields=[text_field])
+        base = dict(
+            id='d61dbf66-a10f-11ed-a8fc-0242ac120020',
+            form_title='FORM TITLE',
+            created_by='d61dbf66-a10f-11ed-a8fc-0242ac120001',
+            user_id=None,
+            system='UBERLANDIA',
+            street='1',
+            city='1',
+            latitude=1.0,
+            longitude=1.0,
+            priority=Priority.EMERGENCY,
+            status=FormStatus.PENDING,
+            created_at=1,
+            updated_at=1,
+            justification=justification,
+            sections=[section],
+            external_id='OS-7514',
+        )
+        base.update(overrides)
+        return Form(**base)
+
+    def test_create_form_without_external_id_is_not_idempotent(self):
+        repo = FormRepositoryMock()
+        form = self._form(external_id=None)
+
+        created = repo.create_form(form)
+
+        assert created.id == form.id
+        assert repo.get_form_by_external_id('UBERLANDIA', 'OS-7514') is None
+
+    def test_create_form_replay_with_same_external_id_returns_existing_form(self):
+        repo = FormRepositoryMock()
+        first = repo.create_form(self._form())
+        replay = self._form(id='d61dbf66-a10f-11ed-a8fc-0242ac120021')
+
+        second = repo.create_form(replay)
+
+        assert second.id == first.id
+        assert len([f for f in repo.forms if f.external_id == 'OS-7514']) == 1
+
+    def test_get_form_by_external_id_found_and_not_found(self):
+        repo = FormRepositoryMock()
+        repo.create_form(self._form())
+
+        assert repo.get_form_by_external_id('UBERLANDIA', 'OS-7514') is not None
+        assert repo.get_form_by_external_id('UBERLANDIA', 'OS-UNKNOWN') is None
+        assert repo.get_form_by_external_id('GAIA', 'OS-7514') is None

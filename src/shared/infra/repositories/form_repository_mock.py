@@ -226,10 +226,20 @@ class FormRepositoryMock(IFormRepository):
         }
         return encode_pagination_token(next_key)
     
+    def get_form_by_external_id(self, system: str, external_id: str) -> Optional[Form]:
+        for form in self.forms:
+            if form.system == system and form.external_id == external_id:
+                return deepcopy(form)
+        return None
+
     def create_form(self, form: Form) -> Form:
         for item in self.forms:
             if form.id == item.id:
                 raise DuplicatedItem('Formulário já existe')
+        if form.external_id is not None:
+            existing = self.get_form_by_external_id(form.system, form.external_id)
+            if existing is not None:
+                return existing
         self.forms.append(deepcopy(form))
         return form
 
@@ -245,6 +255,7 @@ class FormRepositoryMock(IFormRepository):
         sections: Optional[List[Section]] = None,
         justification: Optional[Justification] = None,
         expected_status: Optional[FormStatus] = None,
+        completed_by: Optional[str] = None,
     ) -> Optional[Form]:
         form = next((f for f in self.forms if f.id == form_id), None)
         if form is None:
@@ -260,6 +271,7 @@ class FormRepositoryMock(IFormRepository):
             "updated_at": updated_at,
             "sections": sections,
             "justification": justification,
+            "completed_by": completed_by,
         }
         for attr, new_value in updates.items():
             if new_value is not None:

@@ -9,6 +9,7 @@ from src.shared.domain.repositories.profile_repository_interface import IProfile
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
 from src.shared.domain.repositories.sync_state_repository_interface import ISyncStateRepository
 from src.shared.domain.repositories.sync_error_form_repository_interface import ISyncErrorFormRepository
+from src.shared.domain.repositories.system_config_repository_interface import ISystemConfigRepository
 
 class Stage(Enum):
     DOTENV = "DOTENV"
@@ -207,6 +208,17 @@ class Environments:
         elif Environments.get_envs().stage in [Stage.PROD, Stage.DEV, Stage.HOMOLOG]:
             from src.shared.infra.repositories.sync_error_form_repository_dynamo import SyncErrorFormRepositoryDynamo
             return SyncErrorFormRepositoryDynamo()
+        else:
+            raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
+
+    @staticmethod
+    def get_system_config_repo() -> ISystemConfigRepository:
+        if Environments.get_envs().stage in [Stage.TEST, Stage.DOTENV]:
+            from src.shared.infra.repositories.system_config_repository_mock import SystemConfigRepositoryMock
+            return SystemConfigRepositoryMock()
+        elif Environments.get_envs().stage in [Stage.PROD, Stage.DEV, Stage.HOMOLOG]:
+            from src.shared.infra.repositories.system_config_repository_dynamo import SystemConfigRepositoryDynamo
+            return SystemConfigRepositoryDynamo()
         else:
             raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
 

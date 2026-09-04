@@ -14,6 +14,7 @@ from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.information_field import TextInformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption
 from src.shared.domain.entities.section import Section
+from src.shared.domain.enums.form_origin_enum import FormOrigin
 from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.enums.priority_enum import Priority
 from src.shared.infra.dtos.form_dynamo_dto import FormDynamoDTO
@@ -222,3 +223,54 @@ class TestFormDynamoDTO:
         form = _build_form_dto().to_entity()
         _assert_object_attrs(form)
         assert form.updated_at == SAMPLE_TS  # to_entity-specific extra check
+
+
+class TestFormDynamoDTOUberlandiaFields:
+    """Especificação Uberlândia §6/§8: round-trip dos campos novos, e resiliência
+    de `from_dynamo` para itens antigos gravados antes desses campos existirem."""
+
+    def _uberlandia_kwargs(self) -> dict:
+        kwargs = _common_kwargs()
+        kwargs.update(
+            user_id=None,
+            external_id="OS-7514",
+            origin=FormOrigin.CITIZEN,
+            service_type="tapa-buraco",
+            occurred_at=1,
+            scheduled_start_at=2,
+            scheduled_end_at=3,
+            attributes={"bairro": ["Santa Mônica"]},
+            completed_by=SAMPLE_ID,
+        )
+        return kwargs
+
+    def test_round_trip_preserves_new_fields(self):
+        form = Form(**self._uberlandia_kwargs())
+        item = FormDynamoDTO.from_entity(form).to_dynamo()
+        item["PK"] = f"form#{SAMPLE_ID}"
+        item["SK"] = "METADATA"
+
+        rebuilt = FormDynamoDTO.from_dynamo(item).to_entity()
+
+        assert rebuilt.user_id is None
+        assert rebuilt.external_id == "OS-7514"
+        assert rebuilt.origin == FormOrigin.CITIZEN
+        assert rebuilt.service_type == "tapa-buraco"
+        assert rebuilt.occurred_at == 1
+        assert rebuilt.scheduled_start_at == 2
+        assert rebuilt.scheduled_end_at == 3
+        assert rebuilt.attributes == {"bairro": ["Santa Mônica"]}
+        assert rebuilt.completed_by == SAMPLE_ID
+
+    def test_from_dynamo_of_legacy_item_without_new_fields(self):
+        legacy_item = _dynamo_dict()  # item real, gravado antes destes campos existirem
+        form = FormDynamoDTO.from_dynamo(legacy_item).to_entity()
+
+        assert form.external_id is None
+        assert form.origin is None
+        assert form.service_type is None
+        assert form.occurred_at is None
+        assert form.scheduled_start_at is None
+        assert form.scheduled_end_at is None
+        assert form.attributes == {}
+        assert form.completed_by is None

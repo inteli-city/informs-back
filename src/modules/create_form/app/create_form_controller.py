@@ -5,6 +5,7 @@ from .create_form_viewmodel import CreateFormViewmodel
 from src.shared.domain.entities.file_upload import FileUploadRequest
 from src.shared.domain.entities.information_field import FileInformationField
 from src.shared.domain.enums.file_type_enum import FileType
+from src.shared.domain.enums.form_origin_enum import FormOrigin
 from src.shared.domain.enums.priority_enum import Priority
 from src.shared.helpers.controller_error_handler import controller_error_handler
 from src.shared.helpers.contracts.runtime_requests import CreateFormControllerRequestSchema
@@ -76,6 +77,13 @@ class CreateFormController:
             payload.template,
             information_fields,
             information_fields_uploads,
+            payload.external_id,
+            FormOrigin(payload.origin) if payload.origin is not None else None,
+            payload.service_type,
+            payload.occurred_at,
+            payload.scheduled_start_at,
+            payload.scheduled_end_at,
+            payload.attributes,
         )
 
     @controller_error_handler
@@ -101,6 +109,13 @@ class CreateFormController:
                 template,
                 information_fields,
                 information_fields_uploads,
+                external_id,
+                origin,
+                service_type,
+                occurred_at,
+                scheduled_start_at,
+                scheduled_end_at,
+                attributes,
             ) = self._build_usecase_payload(payload)
 
             form, files = self.usecase(
@@ -122,6 +137,13 @@ class CreateFormController:
                 information_fields=information_fields,
                 information_fields_uploads=information_fields_uploads,
                 requester_systems=requester_user.systems,
+                external_id=external_id,
+                origin=origin,
+                service_type=service_type,
+                occurred_at=occurred_at,
+                scheduled_start_at=scheduled_start_at,
+                scheduled_end_at=scheduled_end_at,
+                attributes=attributes,
             )
 
             viewmodel = CreateFormViewmodel(form=form, files=files)
