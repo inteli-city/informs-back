@@ -53,7 +53,8 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install uv
-        run: pip install --only-binary :all: uv==0.12.7
+        run: |
+          pip install --only-binary :all: uv==0.12.7
       - name: Install ws_server deps from lock
         run: |
           cd ws_server
