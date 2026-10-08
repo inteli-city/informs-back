@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 from src.shared.domain.entities.section import Section
+from src.shared.domain.entities.justification import JustificationOption
 from src.shared.domain.entities.template import Template
 from src.shared.infra.dtos.section_dto import SectionDTO
 
@@ -27,6 +28,7 @@ class TemplateDynamoDTO:
         updated_at: int,
         sections: List[Section],
         description: Optional[str] = None,
+        justification_options: Optional[List[JustificationOption]] = None,
     ):
         self.id = id
         self.name = name
@@ -37,6 +39,7 @@ class TemplateDynamoDTO:
         self.created_at = created_at
         self.updated_at = updated_at
         self.sections = sections
+        self.justification_options = justification_options or []
 
     @staticmethod
     def from_entity(template: Template) -> "TemplateDynamoDTO":
@@ -50,6 +53,7 @@ class TemplateDynamoDTO:
             created_at=template.created_at,
             updated_at=template.updated_at,
             sections=template.sections,
+            justification_options=template.justification_options,
         )
 
     def to_dynamo(self) -> dict:
@@ -62,6 +66,10 @@ class TemplateDynamoDTO:
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "sections": [SectionDTO.from_entity(section).to_dynamo() for section in self.sections],
+            "justification_options": [
+                {"option": o.option, "required_image": o.required_image, "required_text": o.required_text}
+                for o in self.justification_options
+            ],
         }
 
     @staticmethod
@@ -80,6 +88,14 @@ class TemplateDynamoDTO:
             created_at=int(data["created_at"]),
             updated_at=int(data["updated_at"]),
             sections=[SectionDTO.from_dynamo(section).to_entity() for section in data["sections"]],
+            justification_options=[
+                JustificationOption(
+                    option=item["option"],
+                    required_image=bool(item.get("required_image", False)),
+                    required_text=bool(item.get("required_text", False)),
+                )
+                for item in data.get("justification_options") or []
+            ],
         )
 
     def to_entity(self) -> Template:
@@ -93,4 +109,5 @@ class TemplateDynamoDTO:
             created_at=self.created_at,
             updated_at=self.updated_at,
             sections=self.sections,
+            justification_options=self.justification_options,
         )

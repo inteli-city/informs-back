@@ -7,7 +7,7 @@ from src.shared.helpers.external_interfaces.http_lambda_requests import LambdaHt
 
 
 repo = Environments.get_template_repo()
-usecase = CreateTemplateUsecase(repo)
+usecase = CreateTemplateUsecase(repo, Environments.get_profile_repo())
 controller = CreateTemplateController(usecase)
 
 

@@ -83,7 +83,9 @@ class CreateFormUsecase:
         form_id = str(uuid.uuid4())
         now_timestamp = now_timestamp_ms()
 
-        resolved_sections = self._resolve_sections(template, system, sections)
+        template_entity = self._load_template(template, system)
+        resolved_sections = deepcopy(template_entity.sections) if template_entity else sections
+        justification = self._inherit_justification(justification, template_entity)
         files = self._process_information_field_uploads(
             information_fields, information_fields_uploads, system, form_id
         )
@@ -121,9 +123,18 @@ class CreateFormUsecase:
         created_form = self.form_repo.create_form(form)
         return created_form, files
 
-    def _resolve_sections(self, template: Optional[str], system: str, sections: List[Section]) -> List[Section]:
+    @staticmethod
+    def _inherit_justification(justification: Justification, template_entity) -> Justification:
+        """Sem motivos de cancelamento próprios (o app manda um placeholder com
+        opção em branco), o formulário herda os do template."""
+        own = [option for option in justification.options if option.option.strip()]
+        if own or template_entity is None or not template_entity.justification_options:
+            return justification
+        return Justification(options=deepcopy(template_entity.justification_options))
+
+    def _load_template(self, template: Optional[str], system: str):
         if template is None:
-            return sections
+            return None
         if self.template_repo is None:
             raise EntityError("template")
         resolved_template = self.template_repo.get_template(template)
@@ -133,7 +144,7 @@ class CreateFormUsecase:
             raise ForbiddenAction("Template não pertence ao sistema informado")
         if not resolved_template.is_active:
             raise ForbiddenAction("Template não está ativo")
-        return deepcopy(resolved_template.sections)
+        return resolved_template
 
     def _process_information_field_uploads(
         self,

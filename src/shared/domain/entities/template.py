@@ -3,6 +3,7 @@ from uuid import uuid4
 from datetime import datetime, timezone
 import uuid
 
+from src.shared.domain.entities.justification import JustificationOption
 from src.shared.domain.entities.section import Section
 from src.shared.helpers.errors.domain_errors import EntityError
 
@@ -31,6 +32,7 @@ class Template:
         id: Optional[str] = None,
         created_at: Optional[int] = None,
         updated_at: Optional[int] = None,
+        justification_options: Optional[List[JustificationOption]] = None,
     ):
         template_identifier = id or str(uuid.uuid4())
         self._validate_id(template_identifier)
@@ -59,6 +61,10 @@ class Template:
 
         self._validate_sections(sections)
         self.sections = sections
+
+        # Motivos de cancelamento que todo formulário criado a partir deste
+        # template herda (quando o criador não manda os próprios).
+        self.justification_options = self._validate_justification_options(justification_options)
 
     @staticmethod
     def _validate_id(id_to_validate: str) -> None:
@@ -104,6 +110,22 @@ class Template:
     def _validate_sections(sections: List[Section]) -> None:
         if not isinstance(sections, list) or not sections or not all(isinstance(section, Section) for section in sections):
             raise EntityError("Seções devem ser uma lista não vazia de seções válidas")
+
+    @staticmethod
+    def _validate_justification_options(options: Optional[List[JustificationOption]]) -> List[JustificationOption]:
+        if options is None:
+            return []
+        if not isinstance(options, list) or not all(isinstance(option, JustificationOption) for option in options):
+            raise EntityError("Motivos de cancelamento devem ser uma lista de opções válidas")
+        labels = [option.option.strip() for option in options]
+        if any(not label for label in labels):
+            raise EntityError("Motivo de cancelamento não pode ser vazio")
+        if len(set(labels)) != len(labels):
+            raise EntityError("Motivos de cancelamento repetidos")
+        return options
+
+    def change_justification_options(self, options: List[JustificationOption]):
+        self.justification_options = self._validate_justification_options(options)
 
     @staticmethod
     def validate_id(id_to_validate: str) -> bool:

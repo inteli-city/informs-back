@@ -14,6 +14,7 @@ from src.shared.helpers.contracts.endpoints.refresh_presign_contract import Refr
 from src.shared.helpers.contracts.endpoints.start_form_contract import StartFormRequestSchema
 from src.shared.helpers.contracts.endpoints.submit_form_contract import SubmitFormFieldFlatSchema, SubmitFormRequestSchema
 from src.shared.helpers.contracts.endpoints.location_history_contract import LocationHistoryRequestSchema
+from src.shared.helpers.contracts.schemas.justification import JustificationOptionSchema
 from src.shared.helpers.contracts.schemas.template import TemplateSectionSchema
 
 
@@ -53,6 +54,7 @@ class UpdateTemplateControllerRequestSchema(RequestContractModel):
         serialization_alias="is_active",
     )
     sections: list[TemplateSectionSchema] | None = None
+    justification_options: list[JustificationOptionSchema] | None = None
 
 
 class StartFormControllerRequestSchema(StartFormRequestSchema):

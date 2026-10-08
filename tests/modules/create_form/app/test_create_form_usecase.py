@@ -116,6 +116,33 @@ class TestCreateFormUsecase:
         assert form.sections[0].section_id == template_repo.templates[0].sections[0].section_id
         assert files == []
 
+    def test_form_without_own_reasons_inherits_template_reasons(self):
+        usecase, payload, template_repo = _make_usecase_and_payload()
+        template = template_repo.templates[0]
+        template.justification_options = [JustificationOption(option="Local inacessível", required_image=True, required_text=False)]
+        payload = deepcopy(payload)
+        payload["template"] = template.id
+        payload["sections"] = []
+        # O app manda um placeholder com opção em branco quando não tem motivos.
+        payload["justification"] = Justification(options=[JustificationOption(option="", required_image=False, required_text=False)])
+
+        form, _ = usecase(**payload)
+
+        assert [option.option for option in form.justification.options] == ["Local inacessível"]
+
+    def test_form_with_own_reasons_keeps_them(self):
+        usecase, payload, template_repo = _make_usecase_and_payload()
+        template = template_repo.templates[0]
+        template.justification_options = [JustificationOption(option="Do template", required_image=False, required_text=False)]
+        payload = deepcopy(payload)
+        payload["template"] = template.id
+        payload["sections"] = []
+        payload["justification"] = Justification(options=[JustificationOption(option="Da Apex", required_image=False, required_text=True)])
+
+        form, _ = usecase(**payload)
+
+        assert [option.option for option in form.justification.options] == ["Da Apex"]
+
     def test_create_form_usecase_with_template_not_found(self):
         usecase, payload, _ = _make_usecase_and_payload()
         payload = deepcopy(payload)

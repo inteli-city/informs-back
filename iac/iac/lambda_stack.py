@@ -462,6 +462,8 @@ class LambdaStack(Construct):
 
         self.functions_that_need_dynamo_profiles_permissions = [
             # Admin da configuração: o perfil diz quem administra o quê.
+            self.create_template,
+            self.update_template,
             self.get_app_config_admin,
             self.put_default_app_config,
             self.put_system_app_config,
