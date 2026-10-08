@@ -38,6 +38,8 @@ class UpdateTemplateController:
                 name=payload.name,
                 system=payload.system,
                 description=payload.description,
+                # "description": null apaga; omitir mantém.
+                clear_description="description" in payload.model_fields_set and payload.description is None,
                 is_active=payload.is_active,
                 sections=sections,
                 justification_options=(

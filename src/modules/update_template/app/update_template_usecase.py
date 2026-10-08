@@ -45,6 +45,7 @@ class UpdateTemplateUsecase:
         is_active: Optional[bool] = None,
         sections: Optional[List[Section]] = None,
         justification_options: Optional[List[JustificationOption]] = None,
+        clear_description: bool = False,
     ) -> Template:
         template = self.template_repo.get_template(template_id)
         if template is None:
@@ -64,6 +65,8 @@ class UpdateTemplateUsecase:
             template.change_system(system)
         if description is not None:
             template.change_description(description)
+        elif clear_description:
+            template.change_description(None)
         if is_active is not None:
             template.change_is_active(is_active)
         if sections is not None:

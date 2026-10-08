@@ -245,7 +245,8 @@ class DynamoDatasource:
         ]
         """
 
-        resp = self.dynamo_resource.transact_write_items(
+        # transact_write_items só existe no client, não no resource.
+        resp = self.dynamo_resource.meta.client.transact_write_items(
             TransactItems=transact_items
         )
         return resp
