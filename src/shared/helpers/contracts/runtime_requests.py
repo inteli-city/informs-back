@@ -196,6 +196,14 @@ class GetAllTemplatesControllerRequestSchema(RequestContractModel):
     name: str | None = None
     exclusive_start_key: str | None = None
 
+    @field_validator("is_active", mode="before")
+    @classmethod
+    def _parse_is_active(cls, value: Any) -> Any:
+        # Query string chega como texto: "?is_active=false" precisa virar False.
+        if isinstance(value, str) and value.strip().lower() in ("true", "false"):
+            return value.strip().lower() == "true"
+        return value
+
     @field_validator("limit", mode="before")
     @classmethod
     def _parse_limit(cls, value: Any) -> Any:
