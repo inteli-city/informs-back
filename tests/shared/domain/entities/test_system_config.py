@@ -45,3 +45,17 @@ class TestSystemConfig:
     def test_rejects_non_numeric_geofence_radius(self):
         with pytest.raises(EntityError):
             _config(geofence_radius_m="200")
+
+    def test_app_config_defaults_to_empty_layer(self):
+        config = _config()
+        assert config.app_config == {}
+        assert config.app_config_version == 0
+
+    def test_accepts_partial_app_config_layer(self):
+        config = _config(app_config={"menus": {"create_form": False}}, app_config_version=3)
+        assert config.app_config == {"menus": {"create_form": False}}
+        assert config.app_config_version == 3
+
+    def test_rejects_invalid_app_config_layer(self):
+        with pytest.raises(EntityError):
+            _config(app_config={"menus": {"create_form": "no"}})

@@ -1,8 +1,10 @@
 from typing import Optional
 
+from src.shared.domain.entities.default_app_config import DefaultAppConfig
 from src.shared.domain.entities.system_config import SystemConfig
 from src.shared.domain.repositories.system_config_repository_interface import ISystemConfigRepository
 from src.shared.environments import Environments
+from src.shared.infra.dtos.default_app_config_dynamo_dto import DefaultAppConfigDynamoDTO
 from src.shared.infra.dtos.system_config_dynamo_dto import SystemConfigDynamoDTO
 from src.shared.infra.external.dynamo.datasources.dynamo_datasource import DynamoDatasource
 
@@ -10,8 +12,9 @@ from src.shared.infra.external.dynamo.datasources.dynamo_datasource import Dynam
 class SystemConfigRepositoryDynamo(ISystemConfigRepository):
     """
     Implementação DynamoDB de `ISystemConfigRepository`. Usa a mesma
-    `Formularios_Table` (`PK = system#{system}`, `SK = CONFIG`) — sem
-    tabela ou índice novo.
+    `Formularios_Table` (`PK = system#{system}`, `SK = CONFIG`; o padrão da
+    aplicação em `PK = app_config#DEFAULT`, `SK = CONFIG`) — sem tabela ou
+    índice novo.
     """
 
     def __init__(self):
@@ -39,5 +42,23 @@ class SystemConfigRepositoryDynamo(ISystemConfigRepository):
             item=item,
             partition_key=SystemConfigDynamoDTO.build_pk(config.system),
             sort_key=SystemConfigDynamoDTO.build_sk(),
+        )
+        return config
+
+    def get_default_app_config(self) -> Optional[DefaultAppConfig]:
+        resp = self.dynamo.get_item(
+            partition_key=DefaultAppConfigDynamoDTO.build_pk(),
+            sort_key=DefaultAppConfigDynamoDTO.build_sk(),
+        )
+        if "Item" not in resp:
+            return None
+        return DefaultAppConfigDynamoDTO.from_dynamo(resp["Item"]).to_entity()
+
+    def put_default_app_config(self, config: DefaultAppConfig) -> DefaultAppConfig:
+        item = DefaultAppConfigDynamoDTO.from_entity(config).to_dynamo()
+        self.dynamo.put_item(
+            item=item,
+            partition_key=DefaultAppConfigDynamoDTO.build_pk(),
+            sort_key=DefaultAppConfigDynamoDTO.build_sk(),
         )
         return config

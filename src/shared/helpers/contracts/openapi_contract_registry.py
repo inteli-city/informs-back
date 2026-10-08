@@ -13,6 +13,7 @@ from src.shared.helpers.contracts.endpoints.create_template_contract import (
 )
 from src.shared.helpers.contracts.endpoints.get_all_forms_contract import GetAllFormsResponseSchema
 from src.shared.helpers.contracts.endpoints.get_all_templates_contract import GetAllTemplatesResponseSchema
+from src.shared.helpers.contracts.endpoints.get_app_config_contract import GetAppConfigResponseSchema
 from src.shared.helpers.contracts.endpoints.get_form_contract import GetFormResponseSchema
 from src.shared.helpers.contracts.endpoints.get_template_contract import GetTemplateResponseSchema
 from src.shared.helpers.contracts.endpoints.location_history_contract import (
@@ -221,6 +222,14 @@ _CONTRACTS = [
         summary="Listagem de templates",
         success_status_code=200,
         response_model=GetAllTemplatesResponseSchema,
+    ),
+    EndpointContract(
+        path="/app-config",
+        method="get",
+        tag="Config",
+        summary="Configuração efetiva da aplicação: o padrão e a de cada sistema do usuário",
+        success_status_code=200,
+        response_model=GetAppConfigResponseSchema,
     ),
     EndpointContract(
         path="/forms/sync-origin/callback",
