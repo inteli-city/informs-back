@@ -44,6 +44,13 @@ class PreviewConfig(_ConfigGroup):
     information_images: StrictBool = False
 
 
+class CreationConfig(_ConfigGroup):
+    # Criar formulário "em aberto" para o sistema (sem dono), além de "para mim".
+    # No back-end, um formulário sem `user_id` continua exigindo
+    # `SystemConfig.allow_unassigned_forms` — esta chave só oferece a opção no app.
+    allow_open: StrictBool = False
+
+
 class AppConfig(_ConfigGroup):
     """
     Configuração da aplicação vista pelo app de campo.
@@ -63,6 +70,7 @@ class AppConfig(_ConfigGroup):
     texts: TextsConfig = Field(default_factory=TextsConfig)
     flows: FlowsConfig = Field(default_factory=FlowsConfig)
     preview: PreviewConfig = Field(default_factory=PreviewConfig)
+    creation: CreationConfig = Field(default_factory=CreationConfig)
 
     @staticmethod
     def validate_layer(values: Dict[str, Any]) -> Dict[str, Any]:

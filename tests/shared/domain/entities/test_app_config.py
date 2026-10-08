@@ -18,6 +18,7 @@ class TestAppConfig:
         assert config.flows.return_to_map_after_submit is False
         assert config.flows.cancel_form is False
         assert config.preview.information_images is False
+        assert config.creation.allow_open is False
 
     def test_system_layer_overrides_default_layer_key_by_key(self):
         default_layer = {"menus": {"route_plan": False}, "texts": {"claim_action_label": "Atender"}}
@@ -28,6 +29,10 @@ class TestAppConfig:
         assert config.menus.route_plan is False
         assert config.menus.create_form is True
         assert config.texts.claim_action_label == "Executar serviço"
+
+    def test_creation_allow_open_can_be_enabled_per_system(self):
+        config = AppConfig.resolve({}, {"creation": {"allow_open": True}})
+        assert config.creation.allow_open is True
 
     def test_resolve_does_not_mutate_layers(self):
         default_layer = {"menus": {"route_plan": False}}
