@@ -32,6 +32,7 @@ class ProfileDynamoDTO:
         updated_at: int,
         vehicle_plate: Optional[str] = None,
         scope: Optional[Dict[str, List[str]]] = None,
+        admin_systems: Optional[List[str]] = None,
     ):
         self.user_id = user_id
         self.role = role
@@ -43,6 +44,7 @@ class ProfileDynamoDTO:
         self.updated_at = updated_at
         self.vehicle_plate = vehicle_plate
         self.scope = scope if scope is not None else {}
+        self.admin_systems = admin_systems if admin_systems is not None else []
 
     @staticmethod
     def from_entity(profile: Profile) -> "ProfileDynamoDTO":
@@ -57,6 +59,7 @@ class ProfileDynamoDTO:
             updated_at=profile.updated_at,
             vehicle_plate=profile.vehicle_plate,
             scope=profile.scope,
+            admin_systems=profile.admin_systems,
         )
 
     def to_dynamo(self) -> dict:
@@ -71,6 +74,7 @@ class ProfileDynamoDTO:
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "scope": self.scope,
+            "admin_systems": self.admin_systems,
             "GSI1PK": ProfileDynamoDTO.build_gsi1_pk(self.role),
             "GSI1SK": ProfileDynamoDTO.build_gsi1_sk(self.system, self.user_id),
         }
@@ -92,6 +96,7 @@ class ProfileDynamoDTO:
             updated_at=int(data["updated_at"]),
             vehicle_plate=data.get("vehicle_plate"),
             scope=dict(data.get("scope") or {}),
+            admin_systems=list(data.get("admin_systems") or []),
         )
 
     def to_entity(self) -> Profile:
@@ -106,6 +111,7 @@ class ProfileDynamoDTO:
             updated_at=self.updated_at,
             vehicle_plate=self.vehicle_plate,
             scope=self.scope,
+            admin_systems=self.admin_systems,
         )
 
     @staticmethod

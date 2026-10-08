@@ -100,6 +100,7 @@ class ProfileRepositoryDynamo(IProfileRepository):
         role: Optional[ProfileRole] = None,
         scope: Optional[Dict[str, List[str]]] = None,
         updated_at: Optional[int] = None,
+        admin_systems: Optional[List[str]] = None,
     ) -> Profile:
         update_dict = {}
         if role is not None:
@@ -107,6 +108,8 @@ class ProfileRepositoryDynamo(IProfileRepository):
             update_dict["GSI1PK"] = ProfileDynamoDTO.build_gsi1_pk(role)
         if scope is not None:
             update_dict["scope"] = scope
+        if admin_systems is not None:
+            update_dict["admin_systems"] = list(dict.fromkeys(admin_systems))
         if updated_at is not None:
             update_dict["updated_at"] = updated_at
 

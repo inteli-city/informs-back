@@ -71,6 +71,7 @@ class ProfileRepositoryMock(IProfileRepository):
         role: Optional[ProfileRole] = None,
         scope: Optional[Dict[str, List[str]]] = None,
         updated_at: Optional[int] = None,
+        admin_systems: Optional[List[str]] = None,
     ) -> Profile:
         for profile in self.profiles:
             if profile.user_id == user_id:
@@ -78,6 +79,8 @@ class ProfileRepositoryMock(IProfileRepository):
                     profile.role = role
                 if scope is not None:
                     profile.scope = scope
+                if admin_systems is not None:
+                    profile.admin_systems = list(dict.fromkeys(admin_systems))
                 if updated_at is not None:
                     profile.updated_at = updated_at
                 return deepcopy(profile)

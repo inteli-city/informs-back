@@ -18,5 +18,6 @@ class UpdateProfileViewmodel:
             "created_at": self.profile.created_at,
             "updated_at": self.profile.updated_at,
             "scope": self.profile.scope,
+            "admin_systems": self.profile.admin_systems,
         }
         return UpdateProfileResponseSchema.model_validate(payload).model_dump()

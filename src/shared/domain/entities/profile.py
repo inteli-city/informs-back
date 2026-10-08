@@ -14,6 +14,10 @@ class Profile(abc.ABC):
     associa esse `sub` (campo `user_id`) à role aplicacional (ADMIN ou
     INSPECTOR), ao sistema operado e a metadados de uso (placa de moto, etc.).
 
+    `admin_systems` lista os sistemas que esta pessoa administra no Admin
+    (configuração da aplicação e templates daquele sistema). Independe da
+    `role`: ADMIN é o admin da plataforma (edita o padrão e gerencia perfis).
+
     A flag `active` permite "desligar" um perfil sem perder o histórico —
     como ainda não há endpoint de UPDATE, o DELETE faz soft delete setando
     `active=False`.
@@ -31,6 +35,7 @@ class Profile(abc.ABC):
     created_at: int
     updated_at: int
     scope: Dict[str, List[str]]
+    admin_systems: List[str]
 
     def __init__(
         self,
@@ -44,6 +49,7 @@ class Profile(abc.ABC):
         updated_at: int,
         vehicle_plate: Optional[str] = None,
         scope: Optional[Dict[str, List[str]]] = None,
+        admin_systems: Optional[List[str]] = None,
     ):
         # Cada validação fica num método auxiliar pra manter o construtor
         # com baixa cognitive complexity (regra python:S3776).
@@ -59,6 +65,7 @@ class Profile(abc.ABC):
         # Escopo genérico por atributos (especificação Uberlândia §7) — vazio
         # equivale a "sem restrição", o comportamento atual de Gaia/Geovista/SGC.
         self.scope = ensure_str_list_dict(scope if scope is not None else {}, "scope")
+        self.admin_systems = self._validate_admin_systems(admin_systems)
 
     # --- Validações --------------------------------------------------------
 
@@ -118,6 +125,23 @@ class Profile(abc.ABC):
         if not isinstance(value, int) or isinstance(value, bool):
             raise EntityError(f"Timestamp de {label} deve ser um inteiro")
         return value
+
+    @staticmethod
+    def _validate_admin_systems(admin_systems: Optional[List[str]]) -> List[str]:
+        if admin_systems is None:
+            return []
+        if not isinstance(admin_systems, list) or not all(
+            isinstance(system, str) and system.strip() for system in admin_systems
+        ):
+            raise EntityError("admin_systems deve ser uma lista de sistemas (strings não vazias)")
+        return list(dict.fromkeys(admin_systems))
+
+    def is_platform_admin(self) -> bool:
+        return self.active and self.role == ProfileRole.ADMIN
+
+    def can_admin_system(self, system: str) -> bool:
+        """Admin da plataforma administra todo sistema; os demais, só os da lista."""
+        return self.is_platform_admin() or (self.active and system in self.admin_systems)
 
     @staticmethod
     def validate_user_id(user_id: str) -> bool:

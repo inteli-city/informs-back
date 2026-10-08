@@ -42,6 +42,7 @@ class ProfileResponseSchema(ResponseContractModel):
     created_at: int
     updated_at: int
     scope: dict[str, list[str]] = Field(default_factory=dict)
+    admin_systems: list[str] = Field(default_factory=list)
 
 
 class CreateProfileResponseSchema(ProfileResponseSchema):
@@ -73,6 +74,8 @@ class UpdateProfileRequestSchema(RequestContractModel):
 
     role: ProfileRoleLiteral
     scope: dict[str, list[str]] = Field(default_factory=dict)
+    # Sistemas que o perfil administra no Admin. Ausente = não mexe.
+    admin_systems: list[str] | None = None
 
 
 class UpdateProfileResponseSchema(ProfileResponseSchema):

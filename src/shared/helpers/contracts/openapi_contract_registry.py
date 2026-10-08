@@ -14,6 +14,12 @@ from src.shared.helpers.contracts.endpoints.create_template_contract import (
 from src.shared.helpers.contracts.endpoints.get_all_forms_contract import GetAllFormsResponseSchema
 from src.shared.helpers.contracts.endpoints.get_all_templates_contract import GetAllTemplatesResponseSchema
 from src.shared.helpers.contracts.endpoints.get_app_config_contract import GetAppConfigResponseSchema
+from src.shared.helpers.contracts.endpoints.app_config_admin_contract import (
+    GetAppConfigAdminResponseSchema,
+    PutAppConfigLayerRequestSchema,
+    PutDefaultAppConfigResponseSchema,
+    PutSystemAppConfigResponseSchema,
+)
 from src.shared.helpers.contracts.endpoints.get_form_contract import GetFormResponseSchema
 from src.shared.helpers.contracts.endpoints.get_template_contract import GetTemplateResponseSchema
 from src.shared.helpers.contracts.endpoints.location_history_contract import (
@@ -230,6 +236,32 @@ _CONTRACTS = [
         summary="Configuração efetiva da aplicação: o padrão e a de cada sistema do usuário",
         success_status_code=200,
         response_model=GetAppConfigResponseSchema,
+    ),
+    EndpointContract(
+        path="/app-config/admin",
+        method="get",
+        tag="Config",
+        summary="Admin: camadas da configuração (padrão e sistemas que o usuário administra) e o esquema do editor",
+        success_status_code=200,
+        response_model=GetAppConfigAdminResponseSchema,
+    ),
+    EndpointContract(
+        path="/app-config/default",
+        method="put",
+        tag="Config",
+        summary="Admin da plataforma: grava o padrão da aplicação",
+        success_status_code=200,
+        request_model=PutAppConfigLayerRequestSchema,
+        response_model=PutDefaultAppConfigResponseSchema,
+    ),
+    EndpointContract(
+        path="/app-config/systems/{system}",
+        method="put",
+        tag="Config",
+        summary="Admin do sistema: grava as diferenças do sistema em relação ao padrão",
+        success_status_code=200,
+        request_model=PutAppConfigLayerRequestSchema,
+        response_model=PutSystemAppConfigResponseSchema,
     ),
     EndpointContract(
         path="/forms/sync-origin/callback",

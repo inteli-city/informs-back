@@ -3,6 +3,7 @@ from typing import Any
 from pydantic import AliasChoices, Field, StrictBool, field_validator, model_validator
 
 from src.shared.helpers.contracts.base import RequestContractModel
+from src.shared.helpers.contracts.endpoints.app_config_admin_contract import PutAppConfigLayerRequestSchema
 from src.shared.helpers.contracts.endpoints.assign_form_contract import AssignFormRequestSchema
 from src.shared.helpers.contracts.endpoints.cancel_form_contract import CancelFormRequestSchema
 from src.shared.helpers.contracts.endpoints.create_form_contract import CreateFormRequestSchema
@@ -143,6 +144,19 @@ class GetTemplateControllerRequestSchema(RequestContractModel):
 
 class GetAppConfigControllerRequestSchema(RequestContractModel):
     requester_user: RequesterUserSchema
+
+
+class GetAppConfigAdminControllerRequestSchema(RequestContractModel):
+    requester_user: RequesterUserSchema
+
+
+class PutDefaultAppConfigControllerRequestSchema(PutAppConfigLayerRequestSchema):
+    requester_user: RequesterUserSchema
+
+
+class PutSystemAppConfigControllerRequestSchema(PutAppConfigLayerRequestSchema):
+    requester_user: RequesterUserSchema
+    system: str
 
 
 class GetAllFormsControllerRequestSchema(RequestContractModel):

@@ -30,6 +30,7 @@ class UpdateProfileController:
                 target_user_id=payload.user_id,
                 role=ProfileRole(payload.role),
                 scope=payload.scope,
+                admin_systems=payload.admin_systems,
             )
 
             viewmodel = UpdateProfileViewmodel(profile=profile)

@@ -42,6 +42,9 @@ def test_openapi_contract_registry_covers_http_routes():
         ("/forms/sync-origin/callback", "post"),
         ("/locations/history", "get"),
         ("/app-config", "get"),
+        ("/app-config/admin", "get"),
+        ("/app-config/default", "put"),
+        ("/app-config/systems/{system}", "put"),
     }
 
     assert registered == expected

@@ -103,3 +103,31 @@ class TestProfileScope:
     def test_manager_and_supervisor_roles_are_valid(self):
         assert Profile(**_kwargs(role=ProfileRole.MANAGER)).role == ProfileRole.MANAGER
         assert Profile(**_kwargs(role=ProfileRole.SUPERVISOR)).role == ProfileRole.SUPERVISOR
+
+
+class TestProfileAdminSystems:
+    def test_defaults_to_no_admin_systems(self):
+        assert Profile(**_kwargs()).admin_systems == []
+
+    def test_dedupes_keeping_order(self):
+        profile = Profile(**_kwargs(admin_systems=["UBERLANDIA", "GAIA", "UBERLANDIA"]))
+        assert profile.admin_systems == ["UBERLANDIA", "GAIA"]
+
+    def test_rejects_blank_system(self):
+        with pytest.raises(EntityError):
+            Profile(**_kwargs(admin_systems=["GAIA", " "]))
+
+    def test_system_admin_administers_only_listed_systems(self):
+        profile = Profile(**_kwargs(role=ProfileRole.INSPECTOR, admin_systems=["UBERLANDIA"]))
+        assert profile.can_admin_system("UBERLANDIA") is True
+        assert profile.can_admin_system("GAIA") is False
+        assert profile.is_platform_admin() is False
+
+    def test_platform_admin_administers_every_system(self):
+        profile = Profile(**_kwargs(role=ProfileRole.ADMIN))
+        assert profile.is_platform_admin() is True
+        assert profile.can_admin_system("QUALQUER") is True
+
+    def test_inactive_profile_administers_nothing(self):
+        profile = Profile(**_kwargs(role=ProfileRole.ADMIN, active=False, admin_systems=["GAIA"]))
+        assert profile.can_admin_system("GAIA") is False

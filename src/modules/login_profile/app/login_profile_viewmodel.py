@@ -18,6 +18,8 @@ class LoginProfileViewmodel:
             "active": self.profile.active,
             "created_at": self.profile.created_at,
             "updated_at": self.profile.updated_at,
+            # O app decide por aqui se mostra a entrada do Admin.
+            "admin_systems": self.profile.admin_systems,
             "just_created": self.just_created,
         }
         return LoginProfileResponseSchema.model_validate(payload).model_dump()

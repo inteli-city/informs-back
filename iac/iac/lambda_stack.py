@@ -62,6 +62,9 @@ class LambdaStack(Construct):
         locations_history_resource = locations_resource.add_resource("history")
         docs_resource = api_gateway_resource.add_resource("docs")
         app_config_resource = api_gateway_resource.add_resource("app-config")
+        app_config_admin_resource = app_config_resource.add_resource("admin")
+        app_config_default_resource = app_config_resource.add_resource("default")
+        app_config_system_resource = app_config_resource.add_resource("systems").add_resource("{system}")
 
         self.create_form = self.create_lambda_api_gateway_integration(
             module_name="create_form",
@@ -266,6 +269,30 @@ class LambdaStack(Construct):
             authorizer=authorizer,
         )
 
+        self.get_app_config_admin = self.create_lambda_api_gateway_integration(
+            module_name="get_app_config_admin",
+            method="GET",
+            api_resource=app_config_admin_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.put_default_app_config = self.create_lambda_api_gateway_integration(
+            module_name="put_default_app_config",
+            method="PUT",
+            api_resource=app_config_default_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.put_system_app_config = self.create_lambda_api_gateway_integration(
+            module_name="put_system_app_config",
+            method="PUT",
+            api_resource=app_config_system_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
         self.docs = self.create_lambda_api_gateway_integration(
             module_name="docs",
             method="GET",
@@ -404,6 +431,9 @@ class LambdaStack(Construct):
             self.get_template,
             self.get_all_templates,
             self.get_app_config,
+            self.get_app_config_admin,
+            self.put_default_app_config,
+            self.put_system_app_config,
             self.plan_route,
             self.sync_forms_origin,
             self.sync_forms_origin_callback,
@@ -431,6 +461,10 @@ class LambdaStack(Construct):
         ]
 
         self.functions_that_need_dynamo_profiles_permissions = [
+            # Admin da configuração: o perfil diz quem administra o quê.
+            self.get_app_config_admin,
+            self.put_default_app_config,
+            self.put_system_app_config,
             self.create_profile,
             self.login_profile,
             self.delete_profile,

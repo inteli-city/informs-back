@@ -40,5 +40,6 @@ class IProfileRepository(ABC):
         role: Optional[ProfileRole] = None,
         scope: Optional[Dict[str, List[str]]] = None,
         updated_at: Optional[int] = None,
+        admin_systems: Optional[List[str]] = None,
     ) -> Profile:
         pass

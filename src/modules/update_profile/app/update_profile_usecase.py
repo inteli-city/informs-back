@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from src.shared.domain.entities.profile import Profile
 from src.shared.domain.enums.profile_role_enum import ProfileRole
@@ -24,6 +24,7 @@ class UpdateProfileUsecase:
         target_user_id: str,
         role: ProfileRole,
         scope: Dict[str, List[str]],
+        admin_systems: Optional[List[str]] = None,
     ) -> Profile:
         self._ensure_requester_is_active_admin(requester_user_id)
 
@@ -33,7 +34,8 @@ class UpdateProfileUsecase:
 
         now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
         return self.profile_repo.update_profile(
-            user_id=target_user_id, role=role, scope=scope, updated_at=now_ms
+            user_id=target_user_id, role=role, scope=scope, updated_at=now_ms,
+            admin_systems=admin_systems,
         )
 
     def _ensure_requester_is_active_admin(self, requester_user_id: str) -> None:
