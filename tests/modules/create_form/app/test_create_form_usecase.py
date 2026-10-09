@@ -21,6 +21,7 @@ from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
+from src.shared.infra.repositories.profile_repository_mock import ProfileRepositoryMock
 from src.shared.infra.repositories.system_config_repository_mock import SystemConfigRepositoryMock
 from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
 
@@ -285,3 +286,75 @@ class TestCreateFormUsecaseUberlandiaPool:
         assert second_form.id == first_form.id
         assert second_files == []
         assert len([f for f in repo.forms if f.external_id == "OS-7514"]) == 1
+
+
+ADMIN_ID = "d61dbf66-a10f-11ed-a8fc-0242ac120001"
+INSPECTOR_ID = "d61dbf66-a10f-11ed-a8fc-0242ac120002"
+
+
+class TestCreateFormUsecaseAppConfig:
+    """O back recusa o que a configuração da aplicação esconde no app;
+    ADMIN (conta das integrações, como a Apex) não passa pela regra."""
+
+    def _usecase(self, app_config=None, allow_unassigned_forms=False):
+        system_config_repo = SystemConfigRepositoryMock()
+        system_config_repo.put(SystemConfig(
+            system="GAIA", created_at=1, updated_at=1,
+            allow_unassigned_forms=allow_unassigned_forms, app_config=app_config,
+        ))
+        return CreateFormUsecase(
+            FormRepositoryMock(), FileRepositoryMock(),
+            system_config_repo=system_config_repo, profile_repo=ProfileRepositoryMock(),
+        )
+
+    def _payload(self, created_by, user_id):
+        _, payload, _ = _make_usecase_and_payload()
+        payload = deepcopy(payload)
+        payload["created_by"] = created_by
+        payload["user_id"] = user_id
+        return payload
+
+    def test_inspector_cannot_create_when_create_form_menu_is_off(self):
+        usecase = self._usecase(app_config={"menus": {"create_form": False}})
+
+        with pytest.raises(ForbiddenAction):
+            usecase(**self._payload(INSPECTOR_ID, INSPECTOR_ID))
+
+    def test_inspector_cannot_create_open_form_without_allow_open(self):
+        usecase = self._usecase(allow_unassigned_forms=True)
+
+        with pytest.raises(ForbiddenAction):
+            usecase(**self._payload(INSPECTOR_ID, None))
+
+    def test_inspector_cannot_create_open_form_when_system_does_not_accept_unassigned(self):
+        usecase = self._usecase(app_config={"creation": {"allow_open": True}}, allow_unassigned_forms=False)
+
+        with pytest.raises(ForbiddenAction):
+            usecase(**self._payload(INSPECTOR_ID, None))
+
+    def test_inspector_creates_open_form_when_both_flags_are_on(self):
+        usecase = self._usecase(app_config={"creation": {"allow_open": True}}, allow_unassigned_forms=True)
+
+        form, _ = usecase(**self._payload(INSPECTOR_ID, None))
+
+        assert form.user_id is None
+
+    def test_inspector_creates_own_form_with_default_config(self):
+        usecase = self._usecase()
+
+        form, _ = usecase(**self._payload(INSPECTOR_ID, INSPECTOR_ID))
+
+        assert form.user_id == INSPECTOR_ID
+
+    def test_admin_creates_open_form_even_with_create_form_menu_off(self):
+        usecase = self._usecase(app_config={"menus": {"create_form": False}}, allow_unassigned_forms=True)
+
+        form, _ = usecase(**self._payload(ADMIN_ID, None))
+
+        assert form.user_id is None
+
+    def test_user_without_profile_follows_app_config(self):
+        usecase = self._usecase(app_config={"menus": {"create_form": False}})
+
+        with pytest.raises(ForbiddenAction):
+            usecase(**self._payload("user-sem-perfil", "user-sem-perfil"))

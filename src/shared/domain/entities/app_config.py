@@ -124,6 +124,21 @@ class AppConfig(_ConfigGroup):
         return AppConfig._parse(merged)
 
     @staticmethod
+    def effective(
+        default_layer: Optional[Dict[str, Any]],
+        system_layer: Optional[Dict[str, Any]],
+        allows_unassigned_forms: bool,
+    ) -> "AppConfig":
+        """Configuração que vale para um sistema: as camadas somadas, mais as
+        regras que dependem do resto da `SystemConfig`. `creation.allow_open`
+        só fica ligada se o sistema aceita formulário sem dono — senão o app
+        ofereceria criar em aberto e o `POST /forms` recusaria."""
+        config = AppConfig.resolve(default_layer, system_layer)
+        if not allows_unassigned_forms:
+            config.creation.allow_open = False
+        return config
+
+    @staticmethod
     def _parse(values: Dict[str, Any]) -> "AppConfig":
         try:
             return AppConfig.model_validate(values)
