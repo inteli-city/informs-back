@@ -1,18 +1,26 @@
 #!/usr/bin/env python3
 """Dados de exemplo para o ambiente local.
 
-Cria, para o usuário local (o mesmo que o modo de login local do front usa):
-  - GAIA: OS próprias em Pendente, Em andamento e Completo;
-  - UBERLANDIA: OS em aberto no pool, com foto no campo informativo, e a
-    `SystemConfig` que libera OS sem dono (`allow_unassigned_forms`);
+Contas (as mesmas do seletor do login local do front, em
+`clients/web/src/lib/local-auth.ts` — mudar aqui exige mudar lá):
+  - Uberlândia: só UBERLANDIA, INSPECTOR que administra o próprio sistema;
+  - GAIA: só GAIA, INSPECTOR comum (não vê o Admin);
+  - GAIA + Uberlândia: os dois sistemas, ADMIN da plataforma.
+
+Dados:
+  - GAIA: OS próprias em Pendente, Em andamento e Completo, para cada conta
+    que tem GAIA;
+  - UBERLANDIA: OS em aberto no pool (vistas por toda conta de Uberlândia),
+    com foto no campo informativo, a `SystemConfig` que libera OS sem dono
+    (`allow_unassigned_forms`) e uma OS já atribuída à conta de Uberlândia;
   - um template por sistema, com campo de foto para exercitar o upload no S3.
 
-Ids fixos: rodar de novo não duplica nada — o que já existe é pulado. Para
-recomeçar do zero: `bootstrap_local.py --reset-db --seed`.
-
-O perfil do usuário não entra aqui: o `POST /profiles/login` cria um INSPECTOR
-na primeira chamada, como na AWS.
+Ids fixos: rodar de novo não duplica nada — o que já existe é pulado (os
+perfis são reescritos, para o papel valer mesmo se o login já tiver criado o
+perfil como INSPECTOR). Para recomeçar do zero:
+`bootstrap_local.py --reset-db --seed`.
 """
+import inspect
 import struct
 import sys
 import time
@@ -29,6 +37,7 @@ from src.shared.domain.entities.field import DropDownField, FileField, TextField
 from src.shared.domain.entities.form import Form  # noqa: E402
 from src.shared.domain.entities.information_field import TextInformationField, UrlInformationField  # noqa: E402
 from src.shared.domain.entities.justification import Justification, JustificationOption  # noqa: E402
+from src.shared.domain.entities.profile import Profile  # noqa: E402
 from src.shared.domain.entities.section import Section  # noqa: E402
 from src.shared.domain.entities.system_config import SystemConfig  # noqa: E402
 from src.shared.domain.entities.template import Template  # noqa: E402
@@ -36,12 +45,26 @@ from src.shared.domain.enums.file_type_enum import FileType  # noqa: E402
 from src.shared.domain.enums.form_origin_enum import FormOrigin  # noqa: E402
 from src.shared.domain.enums.form_status_enum import FormStatus  # noqa: E402
 from src.shared.domain.enums.priority_enum import Priority  # noqa: E402
+from src.shared.domain.enums.profile_role_enum import ProfileRole  # noqa: E402
 from src.shared.environments import Environments  # noqa: E402
 from src.shared.helpers.functions.s3_url import build_s3_url  # noqa: E402
 
-# Mesmo usuário do modo de login local do front (clients/web/src/lib/local-auth.ts).
-# 36 caracteres, como um `sub` do Cognito — a entidade Form valida o tamanho.
-LOCAL_USER_ID = "10ca1000-0000-4000-8000-000000000001"
+# `sub` com 36 caracteres, como no Cognito — a entidade Form valida o tamanho.
+# A conta dos dois sistemas mantém o id do antigo usuário único, para quem já
+# tem dados locais não perdê-los.
+BOTH_USER_ID = "10ca1000-0000-4000-8000-000000000001"
+UBERLANDIA_USER_ID = "10ca1000-0000-4000-8000-000000000002"
+GAIA_USER_ID = "10ca1000-0000-4000-8000-000000000003"
+LOCAL_USER_ID = BOTH_USER_ID  # dono dos templates
+
+LOCAL_ACCOUNTS = [
+    dict(user_id=UBERLANDIA_USER_ID, name="Campo Uberlândia", email="uberlandia@informs.local",
+         systems=["UBERLANDIA"], role=ProfileRole.INSPECTOR, admin_systems=["UBERLANDIA"]),
+    dict(user_id=GAIA_USER_ID, name="Campo GAIA", email="gaia@informs.local",
+         systems=["GAIA"], role=ProfileRole.INSPECTOR, admin_systems=[]),
+    dict(user_id=BOTH_USER_ID, name="Dev Local", email="dev@informs.local",
+         systems=["GAIA", "UBERLANDIA"], role=ProfileRole.ADMIN, admin_systems=[]),
+]
 
 _NAMESPACE = uuid.UUID("6f1c2a52-7d1e-4c55-9a43-1b0d5e2f9c11")
 
@@ -107,6 +130,35 @@ def seed_templates() -> dict:
     return templates
 
 
+def _supports(fn, name: str) -> bool:
+    # `admin_systems` só existe a partir de feature/config-fase-4; nas branches
+    # anteriores o seed segue funcionando, sem o admin por sistema.
+    return name in inspect.signature(fn).parameters
+
+
+def seed_profiles() -> None:
+    repo = Environments.get_profile_repo()
+    for account in LOCAL_ACCOUNTS:
+        now = _now()
+        admin_systems = account["admin_systems"]
+        current = repo.get_by_user_id(account["user_id"])
+        if current is None:
+            kwargs = dict(
+                user_id=account["user_id"], role=account["role"], name=account["name"], email=account["email"],
+                system=account["systems"][0], active=True, created_at=now, updated_at=now,
+            )
+            if _supports(Profile.__init__, "admin_systems"):
+                kwargs["admin_systems"] = admin_systems
+            repo.create(Profile(**kwargs))
+        else:
+            kwargs = dict(user_id=account["user_id"], role=account["role"], updated_at=now)
+            if _supports(repo.update_profile, "admin_systems"):
+                kwargs["admin_systems"] = admin_systems
+            repo.update_profile(**kwargs)
+        admin = f", administra {', '.join(admin_systems)}" if admin_systems else ""
+        print(f"[ok]   perfil {account['email']} ({account['role'].value}{admin})")
+
+
 def seed_system_config() -> None:
     repo = Environments.get_system_config_repo()
     current = repo.get_by_system("UBERLANDIA")
@@ -132,10 +184,10 @@ def _justification() -> Justification:
     ])
 
 
-def _form(key: str, template: Template, **overrides) -> Form:
+def _form(key: str, template: Template, owner: str = BOTH_USER_ID, **overrides) -> Form:
     now = _now()
     base = dict(
-        id=_id(f"form:{key}"), created_by=LOCAL_USER_ID, user_id=LOCAL_USER_ID,
+        id=_id(f"form:{key}"), created_by=owner, user_id=owner,
         template=template.id, system=template.system, sections=_sections(),
         priority=Priority.MEDIUM, status=FormStatus.PENDING, created_at=now, updated_at=now,
         justification=_justification(),
@@ -149,16 +201,34 @@ def seed_forms(templates: dict) -> None:
     gaia, uberlandia = templates["GAIA"], templates["UBERLANDIA"]
     now = _now()
 
-    forms = [
-        _form("gaia-pendente", gaia, form_title="Vistoria de ramal — Rua Augusta",
-              street="Rua Augusta, 500", city="São Paulo", latitude=-23.5534, longitude=-46.6575),
-        _form("gaia-em-andamento", gaia, form_title="Vistoria de ramal — Av. Paulista",
-              street="Av. Paulista, 1000", city="São Paulo", latitude=-23.5631, longitude=-46.6544,
-              status=FormStatus.IN_PROGRESS, in_progress_at=now, priority=Priority.HIGH),
-        _form("gaia-completo", gaia, form_title="Vistoria de ramal — Rua da Consolação",
-              street="Rua da Consolação, 2000", city="São Paulo", latitude=-23.5560, longitude=-46.6620,
-              status=FormStatus.COMPLETED, in_progress_at=now, completed_at=now, completed_by=LOCAL_USER_ID),
-    ]
+    forms = []
+    # Os mesmos três estados de GAIA para cada conta que tem GAIA. A conta dos
+    # dois sistemas mantém as chaves antigas (ids já existentes).
+    for owner, prefix, offset in ((BOTH_USER_ID, "gaia", 0), (GAIA_USER_ID, "gaia-only", 50)):
+        forms += [
+            _form(f"{prefix}-pendente", gaia, owner=owner,
+                  form_title=f"Vistoria de ramal — Rua Augusta, {500 + offset}",
+                  street=f"Rua Augusta, {500 + offset}", city="São Paulo",
+                  latitude=-23.5534, longitude=-46.6575 + offset / 10000),
+            _form(f"{prefix}-em-andamento", gaia, owner=owner,
+                  form_title=f"Vistoria de ramal — Av. Paulista, {1000 + offset}",
+                  street=f"Av. Paulista, {1000 + offset}", city="São Paulo",
+                  latitude=-23.5631, longitude=-46.6544 + offset / 10000,
+                  status=FormStatus.IN_PROGRESS, in_progress_at=now, priority=Priority.HIGH),
+            _form(f"{prefix}-completo", gaia, owner=owner,
+                  form_title=f"Vistoria de ramal — Rua da Consolação, {2000 + offset}",
+                  street=f"Rua da Consolação, {2000 + offset}", city="São Paulo",
+                  latitude=-23.5560, longitude=-46.6620 + offset / 10000,
+                  status=FormStatus.COMPLETED, in_progress_at=now, completed_at=now, completed_by=owner),
+        ]
+
+    # Uma OS já com dono para a conta de Uberlândia, além do pool.
+    forms.append(_form(
+        "ube-atribuida", uberlandia, owner=UBERLANDIA_USER_ID,
+        form_title="OS #2607000010 - RECUPERAÇÃO ASFÁLTICA", street="Av. Rondon Pacheco, 1500",
+        city="Uberlândia", latitude=-18.9130, longitude=-48.2700, external_id="#2607000010",
+        origin=FormOrigin.AI, service_type="RECUPERACAO_ASFALTICA",
+    ))
 
     pool = [
         ("ube-pool-1", "OS #2607000001 - RECUPERAÇÃO ASFÁLTICA", "Rua Afif Attiê, 0", -18.9168, -48.3206, (210, 70, 60)),
@@ -177,7 +247,7 @@ def seed_forms(templates: dict) -> None:
         ))
 
     for form in forms:
-        if repo.get_form_by_id(user_id=LOCAL_USER_ID, form_id=form.id):
+        if repo.get_form_by_id(user_id=form.user_id or BOTH_USER_ID, form_id=form.id):
             print(f"[skip] {form.form_title}")
             continue
         repo.create_form(form)
@@ -185,10 +255,13 @@ def seed_forms(templates: dict) -> None:
 
 
 def main() -> int:
+    seed_profiles()
     templates = seed_templates()
     seed_system_config()
     seed_forms(templates)
-    print("\n[ok] Seed concluído. Usuário local:", LOCAL_USER_ID)
+    print("\n[ok] Seed concluído. Contas:")
+    for account in LOCAL_ACCOUNTS:
+        print(f"       {account['email']:<26} {', '.join(account['systems'])}")
     return 0
 
 

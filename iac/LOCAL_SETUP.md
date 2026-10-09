@@ -43,7 +43,7 @@ local**.
 | `local/docker-compose.yml` | DynamoDB Local, dynamodb-admin e LocalStack (só S3) |
 | `local/bootstrap_local.py` | Sobe os containers, espera ficarem prontos, cria tabelas e bucket (com CORS para o upload do navegador) |
 | `local/create_dynamodb_tables.py` | As três tabelas do `dynamo_stack.py` (formulários com os GSIs `UserPriorityIndex`, `SystemUpdatedAtIndex` e `PoolIndex`; perfis com `ByRole`; localização) |
-| `local/seed_local.py` | Templates de GAIA e UBERLANDIA, OS próprias em vários status e OS em aberto com foto no campo informativo |
+| `local/seed_local.py` | As três contas locais (perfis), templates de GAIA e UBERLANDIA, OS próprias em vários status e OS em aberto com foto no campo informativo |
 | `local/local_api.py` | Recebe HTTP, monta o evento do API Gateway e chama o `lambda_handler` do módulo no mesmo processo |
 | `local/local_env.py` | Variáveis de ambiente apontando para os containers |
 
@@ -52,9 +52,18 @@ local**.
 A API local lê as claims do JWT do header `Authorization` **sem validar a
 assinatura**, como o autorizador local (`iac/authorizers/local_authorizer`).
 Serve tanto o token de um login real no Gates quanto o token falso do login
-local do front. O usuário do seed é
-`10ca1000-0000-4000-8000-000000000001`, nos grupos `FORMULARIOS`, `GAIA` e
-`UBERLANDIA`. O front usa os mesmos valores (`src/lib/local-auth.ts`).
+local do front. O seed cria três contas, que o login local do front oferece
+num seletor (`src/lib/local-auth.ts` usa os mesmos valores):
+
+| Conta | `sub` | Sistemas | Papel |
+| --- | --- | --- | --- |
+| `uberlandia@informs.local` | `10ca1000-0000-4000-8000-000000000002` | UBERLANDIA | INSPECTOR, administra UBERLANDIA |
+| `gaia@informs.local` | `10ca1000-0000-4000-8000-000000000003` | GAIA | INSPECTOR |
+| `dev@informs.local` | `10ca1000-0000-4000-8000-000000000001` | GAIA e UBERLANDIA | ADMIN da plataforma |
+
+O papel e os sistemas administrados vêm do perfil gravado pelo seed; os
+sistemas visíveis vêm dos grupos do token. Rodar o seed de novo reescreve os
+perfis com esses papéis.
 
 Nunca exponha a API local fora da sua máquina: ela aceita qualquer token.
 
