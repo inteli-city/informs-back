@@ -59,6 +59,14 @@ class Route:
 # Espelho de `lambda_stack.py`. Path params com os mesmos nomes do API Gateway
 # ({form_id}, {template_id}, {user_id}) — é por eles que os controllers leem.
 ROUTES: List[Route] = [
+    Route("GET", "/permissions/actions", "get_permission_actions"),
+    Route("GET", "/systems/{system}/roles", "get_system_roles"),
+    Route("POST", "/systems/{system}/roles", "create_system_role"),
+    Route("PUT", "/systems/{system}/roles/{role_id}", "update_system_role"),
+    Route("DELETE", "/systems/{system}/roles/{role_id}", "delete_system_role"),
+    Route("GET", "/systems/{system}/users", "get_system_users"),
+    Route("PUT", "/systems/{system}/users/{user_id}", "put_system_user"),
+    Route("DELETE", "/systems/{system}/users/{user_id}", "delete_system_user"),
     Route("POST", "/forms", "create_form"),
     Route("GET", "/forms", "get_all_forms"),
     Route("POST", "/forms/route-plan", "plan_route"),

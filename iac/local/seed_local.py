@@ -3,9 +3,14 @@
 
 Contas (as mesmas do seletor do login local do front, em
 `clients/web/src/lib/local-auth.ts` — mudar aqui exige mudar lá):
-  - Uberlândia: só UBERLANDIA, INSPECTOR que administra o próprio sistema;
-  - GAIA: só GAIA, INSPECTOR comum (não vê o Admin);
-  - GAIA + Uberlândia: os dois sistemas, ADMIN da plataforma.
+  - Uberlândia: só UBERLANDIA, ADMIN do sistema;
+  - GAIA: só GAIA, Técnico (papel padrão: só percurso);
+  - Gestor GAIA: só GAIA, Gestor (pessoas e templates, sem ser ADMIN);
+  - GAIA + Uberlândia: os dois sistemas, super admin.
+
+Com o RBAC por sistema (ADR-0020) o seed cria também os papéis Técnico e
+Gestor em cada sistema e o vínculo de cada conta. No modelo antigo (role
+global), grava `role`/`admin_systems` como antes.
 
 Dados:
   - GAIA: OS próprias em Pendente, Em andamento e Completo, para cada conta
@@ -45,7 +50,6 @@ from src.shared.domain.enums.file_type_enum import FileType  # noqa: E402
 from src.shared.domain.enums.form_origin_enum import FormOrigin  # noqa: E402
 from src.shared.domain.enums.form_status_enum import FormStatus  # noqa: E402
 from src.shared.domain.enums.priority_enum import Priority  # noqa: E402
-from src.shared.domain.enums.profile_role_enum import ProfileRole  # noqa: E402
 from src.shared.environments import Environments  # noqa: E402
 from src.shared.helpers.functions.s3_url import build_s3_url  # noqa: E402
 
@@ -55,16 +59,34 @@ from src.shared.helpers.functions.s3_url import build_s3_url  # noqa: E402
 BOTH_USER_ID = "10ca1000-0000-4000-8000-000000000001"
 UBERLANDIA_USER_ID = "10ca1000-0000-4000-8000-000000000002"
 GAIA_USER_ID = "10ca1000-0000-4000-8000-000000000003"
+GESTOR_GAIA_USER_ID = "10ca1000-0000-4000-8000-000000000004"
 LOCAL_USER_ID = BOTH_USER_ID  # dono dos templates
 
+# `roles`: papel por sistema (RBAC). `legacy_role`/`admin_systems`: o mesmo
+# acesso no modelo antigo, para o seed seguir rodando antes do RBAC.
 LOCAL_ACCOUNTS = [
     dict(user_id=UBERLANDIA_USER_ID, name="Campo Uberlândia", email="uberlandia@informs.local",
-         systems=["UBERLANDIA"], role=ProfileRole.INSPECTOR, admin_systems=["UBERLANDIA"]),
+         systems=["UBERLANDIA"], super_admin=False, roles={"UBERLANDIA": "ADMIN"},
+         legacy_role="INSPECTOR", admin_systems=["UBERLANDIA"]),
     dict(user_id=GAIA_USER_ID, name="Campo GAIA", email="gaia@informs.local",
-         systems=["GAIA"], role=ProfileRole.INSPECTOR, admin_systems=[]),
+         systems=["GAIA"], super_admin=False, roles={"GAIA": "tecnico"},
+         legacy_role="INSPECTOR", admin_systems=[]),
+    dict(user_id=GESTOR_GAIA_USER_ID, name="Gestor GAIA", email="gestor@informs.local",
+         systems=["GAIA"], super_admin=False, roles={"GAIA": "gestor"},
+         legacy_role="INSPECTOR", admin_systems=["GAIA"]),
     dict(user_id=BOTH_USER_ID, name="Dev Local", email="dev@informs.local",
-         systems=["GAIA", "UBERLANDIA"], role=ProfileRole.ADMIN, admin_systems=[]),
+         systems=["GAIA", "UBERLANDIA"], super_admin=True, roles={"GAIA": "tecnico", "UBERLANDIA": "tecnico"},
+         legacy_role="ADMIN", admin_systems=[]),
 ]
+
+# Papéis criados em cada sistema (RBAC). ADMIN é o papel fixo do back-end.
+LOCAL_ROLES = {
+    "tecnico": dict(name="Técnico", is_default=True, actions=["tracking.start"]),
+    "gestor": dict(name="Gestor", is_default=False, actions=[
+        "forms.view_all", "forms.assign", "forms.release", "tracking.start", "tracking.view",
+        "users.manage", "templates.manage",
+    ]),
+}
 
 _NAMESPACE = uuid.UUID("6f1c2a52-7d1e-4c55-9a43-1b0d5e2f9c11")
 
@@ -139,27 +161,90 @@ def _supports(fn, name: str) -> bool:
     return name in inspect.signature(fn).parameters
 
 
+def _is_rbac() -> bool:
+    # RBAC por sistema (ADR-0020): o perfil tem `super_admin` e não tem `role`.
+    return _supports(Profile.__init__, "super_admin")
+
+
 def seed_profiles() -> None:
+    if _is_rbac():
+        _seed_profiles_rbac()
+    else:
+        _seed_profiles_legacy()
+
+
+def _seed_profiles_legacy() -> None:
+    from src.shared.domain.enums.profile_role_enum import ProfileRole
+
     repo = Environments.get_profile_repo()
     for account in LOCAL_ACCOUNTS:
         now = _now()
+        role = ProfileRole(account["legacy_role"])
         admin_systems = account["admin_systems"]
         current = repo.get_by_user_id(account["user_id"])
         if current is None:
             kwargs = dict(
-                user_id=account["user_id"], role=account["role"], name=account["name"], email=account["email"],
+                user_id=account["user_id"], role=role, name=account["name"], email=account["email"],
                 system=account["systems"][0], active=True, created_at=now, updated_at=now,
             )
             if _supports(Profile.__init__, "admin_systems"):
                 kwargs["admin_systems"] = admin_systems
             repo.create(Profile(**kwargs))
         else:
-            kwargs = dict(user_id=account["user_id"], role=account["role"], updated_at=now)
+            kwargs = dict(user_id=account["user_id"], role=role, updated_at=now)
             if _supports(repo.update_profile, "admin_systems"):
                 kwargs["admin_systems"] = admin_systems
             repo.update_profile(**kwargs)
         admin = f", administra {', '.join(admin_systems)}" if admin_systems else ""
-        print(f"[ok]   perfil {account['email']} ({account['role'].value}{admin})")
+        print(f"[ok]   perfil {account['email']} ({role.value}{admin})")
+
+
+def _seed_profiles_rbac() -> None:
+    from src.shared.domain.entities.system_membership import SystemMembership
+    from src.shared.domain.entities.system_role import SystemRole
+    from src.shared.domain.enums.action_enum import Action
+    from src.shared.infra.dtos.profile_dynamo_dto import ProfileDynamoDTO
+
+    profiles = Environments.get_profile_repo()
+    roles = Environments.get_system_role_repo()
+    now = _now()
+
+    # Papéis com ids fixos: rodar de novo regrava o mesmo papel. Um papel padrão
+    # por sistema — se já houver outro (ex.: criado pela migração), o nosso não
+    # disputa a marca.
+    for system in sorted({system for account in LOCAL_ACCOUNTS for system in account["systems"]}):
+        existing = {role.role_id: role for role in roles.list_roles(system)}
+        other_default = any(role.is_default for role_id, role in existing.items() if role_id not in LOCAL_ROLES)
+        for role_id, spec in LOCAL_ROLES.items():
+            current = existing.get(role_id)
+            roles.put_role(SystemRole(
+                system=system, role_id=role_id, name=spec["name"],
+                actions=[Action(action) for action in spec["actions"]],
+                is_default=spec["is_default"] and not other_default,
+                created_at=current.created_at if current else now, updated_at=now,
+            ))
+        print(f"[ok]   papéis em {system}: {', '.join(spec['name'] for spec in LOCAL_ROLES.values())}")
+
+    for account in LOCAL_ACCOUNTS:
+        current = profiles.get_by_user_id(account["user_id"])
+        person = Profile(
+            user_id=account["user_id"], name=account["name"], email=account["email"], active=True,
+            created_at=current.created_at if current else now, updated_at=now,
+            super_admin=account["super_admin"],
+        )
+        # Grava a pessoa por cima (sem a condição do `create`): também limpa um
+        # perfil local ainda no formato antigo (`role`, `system`, ...).
+        profiles.dynamo.put_item(
+            item=ProfileDynamoDTO.from_entity(person).to_dynamo(),
+            partition_key=ProfileDynamoDTO.build_pk(person.user_id),
+            sort_key=ProfileDynamoDTO.build_sk(),
+        )
+        for system, role_id in account["roles"].items():
+            profiles.put_membership(SystemMembership(
+                user_id=account["user_id"], system=system, role_id=role_id, created_at=now, updated_at=now,
+            ))
+        access = ", ".join(f"{system}: {role_id}" for system, role_id in account["roles"].items())
+        print(f"[ok]   perfil {account['email']} ({'super admin; ' if account['super_admin'] else ''}{access})")
 
 
 def seed_system_config() -> None:
