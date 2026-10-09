@@ -51,6 +51,39 @@ class CreationConfig(_ConfigGroup):
     allow_open: StrictBool = Field(default=False, title="Criar em aberto para o sistema", description="Oferece criar o formulário sem dono, em Compartilhados.")
 
 
+_HEX_COLOR = r"^#[0-9a-fA-F]{6}$"
+
+
+def _status_label(default: str, name: str) -> Any:
+    return Field(default=default, min_length=1, max_length=30, title=f"{name} · nome",
+                 description="Como este status aparece nas abas, nos cartões e no detalhe.")
+
+
+def _status_color(name: str) -> Any:
+    # Sem valor (None) vale a cor do próprio app, que tem variante para tema
+    # claro e escuro. Uma cor escolhida aqui vale para os dois temas.
+    return Field(default=None, pattern=_HEX_COLOR, title=f"{name} · cor",
+                 description="Cor do status na lista, nas abas e no pin do mapa. Vazio: a cor do app.",
+                 json_schema_extra={"format": "color"})
+
+
+class StatusConfig(_ConfigGroup):
+    """Nome e cor de cada status como o app de campo mostra. "Completo e não
+    enviado" é do próprio app (envio na fila offline), não um status do
+    back-end — mas aparece como status para quem está em campo."""
+
+    pending_label: StrictStr = _status_label("Pendente", "Pendente")
+    pending_color: Optional[StrictStr] = _status_color("Pendente")
+    in_progress_label: StrictStr = _status_label("Em andamento", "Em andamento")
+    in_progress_color: Optional[StrictStr] = _status_color("Em andamento")
+    completed_not_sent_label: StrictStr = _status_label("Completo e não enviado", "Completo e não enviado")
+    completed_not_sent_color: Optional[StrictStr] = _status_color("Completo e não enviado")
+    completed_label: StrictStr = _status_label("Completo", "Completo")
+    completed_color: Optional[StrictStr] = _status_color("Completo")
+    cancelled_label: StrictStr = _status_label("Cancelado", "Cancelado")
+    cancelled_color: Optional[StrictStr] = _status_color("Cancelado")
+
+
 class AppConfig(_ConfigGroup):
     """
     Configuração da aplicação vista pelo app de campo.
@@ -71,6 +104,7 @@ class AppConfig(_ConfigGroup):
     flows: FlowsConfig = Field(default_factory=FlowsConfig, title="Funcionamentos")
     preview: PreviewConfig = Field(default_factory=PreviewConfig, title="Prévia")
     creation: CreationConfig = Field(default_factory=CreationConfig, title="Criação em campo")
+    statuses: StatusConfig = Field(default_factory=StatusConfig, title="Status dos formulários")
 
     @staticmethod
     def validate_layer(values: Dict[str, Any]) -> Dict[str, Any]:
