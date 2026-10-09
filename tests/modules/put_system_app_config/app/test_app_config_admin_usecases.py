@@ -57,6 +57,18 @@ class TestGetAppConfigAdmin(_Base):
         assert result.can_edit_default is False
         assert [item.system for item in result.systems] == ["UBERLANDIA"]
 
+    def test_effective_matches_what_the_app_receives(self):
+        # "Em aberto" ligado na camada, mas o sistema não aceita formulário sem
+        # dono: o app recebe desligado, e o Admin tem que mostrar o mesmo.
+        open_layer = {"creation": {"allow_open": True}}
+        self.configs.put(SystemConfig(system="GAIA", created_at=1, updated_at=1, app_config=open_layer, app_config_version=1))
+        self.configs.put(SystemConfig(system="UBERLANDIA", created_at=1, updated_at=1, allow_unassigned_forms=True, app_config=open_layer, app_config_version=1))
+
+        result = GetAppConfigAdminUsecase(self.profiles, self.configs)(_requester(PLATFORM_ADMIN))
+        effective = {item.system: item.effective.creation.allow_open for item in result.systems}
+
+        assert effective == {"GAIA": False, "UBERLANDIA": True}
+
 
 class TestPutDefaultAppConfig(_Base):
     def test_platform_admin_saves_and_bumps_version(self):
@@ -95,6 +107,16 @@ class TestPutSystemAppConfig(_Base):
         stored = self.configs.get_by_system("UBERLANDIA")
         assert stored.allow_unassigned_forms is True
         assert stored.app_config_version == 1
+
+    def test_saved_effective_respects_unassigned_forms(self):
+        self.configs.put(SystemConfig(system="GAIA", created_at=1, updated_at=1))
+
+        saved = PutSystemAppConfigUsecase(self.profiles, self.configs)(
+            _requester(PLATFORM_ADMIN), "GAIA", {"creation": {"allow_open": True}}, base_version=0
+        )
+
+        assert saved.values == {"creation": {"allow_open": True}}
+        assert saved.effective.creation.allow_open is False
 
     def test_system_admin_cannot_edit_another_system(self):
         self.make_system_admin("UBERLANDIA")

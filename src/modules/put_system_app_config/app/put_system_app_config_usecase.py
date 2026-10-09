@@ -64,5 +64,7 @@ class PutSystemAppConfigUsecase:
             system=system,
             values=saved.app_config,
             version=saved.app_config_version,
-            effective=AppConfig.resolve(default.values if default else {}, saved.app_config),
+            effective=AppConfig.effective(
+                default.values if default else {}, saved.app_config, bool(saved.allow_unassigned_forms)
+            ),
         )

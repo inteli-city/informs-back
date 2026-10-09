@@ -63,7 +63,11 @@ class GetAppConfigAdminUsecase:
                     system=system,
                     values=values,
                     version=config.app_config_version if config else 0,
-                    effective=AppConfig.resolve(default_layer.values, values),
+                    # Mesma conta do GET /app-config: o Admin mostra o que o app recebe
+                    # (ex.: "em aberto" desligado se o sistema não aceita sem dono).
+                    effective=AppConfig.effective(
+                        default_layer.values, values, bool(config and config.allow_unassigned_forms)
+                    ),
                 )
             )
 
