@@ -75,6 +75,19 @@ def _put_system(repo, system: str, values: dict, dry_run: bool) -> None:
         repo.put(config)
 
 
+# Só as camadas versionadas no repositório vão para o banco: a configuração de
+# produção tem histórico e revisão, e um caminho arbitrário no --file não lê
+# nada fora daqui.
+APP_CONFIG_DIR = (Path(__file__).resolve().parent / "app_config").resolve()
+
+
+def _layer_file(file_arg: str) -> Path:
+    path = Path(file_arg).resolve()
+    if path.suffix != ".json" or not path.is_relative_to(APP_CONFIG_DIR):
+        raise SystemExit(f"--file precisa ser um .json dentro de {APP_CONFIG_DIR}")
+    return path
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Grava uma camada da configuração da aplicação")
     target = parser.add_mutually_exclusive_group(required=True)
@@ -84,7 +97,7 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true", help="Valida e mostra o que mudaria, sem gravar")
     args = parser.parse_args()
 
-    values = json.loads(Path(args.file).read_text(encoding="utf-8"))
+    values = json.loads(_layer_file(args.file).read_text(encoding="utf-8"))
     repo = Environments.get_system_config_repo()
 
     if args.default:
