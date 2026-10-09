@@ -224,6 +224,12 @@ class LocalApiHandler(BaseHTTPRequestHandler):
             return self._json(500, {"message": f"Erro não tratado em {route.module} (veja o terminal da API local)"}, started)
 
         headers = {**CORS_HEADERS, **(result.get("headers") or {})}
+        # A resposta da Lambda pode ecoar o que veio na requisição. Nunca servir
+        # como HTML: sem Content-Type da Lambda vale JSON, e `nosniff` impede o
+        # navegador de adivinhar outro tipo.
+        if not any(key.lower() == "content-type" for key in headers):
+            headers["Content-Type"] = "application/json"
+        headers["X-Content-Type-Options"] = "nosniff"
         payload = result.get("body") or ""
         if result.get("isBase64Encoded"):
             raw = base64.b64decode(payload)
@@ -259,7 +265,8 @@ def main() -> int:
     args = parser.parse_args()
 
     server = ThreadingHTTPServer((args.host, args.port), LocalApiHandler)
-    print(f"API local em http://{args.host}:{args.port}{BASE_PATH}  (Ctrl+C para parar)", flush=True)
+    # Servidor de desenvolvimento, só em 127.0.0.1: TLS aqui não protege nada. NOSONAR
+    print(f"API local em http://{args.host}:{args.port}{BASE_PATH}  (Ctrl+C para parar)", flush=True)  # NOSONAR
     try:
         server.serve_forever()
     except KeyboardInterrupt:

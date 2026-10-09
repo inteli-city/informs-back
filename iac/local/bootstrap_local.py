@@ -67,6 +67,7 @@ def _ensure_bucket() -> None:
     # volta pela URL do objeto: sem CORS o navegador bloqueia as duas coisas.
     s3.put_bucket_cors(
         Bucket=envs.bucket_name,
+        ExpectedBucketOwner=local_env.LOCALSTACK_ACCOUNT_ID,
         CORSConfiguration={
             "CORSRules": [{
                 "AllowedOrigins": ["*"],

@@ -14,6 +14,10 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+# Conta fixa do LocalStack. Vai como ExpectedBucketOwner nas chamadas de S3,
+# como numa conta de verdade: o bucket tem que ser desta conta.
+LOCALSTACK_ACCOUNT_ID = "000000000000"
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 

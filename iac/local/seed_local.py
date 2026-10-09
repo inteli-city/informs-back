@@ -91,7 +91,10 @@ def _png(rgb: tuple, size: int = 64) -> bytes:
 def _upload_image(key: str, rgb: tuple) -> str:
     envs = Environments.get_envs()
     s3 = boto3.client("s3", endpoint_url=envs.s3_endpoint_url, region_name=envs.region)
-    s3.put_object(Bucket=envs.bucket_name, Key=key, Body=_png(rgb), ContentType="image/png")
+    s3.put_object(
+        Bucket=envs.bucket_name, Key=key, Body=_png(rgb), ContentType="image/png",
+        ExpectedBucketOwner=local_env.LOCALSTACK_ACCOUNT_ID,
+    )
     return build_s3_url(key)
 
 
@@ -163,7 +166,7 @@ def seed_system_config() -> None:
     repo = Environments.get_system_config_repo()
     current = repo.get_by_system("UBERLANDIA")
     now = _now()
-    repo.put(SystemConfig(
+    kwargs = dict(
         system="UBERLANDIA",
         created_at=current.created_at if current else now,
         updated_at=now,
@@ -171,7 +174,14 @@ def seed_system_config() -> None:
         scope_partition_key=current.scope_partition_key if current else None,
         geofence_radius_m=current.geofence_radius_m if current else None,
         allow_unassigned_forms=True,
-    ))
+    )
+    # O `put` grava o item inteiro: sem repassar a camada de configuração do
+    # sistema (feature/config-*), rodar o seed de novo apagaria o que foi
+    # configurado no Admin.
+    for field in ("app_config", "app_config_version"):
+        if current is not None and _supports(SystemConfig.__init__, field):
+            kwargs[field] = getattr(current, field)
+    repo.put(SystemConfig(**kwargs))
     print("[ok]   SystemConfig UBERLANDIA (allow_unassigned_forms)")
 
 
