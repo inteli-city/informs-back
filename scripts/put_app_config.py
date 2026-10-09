@@ -36,8 +36,9 @@ from src.shared.environments import Environments  # noqa: E402
 
 def _put_default(repo, values: dict, dry_run: bool, author: str) -> None:
     current = repo.get_default_app_config()
-    current_values = current.values if current else {}
-    if current_values == values:
+    # Sem item gravado, a camada é criada mesmo vazia: o padrão passa a existir
+    # no banco (versão 1) e as próximas mudanças partem dele.
+    if current is not None and current.values == values:
         print("Padrão da aplicação já está igual ao arquivo. Nada a gravar.")
         return
 
@@ -51,8 +52,7 @@ def _put_default(repo, values: dict, dry_run: bool, author: str) -> None:
 
 def _put_system(repo, system: str, values: dict, dry_run: bool) -> None:
     current = repo.get_by_system(system)
-    current_values = current.app_config if current else {}
-    if current_values == values:
+    if current is not None and current.app_config == values:
         print(f"Configuração de {system} já está igual ao arquivo. Nada a gravar.")
         return
 
@@ -80,6 +80,10 @@ def _put_system(repo, system: str, values: dict, dry_run: bool) -> None:
 # nada fora daqui.
 APP_CONFIG_DIR = (Path(__file__).resolve().parent / "app_config").resolve()
 
+# Sem STAGE o Environments cai no repositório em memória: o script "gravaria",
+# terminaria sem erro e nada chegaria ao DynamoDB.
+REAL_STAGES = ("DEV", "HOMOLOG", "PROD")
+
 
 def _layer_file(file_arg: str) -> Path:
     path = Path(file_arg).resolve()
@@ -97,8 +101,13 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true", help="Valida e mostra o que mudaria, sem gravar")
     args = parser.parse_args()
 
+    stage = os.environ.get("STAGE")
+    if stage not in REAL_STAGES:
+        raise SystemExit(f"STAGE precisa ser um de {', '.join(REAL_STAGES)} (recebido: {stage!r})")
+
     values = json.loads(_layer_file(args.file).read_text(encoding="utf-8"))
     repo = Environments.get_system_config_repo()
+    print(f"Ambiente: {stage} — tabela {os.environ.get('DYNAMO_TABLE_NAME')}")
 
     if args.default:
         _put_default(repo, values, args.dry_run, author=os.environ.get("USER") or os.environ.get("USERNAME"))
