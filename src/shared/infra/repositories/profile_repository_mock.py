@@ -1,47 +1,59 @@
 from copy import deepcopy
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from src.shared.domain.entities.profile import Profile
-from src.shared.domain.enums.profile_role_enum import ProfileRole
+from src.shared.domain.entities.system_membership import SystemMembership
 from src.shared.domain.repositories.profile_repository_interface import IProfileRepository
 from src.shared.helpers.errors.usecase_errors import DuplicatedItem, NoItemsFound
+from src.shared.infra.repositories.system_role_repository_mock import MOCK_TECNICO_ROLE_ID
+
+
+MOCK_SUPER_ADMIN_ID = "d61dbf66-a10f-11ed-a8fc-0242ac120001"
+MOCK_INSPECTOR_ID = "d61dbf66-a10f-11ed-a8fc-0242ac120002"
 
 
 class ProfileRepositoryMock(IProfileRepository):
     """
-    Implementação em memória usada nos testes. Pré-popula com 1 ADMIN e 1
-    INSPECTOR para que cenários comuns possam ser cobertos sem setup extra.
-    Cópias profundas são retornadas/aceitas para evitar mutação cruzada
-    entre testes.
+    Implementação em memória usada nos testes. Pré-popula com 1 super admin e
+    1 pessoa de campo (role "Técnico" em GAIA) para que cenários comuns
+    possam ser cobertos sem setup extra. Cópias profundas são
+    retornadas/aceitas para evitar mutação cruzada entre testes.
     """
 
     profiles: List[Profile]
+    memberships: List[SystemMembership]
 
     def __init__(self):
         self.profiles = [
             Profile(
-                user_id="d61dbf66-a10f-11ed-a8fc-0242ac120001",
-                role=ProfileRole.ADMIN,
+                user_id=MOCK_SUPER_ADMIN_ID,
                 name="Admin Mock",
                 email="admin@example.com",
-                system="GAIA",
                 active=True,
+                super_admin=True,
                 created_at=946684800000,
                 updated_at=946684800000,
-                vehicle_plate=None,
             ),
             Profile(
-                user_id="d61dbf66-a10f-11ed-a8fc-0242ac120002",
-                role=ProfileRole.INSPECTOR,
+                user_id=MOCK_INSPECTOR_ID,
                 name="Inspector Mock",
                 email="inspector@example.com",
-                system="GAIA",
                 active=True,
                 created_at=946684800000,
                 updated_at=946684800000,
-                vehicle_plate="ABC1D23",
             ),
         ]
+        self.memberships = [
+            SystemMembership(
+                user_id=MOCK_INSPECTOR_ID,
+                system="GAIA",
+                role_id=MOCK_TECNICO_ROLE_ID,
+                created_at=946684800000,
+                updated_at=946684800000,
+            ),
+        ]
+
+    # --- Pessoa ---------------------------------------------------------------
 
     def get_by_user_id(self, user_id: str) -> Optional[Profile]:
         for profile in self.profiles:
@@ -62,26 +74,32 @@ class ProfileRepositoryMock(IProfileRepository):
                 return deepcopy(profile)
         raise NoItemsFound(f"Perfil não encontrado para user_id={user_id}")
 
-    def count_active_by_role(self, role: ProfileRole) -> int:
-        return sum(1 for p in self.profiles if p.role == role and p.active)
+    def count_active_super_admins(self) -> int:
+        return sum(1 for p in self.profiles if p.is_active_super_admin())
 
-    def update_profile(
-        self,
-        user_id: str,
-        role: Optional[ProfileRole] = None,
-        scope: Optional[Dict[str, List[str]]] = None,
-        updated_at: Optional[int] = None,
-        admin_systems: Optional[List[str]] = None,
-    ) -> Profile:
-        for profile in self.profiles:
-            if profile.user_id == user_id:
-                if role is not None:
-                    profile.role = role
-                if scope is not None:
-                    profile.scope = scope
-                if admin_systems is not None:
-                    profile.admin_systems = list(dict.fromkeys(admin_systems))
-                if updated_at is not None:
-                    profile.updated_at = updated_at
-                return deepcopy(profile)
-        raise NoItemsFound(f"Perfil não encontrado para user_id={user_id}")
+    # --- Vínculos ---------------------------------------------------------
+
+    def get_memberships(self, user_id: str) -> List[SystemMembership]:
+        return [deepcopy(m) for m in self.memberships if m.user_id == user_id]
+
+    def get_membership(self, user_id: str, system: str) -> Optional[SystemMembership]:
+        for membership in self.memberships:
+            if membership.user_id == user_id and membership.system == system:
+                return deepcopy(membership)
+        return None
+
+    def put_membership(self, membership: SystemMembership) -> SystemMembership:
+        self.delete_membership(membership.user_id, membership.system)
+        self.memberships.append(deepcopy(membership))
+        return deepcopy(membership)
+
+    def delete_membership(self, user_id: str, system: str) -> None:
+        self.memberships = [
+            m for m in self.memberships if not (m.user_id == user_id and m.system == system)
+        ]
+
+    def list_memberships_by_system(self, system: str) -> List[SystemMembership]:
+        return [deepcopy(m) for m in self.memberships if m.system == system]
+
+    def count_memberships_by_role(self, system: str, role_id: str) -> int:
+        return sum(1 for m in self.memberships if m.system == system and m.role_id == role_id)

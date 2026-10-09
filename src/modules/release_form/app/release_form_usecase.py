@@ -4,22 +4,20 @@ from typing import List, Optional
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.form_event import FormEvent
 from src.shared.domain.enums.form_event_type_enum import FormEventType
-from src.shared.domain.enums.profile_role_enum import ProfileRole
+from src.shared.domain.enums.action_enum import Action
 from src.shared.domain.repositories.file_repository_interface import IFileRepository
 from src.shared.domain.repositories.form_event_repository_interface import IFormEventRepository
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
-from src.shared.domain.repositories.profile_repository_interface import IProfileRepository
+from src.shared.domain.services.access_control import AccessControl
 from src.shared.helpers.errors.usecase_errors import ErrorWithFile, ForbiddenAction, NoItemsFound
 from src.shared.helpers.functions.datetime_utils import now_timestamp_ms
 from src.shared.helpers.functions.s3_url import extract_file_path
 
-_MANAGER_ROLES = {ProfileRole.ADMIN, ProfileRole.MANAGER, ProfileRole.SUPERVISOR}
-
 
 class ReleaseFormUsecase:
     """
-    Devolve uma OS ao pool (RN-UBE-004/005). Dono, ou Gestor/Fiscal/Admin,
-    podem devolver. O conteúdo é descartado (decisão P5) e os arquivos já
+    Devolve uma OS ao pool (RN-UBE-004/005). O dono, ou quem tem
+    `forms.release` no sistema da OS, pode devolver. O conteúdo é descartado (decisão P5) e os arquivos já
     enviados são removidos do S3 (RN-UBE-012) — `reconcile_form_files`
     continua como rede de segurança, não como mecanismo principal.
     """
@@ -28,12 +26,12 @@ class ReleaseFormUsecase:
         self,
         form_repo: IFormRepository,
         file_repo: IFileRepository,
-        profile_repo: IProfileRepository,
+        access_control: AccessControl,
         form_event_repo: IFormEventRepository,
     ):
         self.form_repo = form_repo
         self.file_repo = file_repo
-        self.profile_repo = profile_repo
+        self.access_control = access_control
         self.form_event_repo = form_event_repo
 
     def __call__(self, requester_user_id: str, requester_systems: Optional[List[str]], form_id: str) -> Form:
@@ -78,6 +76,5 @@ class ReleaseFormUsecase:
     def _ensure_can_release(self, requester_user_id: str, form: Form) -> None:
         if form.user_id == requester_user_id:
             return
-        profile = self.profile_repo.get_by_user_id(requester_user_id)
-        if profile is None or not profile.active or profile.role not in _MANAGER_ROLES:
+        if not self.access_control.can(requester_user_id, form.system, Action.FORMS_RELEASE):
             raise ForbiddenAction("Usuário não pode devolver este formulário ao pool")

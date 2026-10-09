@@ -1,24 +1,23 @@
 from typing import List
 
 from src.shared.domain.entities.location_ping import LocationPing
-from src.shared.domain.enums.profile_role_enum import ProfileRole
+from src.shared.domain.enums.action_enum import Action
 from src.shared.domain.repositories.location_repository_interface import (
     ILocationRepository,
 )
-from src.shared.domain.repositories.profile_repository_interface import (
-    IProfileRepository,
-)
+from src.shared.domain.services.access_control import AccessControl
 from src.shared.helpers.errors.controller_errors import WrongTypeParameter
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction
 
 
 class GetLocationHistoryUsecase:
     """
-    Lê o histórico de pings de um inspector (rota completa) na tabela
-    Location. Apenas ADMIN ativo pode chamar.
+    Lê o histórico de pings de uma pessoa (rota completa) na tabela
+    Location.
 
     Regras:
-    1. Requester precisa ser um ADMIN ativo (lookup no Profile).
+    1. Requester precisa ser super admin, ou ter `tracking.view` em algum
+       sistema em que a pessoa alvo também tem vínculo.
     2. Range temporal precisa ser válido (since <= until).
     3. Range vazio retorna lista vazia (não é erro).
     """
@@ -26,10 +25,10 @@ class GetLocationHistoryUsecase:
     def __init__(
         self,
         location_repo: ILocationRepository,
-        profile_repo: IProfileRepository,
+        access_control: AccessControl,
     ):
         self.location_repo = location_repo
-        self.profile_repo = profile_repo
+        self.access_control = access_control
 
     def __call__(
         self,
@@ -39,7 +38,7 @@ class GetLocationHistoryUsecase:
         since_ms: int,
         until_ms: int,
     ) -> List[LocationPing]:
-        self._ensure_requester_is_active_admin(requester_user_id)
+        self._ensure_requester_can_view(requester_user_id, target_user_id)
 
         if since_ms > until_ms:
             raise WrongTypeParameter(
@@ -54,13 +53,12 @@ class GetLocationHistoryUsecase:
             until_ms=until_ms,
         )
 
-    def _ensure_requester_is_active_admin(self, requester_user_id: str) -> None:
-        requester_profile = self.profile_repo.get_by_user_id(requester_user_id)
-        if (
-            requester_profile is None
-            or not requester_profile.active
-            or requester_profile.role != ProfileRole.ADMIN
-        ):
+    def _ensure_requester_can_view(self, requester_user_id: str, target_user_id: str) -> None:
+        if self.access_control.is_super_admin(requester_user_id):
+            return
+        viewer_systems = set(self.access_control.systems_where(requester_user_id, Action.TRACKING_VIEW))
+        target_systems = set(self.access_control.systems_of(target_user_id))
+        if not viewer_systems & target_systems:
             raise ForbiddenAction(
-                "Apenas administradores ativos podem ler o histórico de tracking"
+                "Usuário não pode ler o histórico de tracking desta pessoa"
             )

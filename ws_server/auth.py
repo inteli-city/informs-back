@@ -5,11 +5,15 @@ Fluxo:
    (ou `Sec-WebSocket-Protocol: Bearer.<token>` como fallback — alguns
    clientes browser não conseguem injetar Authorization em WS).
 2. Validamos a assinatura do JWT contra o JWKS do User Pool (cacheado).
-3. Extraímos `sub` (user_id) e buscamos role na tabela de Profiles
-   (nome injetado via env PROFILE_TABLE pelo deploy script).
-4. Se não houver Profile, tratamos como INSPECTOR por padrão. ADMIN só
-   existe quando há Profile explícito com role ADMIN. Profile inativo é
-   rejeitado.
+3. Extraímos `sub` (user_id) e lemos o Profile e os vínculos com os
+   sistemas na tabela de Profiles (nome injetado via env PROFILE_TABLE pelo
+   deploy script) para decidir o modo da conexão:
+   - ADMIN (acompanha): super admin, ADMIN de algum sistema ou role com
+     `tracking.view`;
+   - INSPECTOR (emite localização): role com `tracking.start`.
+4. Sem Profile, tratamos como INSPECTOR por padrão (usuário comum do
+   Cognito não precisa de Profile chumbado). Profile inativo, ou sem
+   nenhuma das duas ações, é rejeitado.
 
 Erros levantam `AuthError` que o caller transforma em close(code=4401).
 """
@@ -21,16 +25,22 @@ from typing import Literal, Optional
 
 import boto3
 import httpx
+from boto3.dynamodb.conditions import Key
 from jose import jwt
 from jose.exceptions import JWTError
 
 from .config import Settings
 
 
-# Roles aplicacionais autorizadas no tracking.
-# Mantemos os mesmos nomes do Profile (ADR #16) — sem tradução.
+# Modos da conexão no tracking: INSPECTOR emite localização, ADMIN acompanha.
 ProfileRole = Literal["INSPECTOR", "ADMIN"]
 _ALLOWED_ROLES = {"INSPECTOR", "ADMIN"}
+
+# Espelham o RBAC do back (src/shared/domain): o ws_server é um deploy
+# separado e não importa o pacote `src`.
+_ADMIN_ROLE_ID = "ADMIN"
+_TRACKING_VIEW = "tracking.view"
+_TRACKING_START = "tracking.start"
 
 
 @dataclass(frozen=True)
@@ -64,7 +74,7 @@ class Authenticator:
 
         role = self._lookup_role(user_id)
         if role is None:
-            raise AuthError(f"profile inativo ou inválido pra user {user_id}")
+            raise AuthError(f"profile inativo ou sem permissão de tracking pra user {user_id}")
         if role not in _ALLOWED_ROLES:
             raise AuthError(f"role {role!r} não autorizada no tracking")
 
@@ -108,23 +118,39 @@ class Authenticator:
             raise AuthError(f"validação JWT falhou: {exc}") from exc
 
     def _lookup_role(self, user_id: str) -> Optional[str]:
-        """Lê role do Profile no DynamoDB. Convenção do schema:
+        """Decide o modo da conexão pelo RBAC. Convenção do schema:
 
-        PK = user#{user_id}
-        SK = METADATA
-        attrs = {role: 'ADMIN'|'INSPECTOR', active: bool, ...}
+        PK = user#{user_id}  SK = METADATA          → {active, super_admin, ...}
+        PK = user#{user_id}  SK = system#{system}   → {role_id, ...}
+        PK = system#{system} SK = role#{role_id}    → {actions: [...]}
 
         Sem Profile explícito, o usuário autenticado vira INSPECTOR por padrão.
-        Retorna None apenas se o profile existe mas está inativo ou sem role.
+        Retorna None se o profile está inativo ou não tem permissão de tracking.
         """
         table = self._dynamodb.Table(self._settings.profile_table)
-        resp = table.get_item(Key={"PK": f"user#{user_id}", "SK": "METADATA"})
-        item = resp.get("Item")
-        if item is None:
+        items = table.query(KeyConditionExpression=Key("PK").eq(f"user#{user_id}")).get("Items", [])
+        profile = next((item for item in items if item.get("SK") == "METADATA"), None)
+        if profile is None:
             return "INSPECTOR"
-        if not item.get("active", True):
+        if not profile.get("active", True):
             return None
-        return item.get("role")
+        if profile.get("super_admin"):
+            return "ADMIN"
+
+        actions = set()
+        for membership in (item for item in items if str(item.get("SK", "")).startswith("system#")):
+            if membership.get("role_id") == _ADMIN_ROLE_ID:
+                return "ADMIN"
+            role = table.get_item(
+                Key={"PK": f"system#{membership.get('system')}", "SK": f"role#{membership.get('role_id')}"}
+            ).get("Item")
+            actions |= set((role or {}).get("actions") or [])
+
+        if _TRACKING_VIEW in actions:
+            return "ADMIN"
+        if _TRACKING_START in actions:
+            return "INSPECTOR"
+        return None
 
 
 def extract_token_from_headers(headers: dict[str, str]) -> Optional[str]:

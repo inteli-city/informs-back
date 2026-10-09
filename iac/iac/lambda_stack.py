@@ -65,6 +65,12 @@ class LambdaStack(Construct):
         app_config_admin_resource = app_config_resource.add_resource("admin")
         app_config_default_resource = app_config_resource.add_resource("default")
         app_config_system_resource = app_config_resource.add_resource("systems").add_resource("{system}")
+        permissions_actions_resource = api_gateway_resource.add_resource("permissions").add_resource("actions")
+        system_resource = api_gateway_resource.add_resource("systems").add_resource("{system}")
+        system_roles_resource = system_resource.add_resource("roles")
+        system_role_id_resource = system_roles_resource.add_resource("{role_id}")
+        system_users_resource = system_resource.add_resource("users")
+        system_user_id_resource = system_users_resource.add_resource("{user_id}")
 
         self.create_form = self.create_lambda_api_gateway_integration(
             module_name="create_form",
@@ -213,10 +219,66 @@ class LambdaStack(Construct):
             authorizer=authorizer,
         )
 
-        self.update_profile = self.create_lambda_api_gateway_integration(
-            module_name="update_profile",
+        self.get_permission_actions = self.create_lambda_api_gateway_integration(
+            module_name="get_permission_actions",
+            method="GET",
+            api_resource=permissions_actions_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.get_system_roles = self.create_lambda_api_gateway_integration(
+            module_name="get_system_roles",
+            method="GET",
+            api_resource=system_roles_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.create_system_role = self.create_lambda_api_gateway_integration(
+            module_name="create_system_role",
+            method="POST",
+            api_resource=system_roles_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.update_system_role = self.create_lambda_api_gateway_integration(
+            module_name="update_system_role",
             method="PUT",
-            api_resource=profile_user_id_resource,
+            api_resource=system_role_id_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.delete_system_role = self.create_lambda_api_gateway_integration(
+            module_name="delete_system_role",
+            method="DELETE",
+            api_resource=system_role_id_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.get_system_users = self.create_lambda_api_gateway_integration(
+            module_name="get_system_users",
+            method="GET",
+            api_resource=system_users_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.put_system_user = self.create_lambda_api_gateway_integration(
+            module_name="put_system_user",
+            method="PUT",
+            api_resource=system_user_id_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.delete_system_user = self.create_lambda_api_gateway_integration(
+            module_name="delete_system_user",
+            method="DELETE",
+            api_resource=system_user_id_resource,
             environment_variables=environment_variables,
             authorizer=authorizer,
         )
@@ -470,8 +532,14 @@ class LambdaStack(Construct):
             self.create_profile,
             self.login_profile,
             self.delete_profile,
-            self.update_profile,
             self.create_form,
+            self.get_system_roles,
+            self.create_system_role,
+            self.update_system_role,
+            self.delete_system_role,
+            self.get_system_users,
+            self.put_system_user,
+            self.delete_system_user,
             self.release_form,
             self.assign_form,
             self.get_all_forms,

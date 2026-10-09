@@ -3,17 +3,14 @@ from typing import cast
 import pytest
 
 from src.shared.domain.entities.profile import Profile
-from src.shared.domain.enums.profile_role_enum import ProfileRole
 from src.shared.helpers.errors.domain_errors import EntityError
 
 
 def _kwargs(**overrides):
     base = {
         "user_id": "d61dbf66-a10f-11ed-a8fc-0242ac120010",
-        "role": ProfileRole.INSPECTOR,
         "name": "Inspector One",
         "email": "inspector@example.com",
-        "system": "GAIA",
         "active": True,
         "created_at": 946684800000,
         "updated_at": 946684800000,
@@ -25,50 +22,33 @@ def _kwargs(**overrides):
 class TestProfile:
     def test_valid_profile(self):
         profile = Profile(**_kwargs())
-        assert profile.role == ProfileRole.INSPECTOR
         assert profile.active is True
-        assert profile.vehicle_plate is None
+        assert profile.super_admin is False
 
     def test_invalid_user_id(self):
-        kwargs = _kwargs(user_id="too-short")
         with pytest.raises(EntityError):
-            Profile(**kwargs)
-
-    def test_invalid_role(self):
-        # cast esquiva o type checker: passamos string de propósito
-        # para validar a checagem em runtime.
-        kwargs = _kwargs(role=cast(ProfileRole, "ADMIN"))
-        with pytest.raises(EntityError):
-            Profile(**kwargs)
+            Profile(**_kwargs(user_id="too-short"))
 
     def test_empty_name(self):
-        kwargs = _kwargs(name="   ")
         with pytest.raises(EntityError):
-            Profile(**kwargs)
+            Profile(**_kwargs(name="   "))
 
     def test_invalid_email(self):
-        kwargs = _kwargs(email="not-an-email")
         with pytest.raises(EntityError):
-            Profile(**kwargs)
-
-    def test_empty_system(self):
-        kwargs = _kwargs(system="")
-        with pytest.raises(EntityError):
-            Profile(**kwargs)
+            Profile(**_kwargs(email="not-an-email"))
 
     def test_active_must_be_bool(self):
-        kwargs = _kwargs(active=cast(bool, "yes"))
         with pytest.raises(EntityError):
-            Profile(**kwargs)
+            Profile(**_kwargs(active=cast(bool, "yes")))
 
-    def test_vehicle_plate_optional(self):
-        profile = Profile(**_kwargs(vehicle_plate="ABC1D23"))
-        assert profile.vehicle_plate == "ABC1D23"
-
-    def test_vehicle_plate_empty_invalid(self):
-        kwargs = _kwargs(vehicle_plate="")
+    def test_super_admin_must_be_bool(self):
         with pytest.raises(EntityError):
-            Profile(**kwargs)
+            Profile(**_kwargs(super_admin=cast(bool, "yes")))
+
+    def test_is_active_super_admin(self):
+        assert Profile(**_kwargs(super_admin=True)).is_active_super_admin() is True
+        assert Profile(**_kwargs(super_admin=True, active=False)).is_active_super_admin() is False
+        assert Profile(**_kwargs()).is_active_super_admin() is False
 
     def test_deactivate_marks_inactive_and_updates_timestamp(self):
         profile = Profile(**_kwargs())
@@ -83,51 +63,3 @@ class TestProfile:
         bad_timestamp = cast(int, "now")
         with pytest.raises(EntityError):
             profile.deactivate(updated_at=bad_timestamp)
-
-
-class TestProfileScope:
-    """Especificação Uberlândia §7: `scope` vazio = sem restrição (comportamento atual)."""
-
-    def test_scope_defaults_to_empty_dict(self):
-        profile = Profile(**_kwargs())
-        assert profile.scope == {}
-
-    def test_scope_accepts_custom_value(self):
-        profile = Profile(**_kwargs(scope={"bairro": ["Santa Mônica", "Tibery"]}))
-        assert profile.scope == {"bairro": ["Santa Mônica", "Tibery"]}
-
-    def test_scope_rejects_malformed_value(self):
-        with pytest.raises(EntityError):
-            Profile(**_kwargs(scope={"bairro": "Santa Mônica"}))
-
-    def test_manager_and_supervisor_roles_are_valid(self):
-        assert Profile(**_kwargs(role=ProfileRole.MANAGER)).role == ProfileRole.MANAGER
-        assert Profile(**_kwargs(role=ProfileRole.SUPERVISOR)).role == ProfileRole.SUPERVISOR
-
-
-class TestProfileAdminSystems:
-    def test_defaults_to_no_admin_systems(self):
-        assert Profile(**_kwargs()).admin_systems == []
-
-    def test_dedupes_keeping_order(self):
-        profile = Profile(**_kwargs(admin_systems=["UBERLANDIA", "GAIA", "UBERLANDIA"]))
-        assert profile.admin_systems == ["UBERLANDIA", "GAIA"]
-
-    def test_rejects_blank_system(self):
-        with pytest.raises(EntityError):
-            Profile(**_kwargs(admin_systems=["GAIA", " "]))
-
-    def test_system_admin_administers_only_listed_systems(self):
-        profile = Profile(**_kwargs(role=ProfileRole.INSPECTOR, admin_systems=["UBERLANDIA"]))
-        assert profile.can_admin_system("UBERLANDIA") is True
-        assert profile.can_admin_system("GAIA") is False
-        assert profile.is_platform_admin() is False
-
-    def test_platform_admin_administers_every_system(self):
-        profile = Profile(**_kwargs(role=ProfileRole.ADMIN))
-        assert profile.is_platform_admin() is True
-        assert profile.can_admin_system("QUALQUER") is True
-
-    def test_inactive_profile_administers_nothing(self):
-        profile = Profile(**_kwargs(role=ProfileRole.ADMIN, active=False, admin_systems=["GAIA"]))
-        assert profile.can_admin_system("GAIA") is False

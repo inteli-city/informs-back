@@ -1,8 +1,5 @@
 import abc
-from typing import Dict, List, Optional
 
-from src.shared.domain.enums.profile_role_enum import ProfileRole
-from src.shared.domain.validators import ensure_str_list_dict
 from src.shared.helpers.errors.domain_errors import EntityError
 
 
@@ -10,62 +7,46 @@ class Profile(abc.ABC):
     """
     Identidade interna do usuário no Informs.
 
-    O Cognito (IdP) autentica o usuário e injeta o `sub` no JWT. O Profile
-    associa esse `sub` (campo `user_id`) à role aplicacional (ADMIN ou
-    INSPECTOR), ao sistema operado e a metadados de uso (placa de moto, etc.).
+    O Cognito (IdP) autentica o usuário e injeta o `sub` no JWT; o Profile
+    associa esse `sub` (campo `user_id`) à pessoa no Informs. O que ela pode
+    fazer em cada sistema fica nos vínculos (`SystemMembership`), não aqui.
 
-    `admin_systems` lista os sistemas que esta pessoa administra no Admin
-    (configuração da aplicação e templates daquele sistema). Independe da
-    `role`: ADMIN é o admin da plataforma (edita o padrão e gerencia perfis).
+    `super_admin` é quem administra a plataforma: pode tudo em todo sistema e
+    é o único que dá o role ADMIN de um sistema a alguém.
 
-    A flag `active` permite "desligar" um perfil sem perder o histórico —
-    como ainda não há endpoint de UPDATE, o DELETE faz soft delete setando
-    `active=False`.
+    A flag `active` permite "desligar" um perfil sem perder o histórico — o
+    DELETE faz soft delete setando `active=False`.
     """
 
     USER_ID_LENGTH = 36
 
     user_id: str
-    role: ProfileRole
     name: str
     email: str
-    system: str
-    vehicle_plate: Optional[str]
     active: bool
+    super_admin: bool
     created_at: int
     updated_at: int
-    scope: Dict[str, List[str]]
-    admin_systems: List[str]
 
     def __init__(
         self,
         user_id: str,
-        role: ProfileRole,
         name: str,
         email: str,
-        system: str,
         active: bool,
         created_at: int,
         updated_at: int,
-        vehicle_plate: Optional[str] = None,
-        scope: Optional[Dict[str, List[str]]] = None,
-        admin_systems: Optional[List[str]] = None,
+        super_admin: bool = False,
     ):
         # Cada validação fica num método auxiliar pra manter o construtor
         # com baixa cognitive complexity (regra python:S3776).
         self.user_id = self._validate_user_id(user_id)
-        self.role = self._validate_role(role)
         self.name = self._validate_name(name)
         self.email = self._validate_email(email)
-        self.system = self._validate_system(system)
-        self.vehicle_plate = self._validate_vehicle_plate(vehicle_plate)
-        self.active = self._validate_active(active)
+        self.active = self._validate_bool(active, "active")
+        self.super_admin = self._validate_bool(super_admin, "super_admin")
         self.created_at = self._validate_timestamp(created_at, label="criação")
         self.updated_at = self._validate_timestamp(updated_at, label="atualização")
-        # Escopo genérico por atributos (especificação Uberlândia §7) — vazio
-        # equivale a "sem restrição", o comportamento atual de Gaia/Geovista/SGC.
-        self.scope = ensure_str_list_dict(scope if scope is not None else {}, "scope")
-        self.admin_systems = self._validate_admin_systems(admin_systems)
 
     # --- Validações --------------------------------------------------------
 
@@ -74,12 +55,6 @@ class Profile(abc.ABC):
         if not Profile.validate_user_id(user_id):
             raise EntityError("ID do usuário inválido ou ausente")
         return user_id
-
-    @staticmethod
-    def _validate_role(role: ProfileRole) -> ProfileRole:
-        if not isinstance(role, ProfileRole):
-            raise EntityError("Role inválida")
-        return role
 
     @staticmethod
     def _validate_name(name: str) -> str:
@@ -101,24 +76,10 @@ class Profile(abc.ABC):
         return email
 
     @staticmethod
-    def _validate_system(system: str) -> str:
-        if not isinstance(system, str) or not system.strip():
-            raise EntityError("Sistema do perfil deve ser uma string não vazia")
-        return system
-
-    @staticmethod
-    def _validate_vehicle_plate(plate: Optional[str]) -> Optional[str]:
-        if plate is None:
-            return None
-        if not isinstance(plate, str) or not plate.strip():
-            raise EntityError("Placa do veículo deve ser uma string não vazia ou null")
-        return plate
-
-    @staticmethod
-    def _validate_active(active: bool) -> bool:
-        if not isinstance(active, bool):
-            raise EntityError("Campo 'active' deve ser verdadeiro ou falso")
-        return active
+    def _validate_bool(value: bool, field: str) -> bool:
+        if not isinstance(value, bool):
+            raise EntityError(f"Campo '{field}' deve ser verdadeiro ou falso")
+        return value
 
     @staticmethod
     def _validate_timestamp(value: int, *, label: str) -> int:
@@ -127,27 +88,13 @@ class Profile(abc.ABC):
         return value
 
     @staticmethod
-    def _validate_admin_systems(admin_systems: Optional[List[str]]) -> List[str]:
-        if admin_systems is None:
-            return []
-        if not isinstance(admin_systems, list) or not all(
-            isinstance(system, str) and system.strip() for system in admin_systems
-        ):
-            raise EntityError("admin_systems deve ser uma lista de sistemas (strings não vazias)")
-        return list(dict.fromkeys(admin_systems))
-
-    def is_platform_admin(self) -> bool:
-        return self.active and self.role == ProfileRole.ADMIN
-
-    def can_admin_system(self, system: str) -> bool:
-        """Admin da plataforma administra todo sistema; os demais, só os da lista."""
-        return self.is_platform_admin() or (self.active and system in self.admin_systems)
-
-    @staticmethod
     def validate_user_id(user_id: str) -> bool:
         if not isinstance(user_id, str):
             return False
         return len(user_id) == Profile.USER_ID_LENGTH
+
+    def is_active_super_admin(self) -> bool:
+        return self.active and self.super_admin
 
     def deactivate(self, updated_at: int) -> None:
         """Soft delete: marca o perfil como inativo sem remover o item."""

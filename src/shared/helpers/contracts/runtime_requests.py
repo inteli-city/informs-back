@@ -9,7 +9,8 @@ from src.shared.helpers.contracts.endpoints.cancel_form_contract import CancelFo
 from src.shared.helpers.contracts.endpoints.create_form_contract import CreateFormRequestSchema
 from src.shared.helpers.contracts.endpoints.create_template_contract import CreateTemplateRequestSchema
 from src.shared.helpers.contracts.endpoints.plan_route_contract import PlanRouteRequestSchema
-from src.shared.helpers.contracts.endpoints.profile_contract import CreateProfileRequestSchema, UpdateProfileRequestSchema
+from src.shared.helpers.contracts.endpoints.profile_contract import CreateProfileRequestSchema
+from src.shared.helpers.contracts.endpoints.system_access_contract import PutSystemUserRequestSchema, SystemRoleRequestSchema
 from src.shared.helpers.contracts.endpoints.refresh_presign_contract import RefreshPresignRequestSchema
 from src.shared.helpers.contracts.endpoints.start_form_contract import StartFormRequestSchema
 from src.shared.helpers.contracts.endpoints.submit_form_contract import SubmitFormFieldFlatSchema, SubmitFormRequestSchema
@@ -125,8 +126,46 @@ class DeleteProfileControllerRequestSchema(RequestContractModel):
     user_id: str
 
 
-class UpdateProfileControllerRequestSchema(UpdateProfileRequestSchema):
+class GetPermissionActionsControllerRequestSchema(RequestContractModel):
     requester_user: RequesterUserSchema
+
+
+class GetSystemRolesControllerRequestSchema(RequestContractModel):
+    requester_user: RequesterUserSchema
+    system: str
+
+
+class CreateSystemRoleControllerRequestSchema(SystemRoleRequestSchema):
+    requester_user: RequesterUserSchema
+    system: str
+
+
+class UpdateSystemRoleControllerRequestSchema(SystemRoleRequestSchema):
+    requester_user: RequesterUserSchema
+    system: str
+    role_id: str
+
+
+class DeleteSystemRoleControllerRequestSchema(RequestContractModel):
+    requester_user: RequesterUserSchema
+    system: str
+    role_id: str
+
+
+class GetSystemUsersControllerRequestSchema(RequestContractModel):
+    requester_user: RequesterUserSchema
+    system: str
+
+
+class PutSystemUserControllerRequestSchema(PutSystemUserRequestSchema):
+    requester_user: RequesterUserSchema
+    system: str
+    user_id: str
+
+
+class DeleteSystemUserControllerRequestSchema(RequestContractModel):
+    requester_user: RequesterUserSchema
+    system: str
     user_id: str
 
 

@@ -1,20 +1,18 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from src.shared.domain.entities.profile import Profile
-from src.shared.domain.enums.profile_role_enum import ProfileRole
+from src.shared.domain.entities.system_membership import SystemMembership
 
 
 class IProfileRepository(ABC):
     """
-    Operações mínimas necessárias para o v1:
+    Pessoas e seus vínculos com os sistemas (o role de cada uma em cada
+    sistema).
 
-    - get_by_user_id: busca direta para login e validações.
-    - create: usado tanto no admin-create quanto no auto-create do login.
-    - soft_delete: marca active=False em vez de remover o item.
-    - count_active_admins: necessário para impedir a remoção do último ADMIN.
-    - update_profile: integração Apex (especificação Uberlândia §7.4) — empurra
-      `role`/`scope` quando a permissão regional do Apex muda.
+    - get_by_user_id / create / soft_delete: a pessoa.
+    - count_active_super_admins: impede desativar o último super admin.
+    - *_membership(s): o vínculo pessoa ↔ sistema.
     """
 
     @abstractmethod
@@ -30,16 +28,29 @@ class IProfileRepository(ABC):
         pass
 
     @abstractmethod
-    def count_active_by_role(self, role: ProfileRole) -> int:
+    def count_active_super_admins(self) -> int:
         pass
 
     @abstractmethod
-    def update_profile(
-        self,
-        user_id: str,
-        role: Optional[ProfileRole] = None,
-        scope: Optional[Dict[str, List[str]]] = None,
-        updated_at: Optional[int] = None,
-        admin_systems: Optional[List[str]] = None,
-    ) -> Profile:
+    def get_memberships(self, user_id: str) -> List[SystemMembership]:
+        pass
+
+    @abstractmethod
+    def get_membership(self, user_id: str, system: str) -> Optional[SystemMembership]:
+        pass
+
+    @abstractmethod
+    def put_membership(self, membership: SystemMembership) -> SystemMembership:
+        pass
+
+    @abstractmethod
+    def delete_membership(self, user_id: str, system: str) -> None:
+        pass
+
+    @abstractmethod
+    def list_memberships_by_system(self, system: str) -> List[SystemMembership]:
+        pass
+
+    @abstractmethod
+    def count_memberships_by_role(self, system: str, role_id: str) -> int:
         pass

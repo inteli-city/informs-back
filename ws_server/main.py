@@ -1,9 +1,9 @@
 """FastAPI app — único endpoint WS `/ws` que serve INSPECTOR e ADMIN.
 
-Decisão de não separar `/ws/inspector` e `/ws/admin`: o role já vem do
-Profile (lookup pós-JWT), então a separação seria redundante e abriria
-caminho pra cliente errar de path. Server decide o comportamento pelo
-role descoberto.
+Decisão de não separar `/ws/inspector` e `/ws/admin`: o modo já vem do
+RBAC do Profile (lookup pós-JWT — ver auth.py), então a separação seria
+redundante e abriria caminho pra cliente errar de path. Server decide o
+comportamento pelo modo descoberto.
 
 Fluxo:
 1. Conecta → handshake busca JWT no header → valida → lookup role.

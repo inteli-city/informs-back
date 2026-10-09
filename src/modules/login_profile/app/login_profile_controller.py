@@ -24,14 +24,14 @@ class LoginProfileController:
             payload = LoginProfileControllerRequestSchema.model_validate(data)
             requester_user = UserGatewayDTO.from_api_gateway(payload.requester_user.model_dump(by_alias=True))
 
-            profile, just_created = self.usecase(
+            result = self.usecase(
                 user_id=requester_user.user_id,
                 name=requester_user.name,
                 email=requester_user.email,
                 cognito_systems=requester_user.systems,
             )
 
-            viewmodel = LoginProfileViewmodel(profile=profile, just_created=just_created)
+            viewmodel = LoginProfileViewmodel(result)
             return OK(viewmodel.to_dict())
 
         except ValidationError as err:

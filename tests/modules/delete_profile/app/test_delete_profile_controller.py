@@ -8,7 +8,6 @@ sys.path.append(os.getcwd())
 from src.modules.delete_profile.app.delete_profile_controller import DeleteProfileController
 from src.modules.delete_profile.app.delete_profile_usecase import DeleteProfileUsecase
 from src.shared.domain.entities.profile import Profile
-from src.shared.domain.enums.profile_role_enum import ProfileRole
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction
 from src.shared.helpers.external_interfaces.http_models import HttpRequest
 from src.shared.infra.repositories.profile_repository_mock import ProfileRepositoryMock
@@ -50,11 +49,10 @@ class TestDeleteProfileController:
     def test_admin_soft_deletes_other_admin_when_more_than_one_admin_returns_200(self):
         second_admin = Profile(
             user_id="d61dbf66-a10f-11ed-a8fc-0242ac120020",
-            role=ProfileRole.ADMIN,
             name="Second Admin",
             email="admin2@example.com",
-            system="GAIA",
             active=True,
+            super_admin=True,
             created_at=1, updated_at=1,
         )
         self.repo.create(second_admin)
@@ -92,29 +90,27 @@ class TestDeleteProfileController:
 class TestDeleteProfileLastAdminGuard:
     """
     Guarda defensiva: mesmo se algum bug/dado anômalo permitir, o usecase
-    NUNCA deve remover o último ADMIN ativo. Coberto via repo "trapaceado"
-    que reporta 1 admin ativo ao count(), forçando o caminho do guard.
+    NUNCA deve remover o último super admin ativo. Coberto via repo
+    "trapaceado" que reporta 1 super admin ativo ao count(), forçando o
+    caminho do guard.
     """
 
     def test_blocks_delete_of_admin_when_only_one_admin_active(self):
         repo = ProfileRepositoryMock()
 
-        # Adiciona um segundo admin para que o requester exista; e força
-        # count_active_by_role(ADMIN) a sempre retornar 1, simulando o caso
-        # de borda.
+        # Adiciona um segundo super admin para que o requester exista; e força
+        # count_active_super_admins() a retornar 1, simulando o caso de borda.
         second_admin = Profile(
             user_id="d61dbf66-a10f-11ed-a8fc-0242ac120020",
-            role=ProfileRole.ADMIN,
             name="Second Admin",
             email="admin2@example.com",
-            system="GAIA",
             active=True,
+            super_admin=True,
             created_at=1, updated_at=1,
         )
         repo.create(second_admin)
 
-        original_count = repo.count_active_by_role
-        repo.count_active_by_role = lambda role: 1 if role == ProfileRole.ADMIN else original_count(role)
+        repo.count_active_super_admins = lambda: 1
 
         usecase = DeleteProfileUsecase(repo)
         with pytest.raises(ForbiddenAction):

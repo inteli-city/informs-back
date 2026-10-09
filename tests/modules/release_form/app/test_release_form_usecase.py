@@ -12,12 +12,27 @@ from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFou
 from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
 from src.shared.infra.repositories.form_event_repository_mock import FormEventRepositoryMock
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
+from src.shared.domain.entities.system_membership import SystemMembership
+from src.shared.domain.entities.system_role import SystemRole
+from src.shared.domain.enums.action_enum import Action
+from src.shared.domain.services.access_control import AccessControl
 from src.shared.infra.repositories.profile_repository_mock import ProfileRepositoryMock
+from src.shared.infra.repositories.system_role_repository_mock import SystemRoleRepositoryMock
 
 ADMIN_ID = 'd61dbf66-a10f-11ed-a8fc-0242ac120001'   # seed do ProfileRepositoryMock
 INSPECTOR_ID = 'd61dbf66-a10f-11ed-a8fc-0242ac120002'  # seed do ProfileRepositoryMock
 OWNER_ID = 'd61dbf66-a10f-11ed-a8fc-0242ac120050'
 FORM_ID = 'd61dbf66-a10f-11ed-a8fc-0242ac120031'
+
+
+def _give_role(profile_repo, role_repo, user_id, system, actions):
+    """Cria no sistema um role com as ações e dá à pessoa."""
+    role = role_repo.put_role(SystemRole(
+        system=system, role_id=f"r-{system.lower()}", name="Gestor", actions=actions, created_at=1, updated_at=1,
+    ))
+    profile_repo.put_membership(SystemMembership(
+        user_id=user_id, system=system, role_id=role.role_id, created_at=1, updated_at=1,
+    ))
 
 justification_option = JustificationOption(option='option', required_image=True, required_text=True)
 justification = Justification(
@@ -44,8 +59,11 @@ class TestReleaseFormUsecase:
         self.form_repo = FormRepositoryMock()
         self.file_repo = FileRepositoryMock()
         self.profile_repo = ProfileRepositoryMock()
+        self.role_repo = SystemRoleRepositoryMock()
         self.form_event_repo = FormEventRepositoryMock()
-        self.usecase = ReleaseFormUsecase(self.form_repo, self.file_repo, self.profile_repo, self.form_event_repo)
+        self.usecase = ReleaseFormUsecase(
+            self.form_repo, self.file_repo, AccessControl(self.profile_repo, self.role_repo), self.form_event_repo,
+        )
 
     def test_owner_releases_own_form(self):
         self.form_repo.forms.append(_owned_form())
@@ -63,6 +81,14 @@ class TestReleaseFormUsecase:
         self.form_repo.forms.append(_owned_form())
 
         form = self.usecase(requester_user_id=ADMIN_ID, requester_systems=None, form_id=FORM_ID)
+
+        assert form.user_id is None
+
+    def test_role_with_forms_release_releases_form_of_another_user(self):
+        self.form_repo.forms.append(_owned_form())
+        _give_role(self.profile_repo, self.role_repo, INSPECTOR_ID, 'UBERLANDIA', [Action.FORMS_RELEASE])
+
+        form = self.usecase(requester_user_id=INSPECTOR_ID, requester_systems=None, form_id=FORM_ID)
 
         assert form.user_id is None
 
