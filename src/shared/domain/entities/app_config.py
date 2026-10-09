@@ -44,6 +44,13 @@ class PreviewConfig(_ConfigGroup):
     information_images: StrictBool = False
 
 
+class CreationConfig(_ConfigGroup):
+    # Criar formulário "em aberto" para o sistema (sem dono), além de "para mim".
+    # No back-end, um formulário sem `user_id` continua exigindo
+    # `SystemConfig.allow_unassigned_forms` — esta chave só oferece a opção no app.
+    allow_open: StrictBool = False
+
+
 class AppConfig(_ConfigGroup):
     """
     Configuração da aplicação vista pelo app de campo.
@@ -63,6 +70,7 @@ class AppConfig(_ConfigGroup):
     texts: TextsConfig = Field(default_factory=TextsConfig)
     flows: FlowsConfig = Field(default_factory=FlowsConfig)
     preview: PreviewConfig = Field(default_factory=PreviewConfig)
+    creation: CreationConfig = Field(default_factory=CreationConfig)
 
     @staticmethod
     def validate_layer(values: Dict[str, Any]) -> Dict[str, Any]:
@@ -80,6 +88,21 @@ class AppConfig(_ConfigGroup):
             if layer:
                 merged = _deep_merge(merged, layer)
         return AppConfig._parse(merged)
+
+    @staticmethod
+    def effective(
+        default_layer: Optional[Dict[str, Any]],
+        system_layer: Optional[Dict[str, Any]],
+        allows_unassigned_forms: bool,
+    ) -> "AppConfig":
+        """Configuração que vale para um sistema: as camadas somadas, mais as
+        regras que dependem do resto da `SystemConfig`. `creation.allow_open`
+        só fica ligada se o sistema aceita formulário sem dono — senão o app
+        ofereceria criar em aberto e o `POST /forms` recusaria."""
+        config = AppConfig.resolve(default_layer, system_layer)
+        if not allows_unassigned_forms:
+            config.creation.allow_open = False
+        return config
 
     @staticmethod
     def _parse(values: Dict[str, Any]) -> "AppConfig":

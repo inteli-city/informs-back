@@ -10,7 +10,8 @@ repo = Environments.get_form_repo()
 file_repo = Environments.get_file_repo()
 template_repo = Environments.get_template_repo()
 system_config_repo = Environments.get_system_config_repo()
-usecase = CreateFormUsecase(repo, file_repo, template_repo, system_config_repo)
+profile_repo = Environments.get_profile_repo()
+usecase = CreateFormUsecase(repo, file_repo, template_repo, system_config_repo, profile_repo)
 controller = CreateFormController(usecase)
 
 

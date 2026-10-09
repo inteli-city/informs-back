@@ -435,6 +435,7 @@ class LambdaStack(Construct):
             self.login_profile,
             self.delete_profile,
             self.update_profile,
+            self.create_form,
             self.release_form,
             self.assign_form,
             self.get_all_forms,

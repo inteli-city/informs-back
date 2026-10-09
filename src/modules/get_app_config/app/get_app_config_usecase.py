@@ -47,15 +47,19 @@ class GetAppConfigUsecase:
             system_config = self.system_config_repo.get_by_system(system)
             system_values = system_config.app_config if system_config else {}
             system_version = system_config.app_config_version if system_config else 0
+            allows_unassigned = bool(system_config and system_config.allow_unassigned_forms)
             systems.append(
                 SystemResolvedAppConfig(
                     system=system,
                     version=f"{default_version}.{system_version}",
-                    config=AppConfig.resolve(default_values, system_values),
+                    config=AppConfig.effective(default_values, system_values, allows_unassigned),
                 )
             )
 
+        # O padrão vale para quem não tem SystemConfig — e sem ela o sistema
+        # não aceita formulário sem dono.
+        default_config = AppConfig.effective(default_values, None, allows_unassigned_forms=False)
         return AppConfigResult(
-            default=ResolvedAppConfig(version=str(default_version), config=AppConfig.resolve(default_values)),
+            default=ResolvedAppConfig(version=str(default_version), config=default_config),
             systems=systems,
         )
