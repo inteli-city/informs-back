@@ -1,15 +1,10 @@
-from pydantic import ValidationError
-
 from .get_system_roles_usecase import GetSystemRolesUsecase
 from .get_system_roles_viewmodel import GetSystemRolesViewmodel
 from src.shared.helpers.contracts.runtime_requests import GetSystemRolesControllerRequestSchema
+from src.shared.helpers.access_error_response import HANDLED_ERRORS, access_error_response
 from src.shared.helpers.controller_error_handler import controller_error_handler
-from src.shared.helpers.errors.controller_errors import MissingParameters, WrongTypeParameter
-from src.shared.helpers.errors.domain_errors import EntityError
-from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction, NoItemsFound
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
-from src.shared.helpers.external_interfaces.http_codes import BadRequest, Conflict, OK, Forbidden, NotFound
-from src.shared.helpers.functions.pydantic_error_parser import get_validation_error_message
+from src.shared.helpers.external_interfaces.http_codes import OK
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 
 
@@ -32,17 +27,5 @@ class GetSystemRolesController:
             viewmodel = GetSystemRolesViewmodel(system=payload.system, roles=result)
             return OK(viewmodel.to_dict())
 
-        except ValidationError as err:
-            return BadRequest(body=get_validation_error_message(err))
-        except NoItemsFound as err:
-            return NotFound(body=err.message)
-        except DuplicatedItem as err:
-            return Conflict(body=err.message)
-        except MissingParameters as err:
-            return BadRequest(body=err.message)
-        except ForbiddenAction as err:
-            return Forbidden(body=err.message)
-        except WrongTypeParameter as err:
-            return BadRequest(body=err.message)
-        except EntityError as err:
-            return BadRequest(body=f"Parâmetro inválido: {err.message}")
+        except HANDLED_ERRORS as err:
+            return access_error_response(err)

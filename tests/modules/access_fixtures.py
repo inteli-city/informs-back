@@ -60,5 +60,15 @@ class AccessScenario:
         ))
 
 
+def give_role(profile_repo, role_repo, user_id: str, system: str, actions) -> None:
+    """Cria no sistema um role com as ações e dá à pessoa."""
+    role = role_repo.put_role(SystemRole(
+        system=system, role_id=f"r-{system.lower()}", name="Gestor", actions=actions, created_at=1, updated_at=1,
+    ))
+    profile_repo.put_membership(SystemMembership(
+        user_id=user_id, system=system, role_id=role.role_id, created_at=1, updated_at=1,
+    ))
+
+
 def requester_user(sub: str, groups: str = "FORMULARIOS,GAIA") -> dict:
     return {"sub": sub, "name": "Tester", "email": "tester@example.com", "cognito:groups": groups}
