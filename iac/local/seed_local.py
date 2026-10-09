@@ -61,6 +61,7 @@ UBERLANDIA_USER_ID = "10ca1000-0000-4000-8000-000000000002"
 GAIA_USER_ID = "10ca1000-0000-4000-8000-000000000003"
 GESTOR_GAIA_USER_ID = "10ca1000-0000-4000-8000-000000000004"
 LOCAL_USER_ID = BOTH_USER_ID  # dono dos templates
+SAO_PAULO = "São Paulo"
 
 # `roles`: papel por sistema (RBAC). `legacy_role`/`admin_systems`: o mesmo
 # acesso no modelo antigo, para o seed seguir rodando antes do RBAC.
@@ -303,16 +304,16 @@ def seed_forms(templates: dict) -> None:
         forms += [
             _form(f"{prefix}-pendente", gaia, owner=owner,
                   form_title=f"Vistoria de ramal — Rua Augusta, {500 + offset}",
-                  street=f"Rua Augusta, {500 + offset}", city="São Paulo",
+                  street=f"Rua Augusta, {500 + offset}", city=SAO_PAULO,
                   latitude=-23.5534, longitude=-46.6575 + offset / 10000),
             _form(f"{prefix}-em-andamento", gaia, owner=owner,
                   form_title=f"Vistoria de ramal — Av. Paulista, {1000 + offset}",
-                  street=f"Av. Paulista, {1000 + offset}", city="São Paulo",
+                  street=f"Av. Paulista, {1000 + offset}", city=SAO_PAULO,
                   latitude=-23.5631, longitude=-46.6544 + offset / 10000,
                   status=FormStatus.IN_PROGRESS, in_progress_at=now, priority=Priority.HIGH),
             _form(f"{prefix}-completo", gaia, owner=owner,
                   form_title=f"Vistoria de ramal — Rua da Consolação, {2000 + offset}",
-                  street=f"Rua da Consolação, {2000 + offset}", city="São Paulo",
+                  street=f"Rua da Consolação, {2000 + offset}", city=SAO_PAULO,
                   latitude=-23.5560, longitude=-46.6620 + offset / 10000,
                   status=FormStatus.COMPLETED, in_progress_at=now, completed_at=now, completed_by=owner),
         ]

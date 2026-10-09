@@ -96,6 +96,20 @@ ROUTES: List[Route] = [
 ]
 
 
+def _match_segments(segments, parts) -> Optional[Tuple[Dict[str, str], int]]:
+    """Parâmetros capturados e quantos segmentos literais bateram; None se não casa."""
+    params: Dict[str, str] = {}
+    literal_hits = 0
+    for expected, actual in zip(segments, parts):
+        if expected.startswith("{") and expected.endswith("}"):
+            params[expected[1:-1]] = actual
+        elif expected == actual:
+            literal_hits += 1
+        else:
+            return None
+    return params, literal_hits
+
+
 def match_route(method: str, path: str) -> Tuple[Optional[Route], Dict[str, str]]:
     """Segmento literal vence parâmetro: `/forms/route-plan` antes de `/forms/{form_id}`."""
     parts = [seg for seg in path.split("/") if seg]
@@ -103,18 +117,9 @@ def match_route(method: str, path: str) -> Tuple[Optional[Route], Dict[str, str]
     for route in ROUTES:
         if route.method != method or len(route.segments) != len(parts):
             continue
-        params: Dict[str, str] = {}
-        literal_hits = 0
-        for expected, actual in zip(route.segments, parts):
-            if expected.startswith("{") and expected.endswith("}"):
-                params[expected[1:-1]] = actual
-            elif expected == actual:
-                literal_hits += 1
-            else:
-                break
-        else:
-            if literal_hits > best[2]:
-                best = (route, params, literal_hits)
+        matched = _match_segments(route.segments, parts)
+        if matched is not None and matched[1] > best[2]:
+            best = (route, matched[0], matched[1])
     return best[0], best[1]
 
 
@@ -180,14 +185,17 @@ CORS_HEADERS = {
     "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
     "Access-Control-Max-Age": "600",
 }
+# Os únicos headers que o app manda para a API. Lista fixa: devolver o
+# `Access-Control-Request-Headers` da requisição seria refletir entrada do
+# cliente na resposta.
+CORS_ALLOWED_HEADERS = "Authorization,Content-Type"
 
 
 class LocalApiHandler(BaseHTTPRequestHandler):
     server_version = "InformsLocalAPI/1.0"
 
     def do_OPTIONS(self):
-        requested = self.headers.get("Access-Control-Request-Headers") or "Authorization,Content-Type"
-        self._send(204, {**CORS_HEADERS, "Access-Control-Allow-Headers": requested}, b"")
+        self._send(204, {**CORS_HEADERS, "Access-Control-Allow-Headers": CORS_ALLOWED_HEADERS}, b"")
 
     def do_GET(self):
         self._dispatch("GET")
@@ -209,7 +217,10 @@ class LocalApiHandler(BaseHTTPRequestHandler):
 
         route, params = match_route(method, path)
         if route is None:
-            return self._json(404, {"message": f"Rota não existe na API local: {method} {path}"}, started)
+            # O caminho pedido vai para o terminal, não para a resposta: ecoar
+            # entrada da requisição no corpo é XSS refletido (Sonar S5131).
+            print(f"{method:6} 404 rota inexistente na API local: {path}", flush=True)
+            return self._json(404, {"message": "Rota não existe na API local"}, started)
 
         claims = claims_from_authorization(self.headers.get("Authorization"))
         if claims is None and not route.public:
@@ -273,7 +284,7 @@ def main() -> int:
     args = parser.parse_args()
 
     server = ThreadingHTTPServer((args.host, args.port), LocalApiHandler)
-    # Servidor de desenvolvimento, só em 127.0.0.1: TLS aqui não protege nada. NOSONAR
+    # Servidor de desenvolvimento, só em 127.0.0.1: TLS aqui não protege nada.
     print(f"API local em http://{args.host}:{args.port}{BASE_PATH}  (Ctrl+C para parar)", flush=True)  # NOSONAR
     try:
         server.serve_forever()
