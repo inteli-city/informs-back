@@ -20,7 +20,7 @@ A ADR-0016 criou o `Profile` com um único `role` global (ADMIN, INSPECTOR e dep
 ## Decisão
 
 1. **Super admin** (`Profile.super_admin`): pode tudo em todo sistema e é o único que dá o role ADMIN de um sistema. Marcado à mão.
-2. **Catálogo fixo de ações** (`Action`): `forms.view_all`, `forms.assign`, `forms.release`, `tracking.start`, `tracking.view`, `users.manage`, `roles.manage`. Ação nova só nasce no código.
+2. **Catálogo fixo de ações** (`Action`): `forms.view_all`, `forms.assign`, `forms.release`, `tracking.start`, `tracking.view`, `users.manage`, `roles.manage`, `templates.manage`, `app_config.edit`. Ação nova só nasce no código. Editar o padrão da aplicação é só do super admin.
 3. **ADMIN** é o único role fixo: em um sistema, tem todas as ações.
 4. **Roles de sistema** (`SystemRole`): cada sistema cria os seus, com nome e um subconjunto das ações. Um deles pode ser o padrão, dado a quem entra no sistema pela primeira vez.
 5. **Vínculo** (`SystemMembership`): uma pessoa tem um role por sistema. O acesso ao sistema continua vindo do grupo do Cognito.

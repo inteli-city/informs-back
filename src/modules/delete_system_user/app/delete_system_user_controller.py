@@ -30,7 +30,6 @@ class DeleteSystemUserController:
                 target_user_id=payload.user_id,
             )
 
-
             viewmodel = DeleteSystemUserViewmodel(system=payload.system, user_id=payload.user_id)
             return OK(viewmodel.to_dict())
 

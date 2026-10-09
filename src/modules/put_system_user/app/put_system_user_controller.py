@@ -31,7 +31,6 @@ class PutSystemUserController:
                 role_id=payload.role_id,
             )
 
-
             viewmodel = PutSystemUserViewmodel(result)
             return OK(viewmodel.to_dict())
 

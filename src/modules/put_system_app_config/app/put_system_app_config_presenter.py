@@ -1,14 +1,15 @@
 from .put_system_app_config_controller import PutSystemAppConfigController
 from .put_system_app_config_usecase import PutSystemAppConfigUsecase
+from src.shared.domain.services.access_control import AccessControl
 from src.shared.environments import Environments
 from src.shared.helpers.error_handler import lambda_error_handler
 from src.shared.helpers.logging_handler import lambda_logging_handler
 from src.shared.helpers.external_interfaces.http_lambda_requests import LambdaHttpRequest, LambdaHttpResponse
 
 
-profile_repo = Environments.get_profile_repo()
+access_control = AccessControl(Environments.get_profile_repo(), Environments.get_system_role_repo())
 system_config_repo = Environments.get_system_config_repo()
-usecase = PutSystemAppConfigUsecase(profile_repo, system_config_repo)
+usecase = PutSystemAppConfigUsecase(access_control, system_config_repo)
 controller = PutSystemAppConfigController(usecase)
 
 

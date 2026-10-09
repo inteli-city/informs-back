@@ -30,7 +30,6 @@ class DeleteSystemRoleController:
                 role_id=payload.role_id,
             )
 
-
             viewmodel = DeleteSystemRoleViewmodel(system=payload.system, role_id=payload.role_id)
             return OK(viewmodel.to_dict())
 

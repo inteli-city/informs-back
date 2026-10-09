@@ -3,27 +3,27 @@ from typing import List, Optional
 from src.shared.domain.entities.justification import JustificationOption
 from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.template import Template
+from src.shared.domain.enums.action_enum import Action
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
+from src.shared.domain.services.access_control import AccessControl
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.helpers.functions.datetime_utils import now_timestamp_ms
 
 
-
-def _ensure_system_admin(profile_repo, user_id: str, systems) -> None:
-    """Criar e editar template é do Admin: quem administra o sistema (ou a
-    plataforma). Sem profile_repo (testes antigos, chamadas internas) não checa."""
-    if profile_repo is None:
+def _ensure_can_manage_templates(access_control: Optional[AccessControl], user_id: str, systems) -> None:
+    """Criar e editar template pede `templates.manage` no sistema (o ADMIN dele
+    tem). Sem access_control (testes antigos, chamadas internas) não checa."""
+    if access_control is None:
         return
-    profile = profile_repo.get_by_user_id(user_id)
     for system in systems:
-        if profile is None or not profile.can_admin_system(system):
-            raise ForbiddenAction(f"Apenas quem administra o sistema {system} pode alterar seus templates")
+        if not access_control.can(user_id, system, Action.TEMPLATES_MANAGE):
+            raise ForbiddenAction(f"Usuário não pode alterar os templates do sistema {system}")
 
 
 class UpdateTemplateUsecase:
-    def __init__(self, template_repo: ITemplateRepository, profile_repo=None):
-        self.profile_repo = profile_repo
+    def __init__(self, template_repo: ITemplateRepository, access_control: Optional[AccessControl] = None):
+        self.access_control = access_control
         self.template_repo = template_repo
 
     def _validate_sections(self, sections: Optional[List[Section]]) -> None:
@@ -56,7 +56,9 @@ class UpdateTemplateUsecase:
             if system is not None and system not in requester_systems:
                 raise ForbiddenAction("Usuário não tem permissão para acessar este sistema")
 
-        _ensure_system_admin(self.profile_repo, requester_user_id, {template.system, system or template.system})
+        _ensure_can_manage_templates(
+            self.access_control, requester_user_id, {template.system, system or template.system},
+        )
         self._validate_sections(sections)
 
         if name is not None:

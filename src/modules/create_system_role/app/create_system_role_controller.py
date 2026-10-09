@@ -33,7 +33,6 @@ class CreateSystemRoleController:
                 is_default=payload.is_default,
             )
 
-
             viewmodel = CreateSystemRoleViewmodel(result)
             return Created(viewmodel.to_dict())
 

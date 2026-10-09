@@ -29,7 +29,6 @@ class GetSystemUsersController:
                 system=payload.system,
             )
 
-
             viewmodel = GetSystemUsersViewmodel(system=payload.system, users=result)
             return OK(viewmodel.to_dict())
 

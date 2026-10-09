@@ -29,7 +29,6 @@ class GetSystemRolesController:
                 system=payload.system,
             )
 
-
             viewmodel = GetSystemRolesViewmodel(system=payload.system, roles=result)
             return OK(viewmodel.to_dict())
 

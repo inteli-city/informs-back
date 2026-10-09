@@ -1,20 +1,20 @@
-from src.shared.domain.entities.profile import Profile
-from src.shared.domain.repositories.profile_repository_interface import IProfileRepository
+from typing import List
+
+from src.shared.domain.enums.action_enum import Action
+from src.shared.domain.services.access_control import AccessControl
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction
 
 
-def get_admin_profile(profile_repo: IProfileRepository, user_id: str) -> Profile:
+def editable_systems(access_control: AccessControl, user_id: str) -> List[str]:
     """
-    Perfil de quem entra no Admin: ativo e admin da plataforma (papel ADMIN) ou
-    de ao menos um sistema (`admin_systems`). O que cada um pode editar é
-    decidido depois, por sistema (`Profile.can_admin_system`).
+    Sistemas cuja configuração a pessoa edita no Admin (`app_config.edit` pelo
+    role do sistema). Sem nenhum, e sem ser super admin, não entra no Admin.
+    O super admin edita todo sistema — quem chama trata esse caso.
     """
-    profile = profile_repo.get_by_user_id(user_id)
-    if profile is None or not profile.active:
-        raise ForbiddenAction("Perfil inativo ou inexistente")
-    if not profile.is_platform_admin() and not profile.admin_systems:
-        raise ForbiddenAction("Apenas administradores acessam a configuração da aplicação")
-    return profile
+    systems = access_control.systems_where(user_id, Action.APP_CONFIG_EDIT)
+    if not systems and not access_control.is_super_admin(user_id):
+        raise ForbiddenAction("Apenas quem edita a configuração de algum sistema acessa o Admin")
+    return systems
 
 
 STALE_VERSION_MESSAGE = (

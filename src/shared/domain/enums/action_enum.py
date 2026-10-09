@@ -17,6 +17,8 @@ class Action(Enum):
     TRACKING_VIEW = "tracking.view"
     USERS_MANAGE = "users.manage"
     ROLES_MANAGE = "roles.manage"
+    TEMPLATES_MANAGE = "templates.manage"
+    APP_CONFIG_EDIT = "app_config.edit"
 
 
 ACTION_DESCRIPTIONS = {
@@ -27,4 +29,6 @@ ACTION_DESCRIPTIONS = {
     Action.TRACKING_VIEW: "Acompanhar a localização e o histórico de percurso das pessoas",
     Action.USERS_MANAGE: "Dar e tirar roles das pessoas do sistema (exceto ADMIN)",
     Action.ROLES_MANAGE: "Criar, editar e apagar os roles do sistema",
+    Action.TEMPLATES_MANAGE: "Criar e editar os templates do sistema",
+    Action.APP_CONFIG_EDIT: "Editar a configuração da aplicação do sistema",
 }

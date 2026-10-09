@@ -34,7 +34,6 @@ class UpdateSystemRoleController:
                 is_default=payload.is_default,
             )
 
-
             viewmodel = UpdateSystemRoleViewmodel(result)
             return OK(viewmodel.to_dict())
 
