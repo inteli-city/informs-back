@@ -1,5 +1,6 @@
 from .assign_form_controller import AssignFormController
 from .assign_form_usecase import AssignFormUsecase
+from src.shared.domain.services.access_control import AccessControl
 from src.shared.environments import Environments
 from src.shared.helpers.error_handler import lambda_error_handler
 from src.shared.helpers.logging_handler import lambda_logging_handler
@@ -7,9 +8,9 @@ from src.shared.helpers.external_interfaces.http_lambda_requests import LambdaHt
 
 
 repo = Environments.get_form_repo()
-profile_repo = Environments.get_profile_repo()
+access_control = AccessControl(Environments.get_profile_repo(), Environments.get_system_role_repo())
 form_event_repo = Environments.get_form_event_repo()
-usecase = AssignFormUsecase(repo, profile_repo, form_event_repo)
+usecase = AssignFormUsecase(repo, access_control, form_event_repo)
 controller = AssignFormController(usecase)
 
 

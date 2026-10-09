@@ -12,12 +12,11 @@ from src.shared.domain.enums.file_type_enum import FileType
 from src.shared.domain.enums.form_origin_enum import FormOrigin
 from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.enums.priority_enum import Priority
-from src.shared.domain.enums.profile_role_enum import ProfileRole
 from src.shared.domain.repositories.file_repository_interface import IFileRepository
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
-from src.shared.domain.repositories.profile_repository_interface import IProfileRepository
 from src.shared.domain.repositories.system_config_repository_interface import ISystemConfigRepository
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
+from src.shared.domain.services.access_control import AccessControl
 from src.shared.helpers.errors.controller_errors import MissingParameters
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
@@ -32,13 +31,13 @@ class CreateFormUsecase:
         file_repo: IFileRepository,
         template_repo: Optional[ITemplateRepository] = None,
         system_config_repo: Optional[ISystemConfigRepository] = None,
-        profile_repo: Optional[IProfileRepository] = None,
+        access_control: Optional[AccessControl] = None,
     ):
         self.form_repo = form_repo
         self.file_repo = file_repo
         self.template_repo = template_repo
         self.system_config_repo = system_config_repo
-        self.profile_repo = profile_repo
+        self.access_control = access_control
 
     def _allows_unassigned_forms(self, system: str) -> bool:
         if self.system_config_repo is None:
@@ -51,14 +50,13 @@ class CreateFormUsecase:
         O que a configuração da aplicação esconde no app também é recusado
         aqui — esconder o botão não impede quem chama a API direto.
 
-        ADMIN ativo não passa por esta regra: é a conta das integrações (a
-        Apex cria as OS do pool de Uberlândia, onde o menu Criar fica
-        desligado para quem está em campo).
+        Quem administra o sistema (role ADMIN nele, ou super admin) não passa
+        por esta regra: é como as integrações criam as OS do pool em sistemas
+        onde o menu Criar fica desligado para quem está em campo.
         """
-        if self.system_config_repo is None or self.profile_repo is None:
+        if self.system_config_repo is None or self.access_control is None:
             return
-        profile = self.profile_repo.get_by_user_id(created_by)
-        if profile is not None and profile.active and profile.role == ProfileRole.ADMIN:
+        if self.access_control.is_system_admin(created_by, system):
             return
 
         system_config = self.system_config_repo.get_by_system(system)

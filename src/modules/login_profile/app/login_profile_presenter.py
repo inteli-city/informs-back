@@ -7,7 +7,8 @@ from src.shared.helpers.external_interfaces.http_lambda_requests import LambdaHt
 
 
 repo = Environments.get_profile_repo()
-usecase = LoginProfileUsecase(repo)
+role_repo = Environments.get_system_role_repo()
+usecase = LoginProfileUsecase(repo, role_repo)
 controller = LoginProfileController(usecase)
 
 

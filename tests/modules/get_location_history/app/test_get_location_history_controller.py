@@ -23,6 +23,8 @@ from src.shared.infra.repositories.location_repository_mock import (
 from src.shared.infra.repositories.profile_repository_mock import (
     ProfileRepositoryMock,
 )
+from src.shared.domain.services.access_control import AccessControl
+from src.shared.infra.repositories.system_role_repository_mock import SystemRoleRepositoryMock
 
 
 ADMIN_ID = "d61dbf66-a10f-11ed-a8fc-0242ac120001"
@@ -61,7 +63,8 @@ class TestGetLocationHistoryController:
         self.location_repo = LocationRepositoryMock()
         self.profile_repo = ProfileRepositoryMock()
         self.usecase = GetLocationHistoryUsecase(
-            location_repo=self.location_repo, profile_repo=self.profile_repo
+            location_repo=self.location_repo,
+            access_control=AccessControl(self.profile_repo, SystemRoleRepositoryMock()),
         )
         self.controller = GetLocationHistoryController(self.usecase)
 

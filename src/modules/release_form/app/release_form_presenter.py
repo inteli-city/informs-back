@@ -1,5 +1,6 @@
 from .release_form_controller import ReleaseFormController
 from .release_form_usecase import ReleaseFormUsecase
+from src.shared.domain.services.access_control import AccessControl
 from src.shared.environments import Environments
 from src.shared.helpers.error_handler import lambda_error_handler
 from src.shared.helpers.logging_handler import lambda_logging_handler
@@ -8,9 +9,9 @@ from src.shared.helpers.external_interfaces.http_lambda_requests import LambdaHt
 
 repo = Environments.get_form_repo()
 file_repo = Environments.get_file_repo()
-profile_repo = Environments.get_profile_repo()
+access_control = AccessControl(Environments.get_profile_repo(), Environments.get_system_role_repo())
 form_event_repo = Environments.get_form_event_repo()
-usecase = ReleaseFormUsecase(repo, file_repo, profile_repo, form_event_repo)
+usecase = ReleaseFormUsecase(repo, file_repo, access_control, form_event_repo)
 controller = ReleaseFormController(usecase)
 
 

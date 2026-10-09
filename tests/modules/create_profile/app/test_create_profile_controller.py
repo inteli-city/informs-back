@@ -9,8 +9,8 @@ from src.shared.helpers.external_interfaces.http_models import HttpRequest
 from src.shared.infra.repositories.profile_repository_mock import ProfileRepositoryMock
 
 
-ADMIN_USER_ID = "d61dbf66-a10f-11ed-a8fc-0242ac120001"   # ADMIN no mock
-INSPECTOR_USER_ID = "d61dbf66-a10f-11ed-a8fc-0242ac120002"  # INSPECTOR no mock
+ADMIN_USER_ID = "d61dbf66-a10f-11ed-a8fc-0242ac120001"   # super admin no mock
+INSPECTOR_USER_ID = "d61dbf66-a10f-11ed-a8fc-0242ac120002"  # pessoa de campo no mock
 NEW_USER_ID = "d61dbf66-a10f-11ed-a8fc-0242ac120099"
 
 
@@ -27,10 +27,8 @@ def _body(requester_sub=ADMIN_USER_ID, **overrides):
     body = {
         "requester_user": _payload(sub=requester_sub),
         "user_id": NEW_USER_ID,
-        "role": "INSPECTOR",
         "name": "New Inspector",
         "email": "new@example.com",
-        "system": "GAIA",
     }
     body.update(overrides)
     return body
@@ -42,17 +40,14 @@ class TestCreateProfileController:
         self.usecase = CreateProfileUsecase(self.repo)
         self.controller = CreateProfileController(self.usecase)
 
-    def test_admin_creates_inspector_returns_201(self):
+    def test_super_admin_creates_person_returns_201(self):
         response = self.controller(HttpRequest(body=_body()))
         assert response.status_code == 201
         assert response.body["user_id"] == NEW_USER_ID
-        assert response.body["role"] == "INSPECTOR"
         assert response.body["active"] is True
-
-    def test_admin_creates_admin_returns_201(self):
-        response = self.controller(HttpRequest(body=_body(role="ADMIN")))
-        assert response.status_code == 201
-        assert response.body["role"] == "ADMIN"
+        assert response.body["super_admin"] is False
+        # Sem role em nenhum sistema: o vínculo vem de /systems/{system}/users.
+        assert self.repo.get_memberships(NEW_USER_ID) == []
 
     def test_inspector_cannot_create_returns_403(self):
         response = self.controller(HttpRequest(body=_body(requester_sub=INSPECTOR_USER_ID)))
@@ -68,10 +63,6 @@ class TestCreateProfileController:
         # tenta criar um perfil com o user_id de quem já existe
         response = self.controller(HttpRequest(body=_body(user_id=INSPECTOR_USER_ID)))
         assert response.status_code == 409
-
-    def test_invalid_role_returns_400(self):
-        response = self.controller(HttpRequest(body=_body(role="SUPERADMIN")))
-        assert response.status_code == 400
 
     def test_invalid_email_returns_400(self):
         response = self.controller(HttpRequest(body=_body(email="not-an-email")))
