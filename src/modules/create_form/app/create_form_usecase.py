@@ -2,6 +2,7 @@ from copy import deepcopy
 from typing import List, Optional
 import uuid
 
+from src.shared.domain.entities.app_config import AppConfig
 from src.shared.domain.entities.file_upload import FileUpload, FileUploadRequest
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.information_field import FileInformationField, InformationField
@@ -11,8 +12,10 @@ from src.shared.domain.enums.file_type_enum import FileType
 from src.shared.domain.enums.form_origin_enum import FormOrigin
 from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.enums.priority_enum import Priority
+from src.shared.domain.enums.profile_role_enum import ProfileRole
 from src.shared.domain.repositories.file_repository_interface import IFileRepository
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
+from src.shared.domain.repositories.profile_repository_interface import IProfileRepository
 from src.shared.domain.repositories.system_config_repository_interface import ISystemConfigRepository
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
 from src.shared.helpers.errors.controller_errors import MissingParameters
@@ -29,17 +32,46 @@ class CreateFormUsecase:
         file_repo: IFileRepository,
         template_repo: Optional[ITemplateRepository] = None,
         system_config_repo: Optional[ISystemConfigRepository] = None,
+        profile_repo: Optional[IProfileRepository] = None,
     ):
         self.form_repo = form_repo
         self.file_repo = file_repo
         self.template_repo = template_repo
         self.system_config_repo = system_config_repo
+        self.profile_repo = profile_repo
 
     def _allows_unassigned_forms(self, system: str) -> bool:
         if self.system_config_repo is None:
             return False
         config = self.system_config_repo.get_by_system(system)
         return bool(config and config.allow_unassigned_forms)
+
+    def _ensure_app_config_allows_creation(self, system: str, user_id: Optional[str], created_by: str) -> None:
+        """
+        O que a configuração da aplicação esconde no app também é recusado
+        aqui — esconder o botão não impede quem chama a API direto.
+
+        ADMIN ativo não passa por esta regra: é a conta das integrações (a
+        Apex cria as OS do pool de Uberlândia, onde o menu Criar fica
+        desligado para quem está em campo).
+        """
+        if self.system_config_repo is None or self.profile_repo is None:
+            return
+        profile = self.profile_repo.get_by_user_id(created_by)
+        if profile is not None and profile.active and profile.role == ProfileRole.ADMIN:
+            return
+
+        system_config = self.system_config_repo.get_by_system(system)
+        default = self.system_config_repo.get_default_app_config()
+        config = AppConfig.effective(
+            default.values if default else None,
+            system_config.app_config if system_config else None,
+            bool(system_config and system_config.allow_unassigned_forms),
+        )
+        if not config.menus.create_form:
+            raise ForbiddenAction("Criação de formulário não está habilitada para este sistema")
+        if user_id is None and not config.creation.allow_open:
+            raise ForbiddenAction("Criação de formulário em aberto não está habilitada para este sistema")
 
     def __call__(
         self,
@@ -76,6 +108,8 @@ class CreateFormUsecase:
             existing_form = self.form_repo.get_form_by_external_id(system, external_id)
             if existing_form is not None:
                 return existing_form, []
+
+        self._ensure_app_config_allows_creation(system, user_id, created_by)
 
         if user_id is None and not self._allows_unassigned_forms(system):
             raise MissingParameters("user_id")

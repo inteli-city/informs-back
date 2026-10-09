@@ -55,3 +55,16 @@ class TestGetAppConfigUsecase:
     def test_user_without_systems_gets_only_default(self):
         result = self.usecase(requester=_requester())
         assert result.systems == []
+
+    def test_allow_open_is_off_when_system_does_not_accept_unassigned_forms(self):
+        self.repo.put_default_app_config(DefaultAppConfig(values={"creation": {"allow_open": True}}, version=1, updated_at=1))
+        self.repo.put(SystemConfig(system="UBERLANDIA", created_at=1, updated_at=1, allow_unassigned_forms=True))
+        self.repo.put(SystemConfig(system="GEOVISTA", created_at=1, updated_at=1, allow_unassigned_forms=False))
+
+        result = self.usecase(requester=_requester("UBERLANDIA", "GEOVISTA", "GAIA"))
+        by_system = {item.system: item for item in result.systems}
+
+        assert by_system["UBERLANDIA"].config.creation.allow_open is True
+        assert by_system["GEOVISTA"].config.creation.allow_open is False
+        assert by_system["GAIA"].config.creation.allow_open is False
+        assert result.default.config.creation.allow_open is False
