@@ -141,6 +141,10 @@ class GetTemplateControllerRequestSchema(RequestContractModel):
     template_id: str
 
 
+class GetAppConfigControllerRequestSchema(RequestContractModel):
+    requester_user: RequesterUserSchema
+
+
 class GetAllFormsControllerRequestSchema(RequestContractModel):
     requester_user: RequesterUserSchema
     limit: int | None = None

@@ -61,6 +61,7 @@ class LambdaStack(Construct):
         locations_resource = api_gateway_resource.add_resource("locations")
         locations_history_resource = locations_resource.add_resource("history")
         docs_resource = api_gateway_resource.add_resource("docs")
+        app_config_resource = api_gateway_resource.add_resource("app-config")
 
         self.create_form = self.create_lambda_api_gateway_integration(
             module_name="create_form",
@@ -257,6 +258,14 @@ class LambdaStack(Construct):
             authorizer=authorizer,
         )
 
+        self.get_app_config = self.create_lambda_api_gateway_integration(
+            module_name="get_app_config",
+            method="GET",
+            api_resource=app_config_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
         self.docs = self.create_lambda_api_gateway_integration(
             module_name="docs",
             method="GET",
@@ -394,6 +403,7 @@ class LambdaStack(Construct):
             self.update_template,
             self.get_template,
             self.get_all_templates,
+            self.get_app_config,
             self.plan_route,
             self.sync_forms_origin,
             self.sync_forms_origin_callback,
