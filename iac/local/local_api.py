@@ -134,7 +134,7 @@ def claims_from_authorization(header: Optional[str]) -> Optional[dict]:
     try:
         payload = parts[1] + "=" * (-len(parts[1]) % 4)
         claims = json.loads(base64.urlsafe_b64decode(payload.encode("utf-8")))
-    except (ValueError, json.JSONDecodeError):
+    except ValueError:  # inclui json.JSONDecodeError
         return None
 
     groups = claims.get("cognito:groups", [])
@@ -291,8 +291,7 @@ def main() -> int:
     args = parser.parse_args()
 
     server = ThreadingHTTPServer((args.host, args.port), LocalApiHandler)
-    # Servidor de desenvolvimento, só em 127.0.0.1: TLS aqui não protege nada.
-    print(f"API local em http://{args.host}:{args.port}{BASE_PATH}  (Ctrl+C para parar)", flush=True)  # NOSONAR
+    print(f"API local ouvindo em {args.host}:{args.port}, base {BASE_PATH}  (Ctrl+C para parar)", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
