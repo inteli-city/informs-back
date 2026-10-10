@@ -9,7 +9,9 @@ from src.shared.domain.enums.priority_enum import Priority
 from src.shared.helpers.external_interfaces.http_models import HttpRequest
 from src.shared.infra.repositories.form_event_repository_mock import FormEventRepositoryMock
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
+from src.shared.domain.services.access_control import AccessControl
 from src.shared.infra.repositories.profile_repository_mock import ProfileRepositoryMock
+from src.shared.infra.repositories.system_role_repository_mock import SystemRoleRepositoryMock
 
 ADMIN_ID = 'd61dbf66-a10f-11ed-a8fc-0242ac120001'   # seed do ProfileRepositoryMock
 INSPECTOR_ID = 'd61dbf66-a10f-11ed-a8fc-0242ac120002'  # seed do ProfileRepositoryMock
@@ -47,7 +49,7 @@ class TestAssignFormController:
         self.form_repo = FormRepositoryMock()
         self.form_repo.forms.append(_pool_form())
         self.controller = AssignFormController(AssignFormUsecase(
-            self.form_repo, ProfileRepositoryMock(), FormEventRepositoryMock(),
+            self.form_repo, AccessControl(ProfileRepositoryMock(), SystemRoleRepositoryMock()), FormEventRepositoryMock(),
         ))
 
     def test_admin_assign_success_returns_200(self):

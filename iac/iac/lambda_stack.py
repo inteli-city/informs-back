@@ -61,6 +61,16 @@ class LambdaStack(Construct):
         locations_resource = api_gateway_resource.add_resource("locations")
         locations_history_resource = locations_resource.add_resource("history")
         docs_resource = api_gateway_resource.add_resource("docs")
+        app_config_resource = api_gateway_resource.add_resource("app-config")
+        app_config_admin_resource = app_config_resource.add_resource("admin")
+        app_config_default_resource = app_config_resource.add_resource("default")
+        app_config_system_resource = app_config_resource.add_resource("systems").add_resource("{system}")
+        permissions_actions_resource = api_gateway_resource.add_resource("permissions").add_resource("actions")
+        system_resource = api_gateway_resource.add_resource("systems").add_resource("{system}")
+        system_roles_resource = system_resource.add_resource("roles")
+        system_role_id_resource = system_roles_resource.add_resource("{role_id}")
+        system_users_resource = system_resource.add_resource("users")
+        system_user_id_resource = system_users_resource.add_resource("{user_id}")
 
         self.create_form = self.create_lambda_api_gateway_integration(
             module_name="create_form",
@@ -209,10 +219,66 @@ class LambdaStack(Construct):
             authorizer=authorizer,
         )
 
-        self.update_profile = self.create_lambda_api_gateway_integration(
-            module_name="update_profile",
+        self.get_permission_actions = self.create_lambda_api_gateway_integration(
+            module_name="get_permission_actions",
+            method="GET",
+            api_resource=permissions_actions_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.get_system_roles = self.create_lambda_api_gateway_integration(
+            module_name="get_system_roles",
+            method="GET",
+            api_resource=system_roles_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.create_system_role = self.create_lambda_api_gateway_integration(
+            module_name="create_system_role",
+            method="POST",
+            api_resource=system_roles_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.update_system_role = self.create_lambda_api_gateway_integration(
+            module_name="update_system_role",
             method="PUT",
-            api_resource=profile_user_id_resource,
+            api_resource=system_role_id_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.delete_system_role = self.create_lambda_api_gateway_integration(
+            module_name="delete_system_role",
+            method="DELETE",
+            api_resource=system_role_id_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.get_system_users = self.create_lambda_api_gateway_integration(
+            module_name="get_system_users",
+            method="GET",
+            api_resource=system_users_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.put_system_user = self.create_lambda_api_gateway_integration(
+            module_name="put_system_user",
+            method="PUT",
+            api_resource=system_user_id_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.delete_system_user = self.create_lambda_api_gateway_integration(
+            module_name="delete_system_user",
+            method="DELETE",
+            api_resource=system_user_id_resource,
             environment_variables=environment_variables,
             authorizer=authorizer,
         )
@@ -253,6 +319,38 @@ class LambdaStack(Construct):
             module_name="get_all_templates",
             method="GET",
             api_resource=templates_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.get_app_config = self.create_lambda_api_gateway_integration(
+            module_name="get_app_config",
+            method="GET",
+            api_resource=app_config_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.get_app_config_admin = self.create_lambda_api_gateway_integration(
+            module_name="get_app_config_admin",
+            method="GET",
+            api_resource=app_config_admin_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.put_default_app_config = self.create_lambda_api_gateway_integration(
+            module_name="put_default_app_config",
+            method="PUT",
+            api_resource=app_config_default_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.put_system_app_config = self.create_lambda_api_gateway_integration(
+            module_name="put_system_app_config",
+            method="PUT",
+            api_resource=app_config_system_resource,
             environment_variables=environment_variables,
             authorizer=authorizer,
         )
@@ -394,6 +492,10 @@ class LambdaStack(Construct):
             self.update_template,
             self.get_template,
             self.get_all_templates,
+            self.get_app_config,
+            self.get_app_config_admin,
+            self.put_default_app_config,
+            self.put_system_app_config,
             self.plan_route,
             self.sync_forms_origin,
             self.sync_forms_origin_callback,
@@ -421,10 +523,23 @@ class LambdaStack(Construct):
         ]
 
         self.functions_that_need_dynamo_profiles_permissions = [
+            # Admin da configuração: o perfil diz quem administra o quê.
+            self.create_template,
+            self.update_template,
+            self.get_app_config_admin,
+            self.put_default_app_config,
+            self.put_system_app_config,
             self.create_profile,
             self.login_profile,
             self.delete_profile,
-            self.update_profile,
+            self.create_form,
+            self.get_system_roles,
+            self.create_system_role,
+            self.update_system_role,
+            self.delete_system_role,
+            self.get_system_users,
+            self.put_system_user,
+            self.delete_system_user,
             self.release_form,
             self.assign_form,
             self.get_all_forms,

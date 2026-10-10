@@ -16,7 +16,12 @@ from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
+from src.shared.domain.entities.system_membership import SystemMembership
+from src.shared.domain.entities.system_role import SystemRole
+from src.shared.domain.enums.action_enum import Action
+from src.shared.domain.services.access_control import AccessControl
 from src.shared.infra.repositories.profile_repository_mock import ProfileRepositoryMock
+from src.shared.infra.repositories.system_role_repository_mock import SystemRoleRepositoryMock
 
 ADMIN_ID = 'd61dbf66-a10f-11ed-a8fc-0242ac120001'  # seed do ProfileRepositoryMock (ADMIN)
 INSPECTOR_ID = 'd61dbf66-a10f-11ed-a8fc-0242ac120002'  # seed do ProfileRepositoryMock (INSPECTOR)
@@ -106,15 +111,42 @@ class TestGetAllFormsUsecaseScope:
 
     def test_scope_all_requires_manager_role(self):
         repo = FormRepositoryMock()
-        usecase = GetAllFormsUsecase(repo, ProfileRepositoryMock())
+        usecase = GetAllFormsUsecase(repo, AccessControl(ProfileRepositoryMock(), SystemRoleRepositoryMock()))
         requester = UserGatewayDTO(user_id=INSPECTOR_ID, name="User", email="user@test.com", systems=["GAIA"])
+
+        with pytest.raises(ForbiddenAction):
+            usecase(requester=requester, limit=20, scope="all")
+
+    def test_scope_all_with_forms_view_all_sees_every_form(self):
+        repo = FormRepositoryMock()
+        profile_repo, role_repo = ProfileRepositoryMock(), SystemRoleRepositoryMock()
+        profile_repo.put_membership(SystemMembership(
+            user_id=INSPECTOR_ID, system="GAIA", role_id="r-gestor-gaia", created_at=1, updated_at=1,
+        ))
+        usecase = GetAllFormsUsecase(repo, AccessControl(profile_repo, role_repo))
+        requester = UserGatewayDTO(user_id=INSPECTOR_ID, name="User", email="user@test.com", systems=["GAIA"])
+
+        forms, _ = usecase(requester=requester, limit=20, scope="all")
+
+        assert len(forms) == len(repo.forms)
+
+    def test_scope_all_needs_forms_view_all_in_every_requested_system(self):
+        repo = FormRepositoryMock()
+        profile_repo, role_repo = ProfileRepositoryMock(), SystemRoleRepositoryMock()
+        profile_repo.put_membership(SystemMembership(
+            user_id=INSPECTOR_ID, system="GAIA", role_id="r-gestor-gaia", created_at=1, updated_at=1,
+        ))
+        usecase = GetAllFormsUsecase(repo, AccessControl(profile_repo, role_repo))
+        requester = UserGatewayDTO(
+            user_id=INSPECTOR_ID, name="User", email="user@test.com", systems=["GAIA", "UBERLANDIA"],
+        )
 
         with pytest.raises(ForbiddenAction):
             usecase(requester=requester, limit=20, scope="all")
 
     def test_scope_all_admin_sees_every_form_of_the_system(self):
         repo = FormRepositoryMock()
-        usecase = GetAllFormsUsecase(repo, ProfileRepositoryMock())
+        usecase = GetAllFormsUsecase(repo, AccessControl(ProfileRepositoryMock(), SystemRoleRepositoryMock()))
         requester = UserGatewayDTO(user_id=ADMIN_ID, name="Admin", email="admin@test.com", systems=["GAIA"])
 
         forms, next_key = usecase(requester=requester, limit=20, scope="all")

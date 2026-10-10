@@ -1,0 +1,18 @@
+{
+  "menus": {
+    "create_form": false,
+    "start_tracking": false,
+    "route_plan": false
+  },
+  "texts": {
+    "claim_action_label": "Executar serviço"
+  },
+  "flows": {
+    "open_form_after_claim": true,
+    "return_to_map_after_submit": true,
+    "cancel_form": true
+  },
+  "preview": {
+    "information_images": true
+  }
+}

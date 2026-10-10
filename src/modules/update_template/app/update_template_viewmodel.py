@@ -1,3 +1,4 @@
+from src.shared.helpers.viewmodels.form_dict_builders import build_justification_option_dict
 from src.shared.domain.entities.template import Template
 from src.shared.helpers.contracts.endpoints.update_template_contract import UpdateTemplateResponseSchema
 from src.shared.helpers.viewmodels.form_dict_builders import build_field_vars_dict, build_section_dict
@@ -14,6 +15,7 @@ class TemplateViewmodel:
             "system": self.template.system,
             "description": self.template.description,
             "is_active": self.template.is_active,
+            "justification_options": [build_justification_option_dict(option) for option in self.template.justification_options],
             "sections": [
                 build_section_dict(section, field_serializer=build_field_vars_dict)
                 for section in self.template.sections

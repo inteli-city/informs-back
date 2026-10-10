@@ -6,6 +6,7 @@ from src.shared.domain.repositories.location_repository_interface import ILocati
 from src.shared.domain.repositories.origin_repository_interface import IOriginRepository
 from src.shared.domain.repositories.file_repository_interface import IFileRepository
 from src.shared.domain.repositories.profile_repository_interface import IProfileRepository
+from src.shared.domain.repositories.system_role_repository_interface import ISystemRoleRepository
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
 from src.shared.domain.repositories.sync_state_repository_interface import ISyncStateRepository
 from src.shared.domain.repositories.sync_error_form_repository_interface import ISyncErrorFormRepository
@@ -171,6 +172,17 @@ class Environments:
         elif Environments.get_envs().stage in [Stage.PROD, Stage.DEV, Stage.HOMOLOG]:
             from src.shared.infra.repositories.profile_repository_dynamo import ProfileRepositoryDynamo
             return ProfileRepositoryDynamo()
+        else:
+            raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
+
+    @staticmethod
+    def get_system_role_repo() -> ISystemRoleRepository:
+        if Environments.get_envs().stage in [Stage.TEST, Stage.DOTENV]:
+            from src.shared.infra.repositories.system_role_repository_mock import SystemRoleRepositoryMock
+            return SystemRoleRepositoryMock()
+        elif Environments.get_envs().stage in [Stage.PROD, Stage.DEV, Stage.HOMOLOG]:
+            from src.shared.infra.repositories.system_role_repository_dynamo import SystemRoleRepositoryDynamo
+            return SystemRoleRepositoryDynamo()
         else:
             raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
 

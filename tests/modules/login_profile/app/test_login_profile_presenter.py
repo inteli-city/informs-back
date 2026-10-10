@@ -42,11 +42,12 @@ class TestLoginProfilePresenter:
         assert body["user_id"] == ADMIN_USER_ID
         assert body["just_created"] is False
 
-    def test_new_user_autocreated_as_inspector(self):
+    def test_new_user_autocreated_with_default_role(self):
         response = self._handler()(_event(NEW_USER_ID), None)
         body = json.loads(response["body"])
 
         assert response["statusCode"] == 200
         assert body["user_id"] == NEW_USER_ID
         assert body["just_created"] is True
-        assert body["role"] == "INSPECTOR"
+        assert body["systems"][0]["system"] == "GAIA"
+        assert body["systems"][0]["role_name"] == "Técnico"

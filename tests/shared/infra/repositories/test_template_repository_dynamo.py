@@ -112,10 +112,14 @@ def test_template_repository_dynamo_get_all_and_update():
     assert next_key is not None
     assert "ExclusiveStartKey" in repo.dynamo.query_kwargs
 
+    template.is_active = False
     updated = repo.update_template(template)
     assert updated.id == template.id
-    assert repo.dynamo.transact_items is not None
-    assert len(repo.dynamo.transact_items) == 2
+    assert repo.dynamo.transact_items is None
+    item, partition_key, sort_key = repo.dynamo.put_calls[-1]
+    assert partition_key == repo.template_partition_key(template.id)
+    assert sort_key == repo.template_sort_key()
+    assert item["GSI1SK"] == repo.template_gsi_sort_key(False, template.name, template.id)
 
 
 def test_template_repository_dynamo_name_filter_reads_all_pages_and_omits_cursor():

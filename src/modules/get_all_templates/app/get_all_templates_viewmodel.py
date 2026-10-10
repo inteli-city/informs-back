@@ -1,3 +1,4 @@
+from src.shared.helpers.viewmodels.form_dict_builders import build_justification_option_dict
 from typing import List, Optional
 
 from src.shared.domain.entities.template import Template
@@ -18,6 +19,7 @@ class TemplateViewmodel:
             "system": self.template.system,
             "description": self.template.description,
             "is_active": self.template.is_active,
+            "justification_options": [build_justification_option_dict(option) for option in self.template.justification_options],
             "sections": [
                 build_section_dict(section, field_serializer=build_field_vars_dict)
                 for section in self.template.sections

@@ -20,7 +20,7 @@ class TestCreateTemplatePresenter:
             "requestContext": {
                 "authorizer": {
                     "claims": {
-                        "sub": "user-123",
+                        "sub": "d61dbf66-a10f-11ed-a8fc-0242ac120001",
                         "name": "User",
                         "email": "user@test.com",
                         "cognito:groups": "FORMULARIOS,GAIA",

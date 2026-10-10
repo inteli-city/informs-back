@@ -1,8 +1,9 @@
-from typing import Annotated, Literal
+from typing import Annotated
 
-from pydantic import Field, StringConstraints
+from pydantic import StringConstraints
 
 from src.shared.helpers.contracts.base import RequestContractModel, ResponseContractModel
+from src.shared.helpers.contracts.endpoints.system_access_contract import SystemAccessSchema
 
 
 NonEmptyStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
@@ -11,37 +12,27 @@ UserIdStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=3
 # (não está em requirements.txt). Validação canônica fica na entidade Profile.
 EmailLikeStr = Annotated[str, StringConstraints(pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")]
 
-# MANAGER/SUPERVISOR só existem via PUT /profiles/{user_id} (integração Apex,
-# especificação Uberlândia §7.4) — criação continua restrita a ADMIN/INSPECTOR.
-ProfileRoleLiteral = Literal["ADMIN", "INSPECTOR", "MANAGER", "SUPERVISOR"]
-CreatableProfileRoleLiteral = Literal["ADMIN", "INSPECTOR"]
-
 
 class CreateProfileRequestSchema(RequestContractModel):
     """
-    Body do POST /profiles. Apenas ADMIN pode criar perfis (validado no
-    controller). Pode criar tanto ADMIN quanto INSPECTOR.
+    Body do POST /profiles. Só super admin cria perfis (validado no usecase).
+    Cria a pessoa; o role em cada sistema vem de
+    PUT /systems/{system}/users/{user_id}.
     """
 
     user_id: UserIdStr
-    role: CreatableProfileRoleLiteral
     name: NonEmptyStr
     email: EmailLikeStr
-    system: NonEmptyStr
-    vehicle_plate: NonEmptyStr | None = None
 
 
 class ProfileResponseSchema(ResponseContractModel):
     user_id: str
-    role: ProfileRoleLiteral
     name: str
     email: str
-    system: str
-    vehicle_plate: str | None = None
     active: bool
+    super_admin: bool
     created_at: int
     updated_at: int
-    scope: dict[str, list[str]] = Field(default_factory=dict)
 
 
 class CreateProfileResponseSchema(ProfileResponseSchema):
@@ -50,30 +41,16 @@ class CreateProfileResponseSchema(ProfileResponseSchema):
 
 class LoginProfileResponseSchema(ProfileResponseSchema):
     """
-    Resposta do POST /profiles/login. Inclui flag indicando se este foi o
-    primeiro login (Profile foi criado on-the-fly como INSPECTOR) ou se o
-    perfil já existia.
+    Resposta do POST /profiles/login. `just_created` indica o primeiro login
+    (perfil criado agora). `systems` traz, para cada sistema do usuário, o
+    role e as ações que ele libera — o app decide o que mostrar por aqui.
     """
 
     just_created: bool
+    systems: list[SystemAccessSchema]
 
 
 class DeleteProfileResponseSchema(ResponseContractModel):
     user_id: str
     active: bool
     updated_at: int
-
-
-class UpdateProfileRequestSchema(RequestContractModel):
-    """
-    Body do PUT /profiles/{user_id}. Integração Apex (especificação
-    Uberlândia §7.4) — empurra `role`/`scope` quando a permissão regional
-    muda. Apenas ADMIN ativo pode chamar (validado no controller).
-    """
-
-    role: ProfileRoleLiteral
-    scope: dict[str, list[str]] = Field(default_factory=dict)
-
-
-class UpdateProfileResponseSchema(ProfileResponseSchema):
-    pass

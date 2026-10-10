@@ -12,6 +12,9 @@ from src.shared.domain.entities.information_field import FileInformationField, T
 from src.shared.domain.entities.justification import Justification, JustificationOption
 from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.system_config import SystemConfig
+from src.shared.domain.entities.system_membership import SystemMembership
+from src.shared.domain.entities.system_role import ADMIN_ROLE_ID
+from src.shared.domain.services.access_control import AccessControl
 from src.shared.domain.entities.file_upload import FileUploadRequest
 from src.shared.domain.enums.form_origin_enum import FormOrigin
 from src.shared.domain.enums.form_status_enum import FormStatus
@@ -21,7 +24,9 @@ from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
 from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
+from src.shared.infra.repositories.profile_repository_mock import ProfileRepositoryMock
 from src.shared.infra.repositories.system_config_repository_mock import SystemConfigRepositoryMock
+from src.shared.infra.repositories.system_role_repository_mock import SystemRoleRepositoryMock
 from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
 
 
@@ -115,6 +120,33 @@ class TestCreateFormUsecase:
         assert len(form.sections) == len(template_repo.templates[0].sections)
         assert form.sections[0].section_id == template_repo.templates[0].sections[0].section_id
         assert files == []
+
+    def test_form_without_own_reasons_inherits_template_reasons(self):
+        usecase, payload, template_repo = _make_usecase_and_payload()
+        template = template_repo.templates[0]
+        template.justification_options = [JustificationOption(option="Local inacessível", required_image=True, required_text=False)]
+        payload = deepcopy(payload)
+        payload["template"] = template.id
+        payload["sections"] = []
+        # O app manda um placeholder com opção em branco quando não tem motivos.
+        payload["justification"] = Justification(options=[JustificationOption(option="", required_image=False, required_text=False)])
+
+        form, _ = usecase(**payload)
+
+        assert [option.option for option in form.justification.options] == ["Local inacessível"]
+
+    def test_form_with_own_reasons_keeps_them(self):
+        usecase, payload, template_repo = _make_usecase_and_payload()
+        template = template_repo.templates[0]
+        template.justification_options = [JustificationOption(option="Do template", required_image=False, required_text=False)]
+        payload = deepcopy(payload)
+        payload["template"] = template.id
+        payload["sections"] = []
+        payload["justification"] = Justification(options=[JustificationOption(option="Da Apex", required_image=False, required_text=True)])
+
+        form, _ = usecase(**payload)
+
+        assert [option.option for option in form.justification.options] == ["Da Apex"]
 
     def test_create_form_usecase_with_template_not_found(self):
         usecase, payload, _ = _make_usecase_and_payload()
@@ -258,3 +290,88 @@ class TestCreateFormUsecaseUberlandiaPool:
         assert second_form.id == first_form.id
         assert second_files == []
         assert len([f for f in repo.forms if f.external_id == "OS-7514"]) == 1
+
+
+ADMIN_ID = "d61dbf66-a10f-11ed-a8fc-0242ac120001"
+INSPECTOR_ID = "d61dbf66-a10f-11ed-a8fc-0242ac120002"
+
+
+class TestCreateFormUsecaseAppConfig:
+    """O back recusa o que a configuração da aplicação esconde no app;
+    quem administra o sistema (role ADMIN nele, ou super admin) não passa pela
+    regra."""
+
+    def _usecase(self, app_config=None, allow_unassigned_forms=False):
+        system_config_repo = SystemConfigRepositoryMock()
+        system_config_repo.put(SystemConfig(
+            system="GAIA", created_at=1, updated_at=1,
+            allow_unassigned_forms=allow_unassigned_forms, app_config=app_config,
+        ))
+        self.profile_repo = ProfileRepositoryMock()
+        return CreateFormUsecase(
+            FormRepositoryMock(), FileRepositoryMock(),
+            system_config_repo=system_config_repo,
+            access_control=AccessControl(self.profile_repo, SystemRoleRepositoryMock()),
+        )
+
+    def _payload(self, created_by, user_id):
+        _, payload, _ = _make_usecase_and_payload()
+        payload = deepcopy(payload)
+        payload["created_by"] = created_by
+        payload["user_id"] = user_id
+        return payload
+
+    def test_inspector_cannot_create_when_create_form_menu_is_off(self):
+        usecase = self._usecase(app_config={"menus": {"create_form": False}})
+
+        with pytest.raises(ForbiddenAction):
+            usecase(**self._payload(INSPECTOR_ID, INSPECTOR_ID))
+
+    def test_inspector_cannot_create_open_form_without_allow_open(self):
+        usecase = self._usecase(allow_unassigned_forms=True)
+
+        with pytest.raises(ForbiddenAction):
+            usecase(**self._payload(INSPECTOR_ID, None))
+
+    def test_inspector_cannot_create_open_form_when_system_does_not_accept_unassigned(self):
+        usecase = self._usecase(app_config={"creation": {"allow_open": True}}, allow_unassigned_forms=False)
+
+        with pytest.raises(ForbiddenAction):
+            usecase(**self._payload(INSPECTOR_ID, None))
+
+    def test_inspector_creates_open_form_when_both_flags_are_on(self):
+        usecase = self._usecase(app_config={"creation": {"allow_open": True}}, allow_unassigned_forms=True)
+
+        form, _ = usecase(**self._payload(INSPECTOR_ID, None))
+
+        assert form.user_id is None
+
+    def test_inspector_creates_own_form_with_default_config(self):
+        usecase = self._usecase()
+
+        form, _ = usecase(**self._payload(INSPECTOR_ID, INSPECTOR_ID))
+
+        assert form.user_id == INSPECTOR_ID
+
+    def test_admin_creates_open_form_even_with_create_form_menu_off(self):
+        usecase = self._usecase(app_config={"menus": {"create_form": False}}, allow_unassigned_forms=True)
+
+        form, _ = usecase(**self._payload(ADMIN_ID, None))
+
+        assert form.user_id is None
+
+    def test_system_admin_creates_even_with_create_form_menu_off(self):
+        usecase = self._usecase(app_config={"menus": {"create_form": False}})
+        self.profile_repo.put_membership(SystemMembership(
+            user_id=INSPECTOR_ID, system="GAIA", role_id=ADMIN_ROLE_ID, created_at=1, updated_at=1,
+        ))
+
+        form, _ = usecase(**self._payload(INSPECTOR_ID, INSPECTOR_ID))
+
+        assert form.user_id == INSPECTOR_ID
+
+    def test_user_without_profile_follows_app_config(self):
+        usecase = self._usecase(app_config={"menus": {"create_form": False}})
+
+        with pytest.raises(ForbiddenAction):
+            usecase(**self._payload("user-sem-perfil", "user-sem-perfil"))

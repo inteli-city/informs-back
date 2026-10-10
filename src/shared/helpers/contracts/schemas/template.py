@@ -1,3 +1,4 @@
+from src.shared.helpers.contracts.schemas.justification import JustificationOptionSchema
 from pydantic import Field
 
 from src.shared.helpers.contracts.base import NonNegativeStrictInt, RequestContractModel, ResponseContractModel
@@ -25,6 +26,8 @@ class TemplateSchema(ResponseContractModel):
     description: str | None = None
     is_active: bool
     sections: list[TemplateSectionSchema]
+    # Motivos de cancelamento herdados pelos formulários criados deste template.
+    justification_options: list[JustificationOptionSchema] = Field(default_factory=list)
     created_by: str
     created_at: int
     updated_at: int

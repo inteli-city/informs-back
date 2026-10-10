@@ -3,9 +3,9 @@
 Não testamos a verificação de assinatura JWT real — isso depende do JWKS
 do Cognito e não agrega valor unitário (jose já é testado).  Testamos:
 - extração de token dos headers (Authorization e Sec-WebSocket-Protocol)
-- mapeamento role Profile → role tracking
+- mapeamento RBAC do Profile (super admin, ADMIN, tracking.view/start) → modo do tracking
 - fallback de profile inexistente para INSPECTOR
-- tratamento de profile inativo / role desconhecida
+- tratamento de profile inativo / sem permissão de tracking
 """
 
 from unittest.mock import AsyncMock, MagicMock
@@ -55,58 +55,92 @@ class TestExtractTokenFromHeaders:
         assert extract_token_from_headers({"authorization": "Basic Zm9v"}) is None
 
 
-class TestAuthenticatorLookupRole:
-    def _build(self, item: dict | None):
-        ddb = MagicMock()
-        ddb.Table.return_value.get_item.return_value = (
-            {"Item": item} if item is not None else {}
-        )
-        return Authenticator(_SETTINGS, dynamodb_resource=ddb)
+def _ddb(person: dict | None, memberships=(), roles=None):
+    """Tabela fake: query devolve a partição da pessoa (METADATA + vínculos);
+    get_item devolve o role do sistema pedido."""
+    items = []
+    if person is not None:
+        items.append({"PK": "user#u1", "SK": "METADATA", **person})
+    for system, role_id in memberships:
+        items.append({"PK": "user#u1", "SK": f"system#{system}", "system": system, "role_id": role_id})
+    roles = roles or {}
 
-    def test_returns_role_when_active(self):
-        auth = self._build({"role": "ADMIN", "active": True})
+    def get_item(Key):
+        role = roles.get((Key["PK"], Key["SK"]))
+        return {"Item": role} if role is not None else {}
+
+    ddb = MagicMock()
+    ddb.Table.return_value.query.return_value = {"Items": items}
+    ddb.Table.return_value.get_item.side_effect = get_item
+    return ddb
+
+
+def _role(system: str, role_id: str, actions: list) -> dict:
+    return {("system#" + system, "role#" + role_id): {"actions": actions}}
+
+
+class TestAuthenticatorLookupRole:
+    def _build(self, *args, **kwargs):
+        return Authenticator(_SETTINGS, dynamodb_resource=_ddb(*args, **kwargs))
+
+    def test_super_admin_watches(self):
+        assert self._build({"active": True, "super_admin": True})._lookup_role("u1") == "ADMIN"
+
+    def test_system_admin_watches(self):
+        auth = self._build({"active": True}, memberships=[("GAIA", "ADMIN")])
         assert auth._lookup_role("u1") == "ADMIN"
 
-    def test_returns_role_when_active_field_absent(self):
-        # Profile schema atual: `active` opcional, default = True
-        auth = self._build({"role": "INSPECTOR"})
+    def test_role_with_tracking_view_watches(self):
+        auth = self._build(
+            {"active": True}, memberships=[("GAIA", "r1")], roles=_role("GAIA", "r1", ["tracking.view"]),
+        )
+        assert auth._lookup_role("u1") == "ADMIN"
+
+    def test_role_with_tracking_start_emits(self):
+        auth = self._build(
+            {"active": True}, memberships=[("GAIA", "r1")], roles=_role("GAIA", "r1", ["tracking.start"]),
+        )
         assert auth._lookup_role("u1") == "INSPECTOR"
 
-    def test_returns_none_when_inactive(self):
-        auth = self._build({"role": "ADMIN", "active": False})
+    def test_active_field_absent_counts_as_active(self):
+        auth = self._build({}, memberships=[("GAIA", "r1")], roles=_role("GAIA", "r1", ["tracking.start"]))
+        assert auth._lookup_role("u1") == "INSPECTOR"
+
+    def test_role_without_tracking_actions_returns_none(self):
+        auth = self._build(
+            {"active": True}, memberships=[("GAIA", "r1")], roles=_role("GAIA", "r1", ["forms.assign"]),
+        )
         assert auth._lookup_role("u1") is None
+
+    def test_returns_none_when_inactive(self):
+        assert self._build({"active": False, "super_admin": True})._lookup_role("u1") is None
 
     def test_returns_inspector_when_not_found(self):
         # Usuário comum autenticado no Cognito não precisa de Profile chumbado:
         # na ausência de Profile explícito, o WS trata como INSPECTOR.
-        auth = self._build(None)
-        assert auth._lookup_role("u1") == "INSPECTOR"
+        assert self._build(None)._lookup_role("u1") == "INSPECTOR"
 
 
 class TestAuthenticatorAuthenticate:
     """Testa só o caminho pós-JWT, mockando _verify_jwt."""
 
-    @pytest.mark.asyncio
-    async def test_inspector_role_accepted(self, monkeypatch):
-        ddb = MagicMock()
-        ddb.Table.return_value.get_item.return_value = {
-            "Item": {"role": "INSPECTOR", "active": True}
-        }
+    @staticmethod
+    def _auth(monkeypatch, ddb, claims=None):
         auth = Authenticator(_SETTINGS, dynamodb_resource=ddb)
-        monkeypatch.setattr(auth, "_verify_jwt", AsyncMock(return_value={"sub": "u1"}))
-        user = await auth.authenticate("dummy")
+        monkeypatch.setattr(auth, "_verify_jwt", AsyncMock(return_value=claims or {"sub": "u1"}))
+        return auth
+
+    @pytest.mark.asyncio
+    async def test_emitter_accepted(self, monkeypatch):
+        ddb = _ddb({"active": True}, memberships=[("GAIA", "r1")], roles=_role("GAIA", "r1", ["tracking.start"]))
+        user = await self._auth(monkeypatch, ddb).authenticate("dummy")
         assert user.user_id == "u1"
         assert user.role == "INSPECTOR"
 
     @pytest.mark.asyncio
-    async def test_admin_role_accepted(self, monkeypatch):
-        ddb = MagicMock()
-        ddb.Table.return_value.get_item.return_value = {
-            "Item": {"role": "ADMIN", "active": True}
-        }
-        auth = Authenticator(_SETTINGS, dynamodb_resource=ddb)
-        monkeypatch.setattr(auth, "_verify_jwt", AsyncMock(return_value={"sub": "u2"}))
-        user = await auth.authenticate("dummy")
+    async def test_watcher_accepted(self, monkeypatch):
+        ddb = _ddb({"active": True, "super_admin": True})
+        user = await self._auth(monkeypatch, ddb).authenticate("dummy")
         assert user.role == "ADMIN"
 
     @pytest.mark.asyncio
@@ -124,64 +158,24 @@ class TestAuthenticatorAuthenticate:
 
     @pytest.mark.asyncio
     async def test_profile_not_found_defaults_to_inspector(self, monkeypatch):
-        ddb = MagicMock()
-        ddb.Table.return_value.get_item.return_value = {}
-        auth = Authenticator(_SETTINGS, dynamodb_resource=ddb)
-        monkeypatch.setattr(auth, "_verify_jwt", AsyncMock(return_value={"sub": "ghost"}))
-
-        user = await auth.authenticate("dummy")
-
+        user = await self._auth(monkeypatch, _ddb(None), {"sub": "ghost"}).authenticate("dummy")
         assert user.user_id == "ghost"
         assert user.role == "INSPECTOR"
 
     @pytest.mark.asyncio
-    async def test_cognito_admin_claim_without_profile_still_defaults_to_inspector(
-        self, monkeypatch
-    ):
-        ddb = MagicMock()
-        ddb.Table.return_value.get_item.return_value = {}
-        auth = Authenticator(_SETTINGS, dynamodb_resource=ddb)
-        monkeypatch.setattr(
-            auth,
-            "_verify_jwt",
-            AsyncMock(
-                return_value={"sub": "u1", "custom:general_role": "ADMIN_COLLABORATOR"}
-            ),
-        )
-
-        user = await auth.authenticate("dummy")
-
+    async def test_cognito_admin_claim_without_profile_still_defaults_to_inspector(self, monkeypatch):
+        claims = {"sub": "u1", "custom:general_role": "ADMIN_COLLABORATOR"}
+        user = await self._auth(monkeypatch, _ddb(None), claims).authenticate("dummy")
         assert user.role == "INSPECTOR"
 
     @pytest.mark.asyncio
-    async def test_inactive_inspector_profile_raises(self, monkeypatch):
-        ddb = MagicMock()
-        ddb.Table.return_value.get_item.return_value = {
-            "Item": {"role": "INSPECTOR", "active": False}
-        }
-        auth = Authenticator(_SETTINGS, dynamodb_resource=ddb)
-        monkeypatch.setattr(auth, "_verify_jwt", AsyncMock(return_value={"sub": "u1"}))
+    async def test_inactive_profile_raises(self, monkeypatch):
+        auth = self._auth(monkeypatch, _ddb({"active": False, "super_admin": True}))
         with pytest.raises(AuthError, match="inativo"):
             await auth.authenticate("dummy")
 
     @pytest.mark.asyncio
-    async def test_inactive_admin_profile_raises(self, monkeypatch):
-        ddb = MagicMock()
-        ddb.Table.return_value.get_item.return_value = {
-            "Item": {"role": "ADMIN", "active": False}
-        }
-        auth = Authenticator(_SETTINGS, dynamodb_resource=ddb)
-        monkeypatch.setattr(auth, "_verify_jwt", AsyncMock(return_value={"sub": "u1"}))
-        with pytest.raises(AuthError, match="inativo"):
-            await auth.authenticate("dummy")
-
-    @pytest.mark.asyncio
-    async def test_unknown_role_raises(self, monkeypatch):
-        ddb = MagicMock()
-        ddb.Table.return_value.get_item.return_value = {
-            "Item": {"role": "WHATEVER", "active": True}
-        }
-        auth = Authenticator(_SETTINGS, dynamodb_resource=ddb)
-        monkeypatch.setattr(auth, "_verify_jwt", AsyncMock(return_value={"sub": "u1"}))
-        with pytest.raises(AuthError, match="não autorizada"):
-            await auth.authenticate("dummy")
+    async def test_without_tracking_permission_raises(self, monkeypatch):
+        ddb = _ddb({"active": True}, memberships=[("GAIA", "r1")], roles=_role("GAIA", "r1", ["forms.assign"]))
+        with pytest.raises(AuthError, match="sem permissão de tracking"):
+            await self._auth(monkeypatch, ddb).authenticate("dummy")

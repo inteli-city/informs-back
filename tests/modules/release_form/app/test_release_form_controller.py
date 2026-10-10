@@ -10,7 +10,9 @@ from src.shared.helpers.external_interfaces.http_models import HttpRequest
 from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
 from src.shared.infra.repositories.form_event_repository_mock import FormEventRepositoryMock
 from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
+from src.shared.domain.services.access_control import AccessControl
 from src.shared.infra.repositories.profile_repository_mock import ProfileRepositoryMock
+from src.shared.infra.repositories.system_role_repository_mock import SystemRoleRepositoryMock
 
 INSPECTOR_ID = 'd61dbf66-a10f-11ed-a8fc-0242ac120002'  # seed do ProfileRepositoryMock
 OWNER_ID = 'd61dbf66-a10f-11ed-a8fc-0242ac120050'
@@ -46,7 +48,8 @@ class TestReleaseFormController:
         self.form_repo = FormRepositoryMock()
         self.form_repo.forms.append(_owned_form())
         self.controller = ReleaseFormController(ReleaseFormUsecase(
-            self.form_repo, FileRepositoryMock(), ProfileRepositoryMock(), FormEventRepositoryMock(),
+            self.form_repo, FileRepositoryMock(), AccessControl(ProfileRepositoryMock(), SystemRoleRepositoryMock()),
+            FormEventRepositoryMock(),
         ))
 
     def test_owner_release_success_returns_200(self):
