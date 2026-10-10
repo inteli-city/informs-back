@@ -29,7 +29,9 @@ services:
       - formularios-network
 
   localstack:
-    image: localstack/localstack
+    # Fixado na 4.9, a última imagem comunitária: a partir da 2026.x a `latest`
+    # exige conta e LOCALSTACK_AUTH_TOKEN, e o container sai com exit 55 sem ela.
+    image: localstack/localstack:4.9
     container_name: localstack
     ports:
       - "4566:4566"
