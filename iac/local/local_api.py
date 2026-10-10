@@ -174,10 +174,17 @@ _presenters: Dict[str, object] = {}
 _invoke_lock = threading.Lock()
 
 
+# O primeiro import de cada presenter também é serializado: o navegador abre
+# várias requisições de uma vez, e importar módulos com imports em ciclo em
+# threads paralelas trava o Python (`_DeadlockError` no lock de import).
+_import_lock = threading.Lock()
+
+
 def load_presenter(module: str):
-    if module not in _presenters:
-        _presenters[module] = importlib.import_module(f"src.modules.{module}.app.{module}_presenter")
-    return _presenters[module]
+    with _import_lock:
+        if module not in _presenters:
+            _presenters[module] = importlib.import_module(f"src.modules.{module}.app.{module}_presenter")
+        return _presenters[module]
 
 
 CORS_HEADERS = {
