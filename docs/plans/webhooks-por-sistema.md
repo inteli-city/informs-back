@@ -219,6 +219,10 @@ caso de uso grava formulário + FormEvent (transação)
 - Repositórios Dynamo com fakes (o padrão do projeto), cobrindo a **transação** formulário + evento.
 - Ponta a ponta no ambiente local: enviar um formulário pelo app e ver a chamada chegar assinada no receptor; derrubar o receptor e ver as tentativas e o reenvio pelo Admin.
 
+## Relação com a migração para Postgres
+
+Existe um estudo à parte de migração para Postgres e serviço em container ([migracao-postgres-container.md](migracao-postgres-container.md)). Se ele for adiante, muda só o **transporte** da entrega: a fila vira uma tabela de entregas gravada na mesma transação do evento (*outbox*) e um worker, sem stream, SQS e KMS. Catálogo, envelope, assinatura, rotas, permissão e Admin não mudam. Os PRs 1, 2 e 4 servem aos dois casos; **decidir sobre a migração antes do PR 3.**
+
 ## Execução
 
 PRs pequenos, cada um revisável sozinho, abertos contra `feature/config-fase-5` (como as fases anteriores: a fase junta os PRs e vai para `dev` de uma vez). Tamanhos relativos (P, M, G).
