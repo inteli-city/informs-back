@@ -1,8 +1,11 @@
 """Migração do role global para roles por sistema, contra uma tabela em
 memória que imita o boto3 (scan, get_item, put_item, update_item)."""
 
+import argparse
 import importlib.util
 from pathlib import Path
+
+import pytest
 
 from src.shared.infra.dtos.profile_dynamo_dto import ProfileDynamoDTO
 from src.shared.infra.dtos.system_membership_dynamo_dto import SystemMembershipDynamoDTO
@@ -130,3 +133,47 @@ class TestMigrateProfilesToSystemRoles:
         migration.migrate(table, super_admins={U_ADMIN}, extra_systems=[], dry_run=True)
 
         assert table.items == before
+
+
+class TestSystemAdminOption:
+    """--system-admin: ADMIN no sistema pedido, mesmo que o `system` gravado
+    no perfil seja outro (ex.: conta de integração que cria OS em UBERLANDIA)."""
+
+    def test_old_admin_also_becomes_admin_of_the_requested_system(self):
+        table = _table()
+        migration.migrate(table, set(), [], dry_run=False, system_admins=[(U_ADMIN, "UBERLANDIA")])
+
+        assert table.get(f"user#{U_ADMIN}", "system#GAIA")["role_id"] == "ADMIN"
+        membership = table.get(f"user#{U_ADMIN}", "system#UBERLANDIA")
+        assert membership["role_id"] == "ADMIN"
+        assert membership["GSI1SK"] == f"role#ADMIN#user#{U_ADMIN}"
+
+    def test_replaces_the_role_already_in_the_system(self):
+        table = _table()
+        migration.migrate(table, set(), [], dry_run=False, system_admins=[(U_GESTOR, "UBERLANDIA")])
+
+        membership = table.get(f"user#{U_GESTOR}", "system#UBERLANDIA")
+        assert membership["role_id"] == "ADMIN"
+        assert membership["GSI1SK"] == f"role#ADMIN#user#{U_GESTOR}"
+
+    def test_person_without_profile_is_skipped(self):
+        table = _table()
+        ghost = "00000000-0000-0000-0000-0000000000ff"
+        migration.migrate(table, set(), [], dry_run=False, system_admins=[(ghost, "UBERLANDIA")])
+
+        assert table.get(f"user#{ghost}", "system#UBERLANDIA") is None
+
+    def test_running_twice_changes_nothing(self):
+        table = _table()
+        migration.migrate(table, set(), [], dry_run=False, system_admins=[(U_ADMIN, "UBERLANDIA")])
+        snapshot = {key: dict(item) for key, item in table.items.items()}
+
+        migration.migrate(table, set(), [], dry_run=False, system_admins=[(U_ADMIN, "UBERLANDIA")])
+
+        assert table.items == snapshot
+
+    def test_option_format_is_validated(self):
+        assert migration._parse_system_admin(f"{U_ADMIN}:UBERLANDIA") == (U_ADMIN, "UBERLANDIA")
+        for invalid in ("sem-dois-pontos", ":UBERLANDIA", f"{U_ADMIN}:"):
+            with pytest.raises(argparse.ArgumentTypeError):
+                migration._parse_system_admin(invalid)

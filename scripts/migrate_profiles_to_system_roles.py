@@ -18,6 +18,10 @@ O que o script faz, por sistema encontrado nos perfis (e os de --system):
      fixo ADMIN do sistema; os outros, o role equivalente.
   3. Limpa o item da pessoa: tira role, system, scope, vehicle_plate e o
      GSI1 antigo; grava super_admin (true para os --super-admin).
+  4. Dá o role ADMIN nos sistemas pedidos em --system-admin. O ADMIN de antes
+     vira ADMIN só no `system` gravado no perfil (o primeiro grupo do
+     Cognito), que pode não ser o sistema em que a conta precisa administrar
+     — ex.: a conta de integração que cria as OS de UBERLANDIA.
 
 Idempotente: role e vínculo que já existem não são regravados; pessoa já
 migrada (sem `role`) não ganha vínculo de novo.
@@ -26,14 +30,15 @@ Uso (mesmas variáveis de ambiente das Lambdas):
 
     AWS_PROFILE=intelicity REGION=sa-east-1 \\
     DYNAMO_PROFILE_TABLE_NAME=FormulariosStackdev-...ProfilesTable... \\
-    python scripts/migrate_profiles_to_system_roles.py --super-admin <user_id> --dry-run
+    python scripts/migrate_profiles_to_system_roles.py --super-admin <user_id> \\
+        --system-admin <user_id>:UBERLANDIA --dry-run
 """
 
 import argparse
 import os
 import sys
 import time
-from typing import Dict, List, Optional, Set
+from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 import boto3
 from boto3.dynamodb.conditions import Attr
@@ -121,7 +126,34 @@ def _clean_person(table, person: dict, super_admin: bool, dry_run: bool) -> None
     )
 
 
-def migrate(table, super_admins: Set[str], extra_systems: List[str], dry_run: bool) -> None:
+def _ensure_admin_membership(table, user_id: str, system: str, now: int, dry_run: bool) -> None:
+    """Como _ensure_membership, mas troca um vínculo que já existe com outro
+    role: aqui o pedido explícito vale mais que o papel de antes."""
+    if not _exists(table, f"user#{user_id}", "METADATA"):
+        print(f"  ! {user_id} não tem perfil: entre no app uma vez e rode de novo")
+        return
+    current = table.get_item(Key={"PK": f"user#{user_id}", "SK": f"system#{system}"}).get("Item")
+    if current and current.get("role_id") == ADMIN_ROLE_ID:
+        return
+    _put(table, {
+        "PK": f"user#{user_id}", "SK": f"system#{system}",
+        "user_id": user_id, "system": system, "role_id": ADMIN_ROLE_ID,
+        "created_at": current["created_at"] if current else now, "updated_at": now,
+        "GSI1PK": f"system#{system}", "GSI1SK": f"role#{ADMIN_ROLE_ID}#user#{user_id}",
+    }, dry_run, f"vínculo {user_id} → {system}/{ADMIN_ROLE_ID} (--system-admin)")
+
+
+def _parse_system_admin(value: str) -> Tuple[str, str]:
+    user_id, sep, system = value.partition(":")
+    if not sep or not user_id.strip() or not system.strip():
+        raise argparse.ArgumentTypeError(f"use <user_id>:<SISTEMA> (recebido: {value!r})")
+    return user_id.strip(), system.strip()
+
+
+def migrate(
+    table, super_admins: Set[str], extra_systems: List[str], dry_run: bool,
+    system_admins: Iterable[Tuple[str, str]] = (),
+) -> None:
     people = _scan_people(table)
     now = int(time.time() * 1000)
 
@@ -148,11 +180,20 @@ def migrate(table, super_admins: Set[str], extra_systems: List[str], dry_run: bo
             _ensure_membership(table, user_id, system, role_id, now, dry_run)
         _clean_person(table, person, super_admin=user_id in super_admins or bool(person.get("super_admin")), dry_run=dry_run)
 
+    if system_admins:
+        print("[--system-admin]")
+    for user_id, system in system_admins:
+        _ensure_admin_membership(table, user_id, system, now, dry_run)
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Migra a tabela Profiles para roles por sistema")
     parser.add_argument("--super-admin", action="append", default=[], help="user_id a marcar como super admin (repetível)")
     parser.add_argument("--system", action="append", default=[], help="Sistema sem perfis que também deve ganhar o role padrão (repetível)")
+    parser.add_argument(
+        "--system-admin", action="append", default=[], type=_parse_system_admin,
+        help="<user_id>:<SISTEMA> que recebe o role ADMIN no sistema (repetível)",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Mostra o que mudaria, sem gravar")
     args = parser.parse_args()
 
@@ -163,7 +204,7 @@ def main() -> int:
     table = boto3.resource("dynamodb", region_name=region).Table(table_name)
 
     print(f"Tabela: {table_name}{' (dry-run)' if args.dry_run else ''}")
-    migrate(table, set(args.super_admin), args.system, args.dry_run)
+    migrate(table, set(args.super_admin), args.system, args.dry_run, system_admins=args.system_admin)
     if args.dry_run:
         print("--dry-run: nada foi gravado.")
     return 0
