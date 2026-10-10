@@ -46,8 +46,10 @@ class PreviewConfig(_ConfigGroup):
 
 class CreationConfig(_ConfigGroup):
     # Criar formulário "em aberto" para o sistema (sem dono), além de "para mim".
-    # No back-end, um formulário sem `user_id` continua exigindo
-    # `SystemConfig.allow_unassigned_forms` — esta chave só oferece a opção no app.
+    # Vale no app e no POST /forms: quem não administra o sistema recebe 403 ao
+    # criar sem dono com a chave desligada. E a chave sozinha não basta — sem
+    # `SystemConfig.allow_unassigned_forms` ela é desligada na configuração
+    # efetiva (`AppConfig.effective`) e o formulário sem dono é recusado.
     allow_open: StrictBool = Field(default=False, title="Criar em aberto para o sistema", description="Oferece criar o formulário sem dono, em Compartilhados.")
 
 

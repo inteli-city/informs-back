@@ -27,8 +27,8 @@ ACTION_DESCRIPTIONS = {
     Action.FORMS_RELEASE: "Devolver ao pool formulário de outra pessoa",
     Action.TRACKING_START: "Enviar a própria localização (iniciar percurso)",
     Action.TRACKING_VIEW: "Acompanhar a localização e o histórico de percurso das pessoas",
-    Action.USERS_MANAGE: "Dar e tirar roles das pessoas do sistema (exceto ADMIN)",
-    Action.ROLES_MANAGE: "Criar, editar e apagar os roles do sistema",
+    Action.USERS_MANAGE: "Dar e tirar papéis das pessoas do sistema (exceto o de administrador)",
+    Action.ROLES_MANAGE: "Criar, editar e apagar os papéis do sistema",
     Action.TEMPLATES_MANAGE: "Criar e editar os templates do sistema",
     Action.APP_CONFIG_EDIT: "Editar a configuração da aplicação do sistema",
 }
