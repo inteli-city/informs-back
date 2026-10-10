@@ -5,6 +5,8 @@ import re
 import sys
 from pathlib import Path
 
+import pytest
+
 # Antes de importar a API local: ela aplica os defaults do ambiente local com
 # setdefault, e a suíte precisa continuar nos repositórios mock.
 os.environ["STAGE"] = "TEST"
@@ -79,3 +81,20 @@ class TestEventToPresenter:
         assert result["statusCode"] == 200
         assert "templates" in json.loads(result["body"])
         assert event["queryStringParameters"] == {"limit": "5"}
+
+
+class TestLoopbackOnly:
+    """A API local aceita qualquer token: só pode escutar em loopback."""
+
+    def test_loopback_hosts_are_accepted(self):
+        for host in ("127.0.0.1", "127.0.0.2", "::1", "localhost"):
+            assert local_api.is_loopback(host), host
+
+    def test_other_hosts_are_refused(self):
+        for host in ("0.0.0.0", "::", "192.168.0.10", "meu-pc.local"):
+            assert not local_api.is_loopback(host), host
+
+    def test_main_refuses_non_loopback_host(self, monkeypatch):
+        monkeypatch.setattr(sys, "argv", ["local_api.py", "--host", "0.0.0.0"])
+        with pytest.raises(SystemExit, match="recusado"):
+            local_api.main()

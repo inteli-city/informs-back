@@ -9,7 +9,8 @@ leva segundos, o que torna um teste ponta a ponta lento e instável.
 Autenticação: como o autorizador local (`iac/authorizers/local_authorizer`),
 lê as claims do JWT do header `Authorization` SEM validar assinatura. Serve
 tanto o id_token de um login real no Gates quanto o token falso que o modo
-de login local do front gera. Nunca exponha esta API fora da sua máquina.
+de login local do front gera. Por isso ela só sobe em endereço de loopback
+(`127.0.0.1`, `::1`, `localhost`): `--host 0.0.0.0` é recusado.
 
 Uso (com DynamoDB Local e LocalStack de pé — ver `iac/LOCAL_SETUP.md`):
 
@@ -27,6 +28,7 @@ As rotas espelham `iac/iac/lambda_stack.py`; o teste
 import argparse
 import base64
 import importlib
+import ipaddress
 import json
 import sys
 import threading
@@ -284,16 +286,31 @@ class LocalApiHandler(BaseHTTPRequestHandler):
         pass
 
 
+def is_loopback(host: str) -> bool:
+    if host == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="API local do Informs (Lambdas em processo).")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=4010)
     args = parser.parse_args()
 
+    # A API aceita qualquer token: fora do loopback, qualquer um na rede
+    # entraria como quem quisesse.
+    if not is_loopback(args.host):
+        raise SystemExit(f"--host {args.host!r} recusado: a API local só escuta em loopback (ex.: 127.0.0.1)")
+
     server = ThreadingHTTPServer((args.host, args.port), LocalApiHandler)
     print(f"API local ouvindo em {args.host}:{args.port}, base {BASE_PATH}  (Ctrl+C para parar)", flush=True)
     try:
-        server.serve_forever()
+        # HTTP sem TLS de propósito: servidor de desenvolvimento, só em loopback (checado acima).
+        server.serve_forever()  # NOSONAR
     except KeyboardInterrupt:
         pass
     finally:
