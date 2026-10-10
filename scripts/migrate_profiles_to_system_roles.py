@@ -180,6 +180,10 @@ def migrate(
             _ensure_membership(table, user_id, system, role_id, now, dry_run)
         _clean_person(table, person, super_admin=user_id in super_admins or bool(person.get("super_admin")), dry_run=dry_run)
 
+    known = {person["PK"].split("user#", 1)[1] for person in people}
+    for user_id in sorted(super_admins - known):
+        print(f"  ! --super-admin {user_id} não tem perfil: entre no app uma vez e rode de novo")
+
     if system_admins:
         print("[--system-admin]")
     for user_id, system in system_admins:

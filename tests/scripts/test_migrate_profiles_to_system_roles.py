@@ -172,6 +172,11 @@ class TestSystemAdminOption:
 
         assert table.items == snapshot
 
+    def test_super_admin_without_profile_is_reported(self, capsys):
+        ghost = "00000000-0000-0000-0000-0000000000ff"
+        migration.migrate(_table(), {ghost}, [], dry_run=False)
+        assert f"--super-admin {ghost} não tem perfil" in capsys.readouterr().out
+
     def test_option_format_is_validated(self):
         assert migration._parse_system_admin(f"{U_ADMIN}:UBERLANDIA") == (U_ADMIN, "UBERLANDIA")
         for invalid in ("sem-dois-pontos", ":UBERLANDIA", f"{U_ADMIN}:"):
