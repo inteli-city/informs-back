@@ -41,6 +41,34 @@ class TestUpdateTemplateController:
         assert response.body["name"] == "Controller Update"
         assert response.body["is_active"] is False
 
+    def _request(self, **fields):
+        return HttpRequest(body={
+            "requester_user": {
+                "sub": "user-1",
+                "name": "Tester",
+                "email": "tester@example.com",
+                "cognito:groups": "FORMULARIOS,GAIA",
+            },
+            "template_id": self.template.id,
+            **fields,
+        })
+
+    def test_update_template_controller_null_description_clears_it(self):
+        self.template.description = "Antiga"
+
+        response = self.controller(self._request(description=None))
+
+        assert response.status_code == 200
+        assert response.body["description"] is None
+
+    def test_update_template_controller_omitted_description_keeps_it(self):
+        self.template.description = "Antiga"
+
+        response = self.controller(self._request(name="Outro nome"))
+
+        assert response.status_code == 200
+        assert response.body["description"] == "Antiga"
+
     def test_update_template_controller_with_sections(self):
         section = {
             "section_id": 2,

@@ -34,7 +34,14 @@ def test_openapi_contract_registry_covers_http_routes():
         ("/profiles", "post"),
         ("/profiles/login", "post"),
         ("/profiles/{user_id}", "delete"),
-        ("/profiles/{user_id}", "put"),
+        ("/permissions/actions", "get"),
+        ("/systems/{system}/roles", "get"),
+        ("/systems/{system}/roles", "post"),
+        ("/systems/{system}/roles/{role_id}", "put"),
+        ("/systems/{system}/roles/{role_id}", "delete"),
+        ("/systems/{system}/users", "get"),
+        ("/systems/{system}/users/{user_id}", "put"),
+        ("/systems/{system}/users/{user_id}", "delete"),
         ("/templates", "post"),
         ("/templates", "get"),
         ("/templates/{template_id}", "put"),
@@ -42,6 +49,9 @@ def test_openapi_contract_registry_covers_http_routes():
         ("/forms/sync-origin/callback", "post"),
         ("/locations/history", "get"),
         ("/app-config", "get"),
+        ("/app-config/admin", "get"),
+        ("/app-config/default", "put"),
+        ("/app-config/systems/{system}", "put"),
     }
 
     assert registered == expected

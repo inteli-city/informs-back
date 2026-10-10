@@ -1,3 +1,4 @@
+from src.shared.helpers.contracts.schemas.justification import JustificationOptionSchema
 from pydantic import AliasChoices, Field, StrictBool
 
 from src.shared.helpers.contracts.base import RequestContractModel
@@ -14,6 +15,7 @@ class UpdateTemplateRequestSchema(RequestContractModel):
         serialization_alias="isActive",
     )
     sections: list[TemplateSectionSchema]
+    justification_options: list[JustificationOptionSchema] | None = None
 
 
 class UpdateTemplateResponseSchema(TemplateSchema):

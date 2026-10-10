@@ -1,5 +1,6 @@
 from .get_all_forms_controller import GetAllFormsController
 from .get_all_forms_usecase import GetAllFormsUsecase
+from src.shared.domain.services.access_control import AccessControl
 from src.shared.environments import Environments
 from src.shared.helpers.error_handler import lambda_error_handler
 from src.shared.helpers.logging_handler import lambda_logging_handler
@@ -7,8 +8,8 @@ from src.shared.helpers.external_interfaces.http_lambda_requests import LambdaHt
 
 
 repo = Environments.get_form_repo()
-profile_repo = Environments.get_profile_repo()
-usecase = GetAllFormsUsecase(repo, profile_repo)
+access_control = AccessControl(Environments.get_profile_repo(), Environments.get_system_role_repo())
+usecase = GetAllFormsUsecase(repo, access_control)
 controller = GetAllFormsController(usecase)
 
 

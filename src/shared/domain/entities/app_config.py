@@ -18,37 +18,72 @@ class MenusConfig(_ConfigGroup):
     por cima disto — `start_tracking` ligado não mostra o botão a quem não é
     INSPECTOR."""
 
-    create_form: StrictBool = True
-    start_tracking: StrictBool = True
-    route_plan: StrictBool = True
+    create_form: StrictBool = Field(default=True, title="Aba Criar", description="Permite criar formulário em campo.")
+    start_tracking: StrictBool = Field(default=True, title="Botão Iniciar percurso", description="Rastreamento do percurso no mapa (só para INSPECTOR).")
+    route_plan: StrictBool = Field(default=True, title="Botão Gerar rota", description="Planejamento de rota entre formulários no mapa.")
 
 
 class MapConfig(_ConfigGroup):
     # Zoom a partir do qual os pins deixam de agrupar (maxZoom do Supercluster).
-    cluster_max_zoom: StrictInt = Field(default=16, ge=0, le=22)
+    cluster_max_zoom: StrictInt = Field(default=16, ge=0, le=22, title="Zoom sem agrupamento", description="A partir deste zoom os pins aparecem um a um, sem agrupar.")
 
 
 class TextsConfig(_ConfigGroup):
-    claim_action_label: StrictStr = Field(default="Assumir formulário", min_length=1, max_length=40)
+    claim_action_label: StrictStr = Field(default="Assumir formulário", min_length=1, max_length=40, title="Rótulo da ação de assumir", description="Texto do botão que assume um formulário compartilhado.")
 
 
 class FlowsConfig(_ConfigGroup):
-    open_form_after_claim: StrictBool = False
-    return_to_map_after_submit: StrictBool = False
-    cancel_form: StrictBool = False
+    open_form_after_claim: StrictBool = Field(default=False, title="Abrir o formulário ao assumir", description="Depois de confirmar, inicia o preenchimento e abre o formulário.")
+    return_to_map_after_submit: StrictBool = Field(default=False, title="Voltar ao mapa ao terminar", description="Depois de enviar ou cancelar, volta ao mapa na posição do usuário.")
+    cancel_form: StrictBool = Field(default=False, title="Cancelar formulário em campo", description="Mostra a opção de cancelar para quem é dono do formulário.")
 
 
 class PreviewConfig(_ConfigGroup):
     # Imagens dos campos informativos (FILE/URL_INFORMATION_FIELD de imagem)
     # na prévia da OS no mapa.
-    information_images: StrictBool = False
+    information_images: StrictBool = Field(default=False, title="Imagens na prévia do mapa", description="Mostra as imagens dos campos informativos na prévia do formulário.")
 
 
 class CreationConfig(_ConfigGroup):
     # Criar formulário "em aberto" para o sistema (sem dono), além de "para mim".
-    # No back-end, um formulário sem `user_id` continua exigindo
-    # `SystemConfig.allow_unassigned_forms` — esta chave só oferece a opção no app.
-    allow_open: StrictBool = False
+    # Vale no app e no POST /forms: quem não administra o sistema recebe 403 ao
+    # criar sem dono com a chave desligada. E a chave sozinha não basta — sem
+    # `SystemConfig.allow_unassigned_forms` ela é desligada na configuração
+    # efetiva (`AppConfig.effective`) e o formulário sem dono é recusado.
+    allow_open: StrictBool = Field(default=False, title="Criar em aberto para o sistema", description="Oferece criar o formulário sem dono, em Compartilhados.")
+
+
+_HEX_COLOR = r"^#[0-9a-fA-F]{6}$"
+
+
+def _status_label(default: str, name: str) -> Any:
+    return Field(default=default, min_length=1, max_length=30, title=f"{name} · nome",
+                 description="Como este status aparece nas abas, nos cartões e no detalhe.")
+
+
+def _status_color(name: str) -> Any:
+    # Sem valor (None) vale a cor do próprio app, que tem variante para tema
+    # claro e escuro. Uma cor escolhida aqui vale para os dois temas.
+    return Field(default=None, pattern=_HEX_COLOR, title=f"{name} · cor",
+                 description="Cor do status na lista, nas abas e no pin do mapa. Vazio: a cor do app.",
+                 json_schema_extra={"format": "color"})
+
+
+class StatusConfig(_ConfigGroup):
+    """Nome e cor de cada status como o app de campo mostra. "Completo e não
+    enviado" é do próprio app (envio na fila offline), não um status do
+    back-end — mas aparece como status para quem está em campo."""
+
+    pending_label: StrictStr = _status_label("Pendente", "Pendente")
+    pending_color: Optional[StrictStr] = _status_color("Pendente")
+    in_progress_label: StrictStr = _status_label("Em andamento", "Em andamento")
+    in_progress_color: Optional[StrictStr] = _status_color("Em andamento")
+    completed_not_sent_label: StrictStr = _status_label("Completo e não enviado", "Completo e não enviado")
+    completed_not_sent_color: Optional[StrictStr] = _status_color("Completo e não enviado")
+    completed_label: StrictStr = _status_label("Completo", "Completo")
+    completed_color: Optional[StrictStr] = _status_color("Completo")
+    cancelled_label: StrictStr = _status_label("Cancelado", "Cancelado")
+    cancelled_color: Optional[StrictStr] = _status_color("Cancelado")
 
 
 class AppConfig(_ConfigGroup):
@@ -65,12 +100,13 @@ class AppConfig(_ConfigGroup):
     default igual ao comportamento atual, e nenhum sistema muda sem pedir.
     """
 
-    menus: MenusConfig = Field(default_factory=MenusConfig)
-    map: MapConfig = Field(default_factory=MapConfig)
-    texts: TextsConfig = Field(default_factory=TextsConfig)
-    flows: FlowsConfig = Field(default_factory=FlowsConfig)
-    preview: PreviewConfig = Field(default_factory=PreviewConfig)
-    creation: CreationConfig = Field(default_factory=CreationConfig)
+    menus: MenusConfig = Field(default_factory=MenusConfig, title="Menus")
+    map: MapConfig = Field(default_factory=MapConfig, title="Mapa")
+    texts: TextsConfig = Field(default_factory=TextsConfig, title="Textos")
+    flows: FlowsConfig = Field(default_factory=FlowsConfig, title="Funcionamentos")
+    preview: PreviewConfig = Field(default_factory=PreviewConfig, title="Prévia")
+    creation: CreationConfig = Field(default_factory=CreationConfig, title="Criação em campo")
+    statuses: StatusConfig = Field(default_factory=StatusConfig, title="Status dos formulários")
 
     @staticmethod
     def validate_layer(values: Dict[str, Any]) -> Dict[str, Any]:

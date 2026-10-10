@@ -2,7 +2,6 @@ from pydantic import ValidationError
 
 from .create_profile_usecase import CreateProfileUsecase
 from .create_profile_viewmodel import CreateProfileViewmodel
-from src.shared.domain.enums.profile_role_enum import ProfileRole
 from src.shared.helpers.contracts.runtime_requests import CreateProfileControllerRequestSchema
 from src.shared.helpers.controller_error_handler import controller_error_handler
 from src.shared.helpers.errors.controller_errors import MissingParameters, WrongTypeParameter
@@ -28,11 +27,8 @@ class CreateProfileController:
             profile = self.usecase(
                 requester_user_id=requester_user.user_id,
                 target_user_id=payload.user_id,
-                role=ProfileRole(payload.role),
                 name=payload.name,
                 email=payload.email,
-                system=payload.system,
-                vehicle_plate=payload.vehicle_plate,
             )
 
             viewmodel = CreateProfileViewmodel(profile=profile)

@@ -1,3 +1,4 @@
+from src.shared.domain.entities.justification import JustificationOption
 from pydantic import ValidationError
 
 from .create_template_usecase import CreateTemplateUsecase
@@ -34,6 +35,11 @@ class CreateTemplateController:
                 description=payload.description,
                 is_active=payload.is_active,
                 sections=sections,
+                justification_options=(
+                    [JustificationOption(**option.model_dump()) for option in payload.justification_options]
+                    if payload.justification_options is not None
+                    else None
+                ),
                 requester_systems=requester.systems,
             )
 

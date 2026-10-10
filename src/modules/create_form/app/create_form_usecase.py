@@ -12,12 +12,11 @@ from src.shared.domain.enums.file_type_enum import FileType
 from src.shared.domain.enums.form_origin_enum import FormOrigin
 from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.enums.priority_enum import Priority
-from src.shared.domain.enums.profile_role_enum import ProfileRole
 from src.shared.domain.repositories.file_repository_interface import IFileRepository
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
-from src.shared.domain.repositories.profile_repository_interface import IProfileRepository
 from src.shared.domain.repositories.system_config_repository_interface import ISystemConfigRepository
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
+from src.shared.domain.services.access_control import AccessControl
 from src.shared.helpers.errors.controller_errors import MissingParameters
 from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
@@ -32,13 +31,13 @@ class CreateFormUsecase:
         file_repo: IFileRepository,
         template_repo: Optional[ITemplateRepository] = None,
         system_config_repo: Optional[ISystemConfigRepository] = None,
-        profile_repo: Optional[IProfileRepository] = None,
+        access_control: Optional[AccessControl] = None,
     ):
         self.form_repo = form_repo
         self.file_repo = file_repo
         self.template_repo = template_repo
         self.system_config_repo = system_config_repo
-        self.profile_repo = profile_repo
+        self.access_control = access_control
 
     def _allows_unassigned_forms(self, system: str) -> bool:
         if self.system_config_repo is None:
@@ -51,14 +50,13 @@ class CreateFormUsecase:
         O que a configuração da aplicação esconde no app também é recusado
         aqui — esconder o botão não impede quem chama a API direto.
 
-        ADMIN ativo não passa por esta regra: é a conta das integrações (a
-        Apex cria as OS do pool de Uberlândia, onde o menu Criar fica
-        desligado para quem está em campo).
+        Quem administra o sistema (role ADMIN nele, ou super admin) não passa
+        por esta regra: é como as integrações criam as OS do pool em sistemas
+        onde o menu Criar fica desligado para quem está em campo.
         """
-        if self.system_config_repo is None or self.profile_repo is None:
+        if self.system_config_repo is None or self.access_control is None:
             return
-        profile = self.profile_repo.get_by_user_id(created_by)
-        if profile is not None and profile.active and profile.role == ProfileRole.ADMIN:
+        if self.access_control.is_system_admin(created_by, system):
             return
 
         system_config = self.system_config_repo.get_by_system(system)
@@ -117,7 +115,9 @@ class CreateFormUsecase:
         form_id = str(uuid.uuid4())
         now_timestamp = now_timestamp_ms()
 
-        resolved_sections = self._resolve_sections(template, system, sections)
+        template_entity = self._load_template(template, system)
+        resolved_sections = deepcopy(template_entity.sections) if template_entity else sections
+        justification = self._inherit_justification(justification, template_entity)
         files = self._process_information_field_uploads(
             information_fields, information_fields_uploads, system, form_id
         )
@@ -155,9 +155,18 @@ class CreateFormUsecase:
         created_form = self.form_repo.create_form(form)
         return created_form, files
 
-    def _resolve_sections(self, template: Optional[str], system: str, sections: List[Section]) -> List[Section]:
+    @staticmethod
+    def _inherit_justification(justification: Justification, template_entity) -> Justification:
+        """Sem motivos de cancelamento próprios (o app manda um placeholder com
+        opção em branco), o formulário herda os do template."""
+        own = [option for option in justification.options if option.option.strip()]
+        if own or template_entity is None or not template_entity.justification_options:
+            return justification
+        return Justification(options=deepcopy(template_entity.justification_options))
+
+    def _load_template(self, template: Optional[str], system: str):
         if template is None:
-            return sections
+            return None
         if self.template_repo is None:
             raise EntityError("template")
         resolved_template = self.template_repo.get_template(template)
@@ -167,7 +176,7 @@ class CreateFormUsecase:
             raise ForbiddenAction("Template não pertence ao sistema informado")
         if not resolved_template.is_active:
             raise ForbiddenAction("Template não está ativo")
-        return deepcopy(resolved_template.sections)
+        return resolved_template
 
     def _process_information_field_uploads(
         self,

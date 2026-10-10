@@ -1,5 +1,6 @@
 from .create_form_controller import CreateFormController
 from .create_form_usecase import CreateFormUsecase
+from src.shared.domain.services.access_control import AccessControl
 from src.shared.environments import Environments
 from src.shared.helpers.error_handler import lambda_error_handler
 from src.shared.helpers.logging_handler import lambda_logging_handler
@@ -10,8 +11,8 @@ repo = Environments.get_form_repo()
 file_repo = Environments.get_file_repo()
 template_repo = Environments.get_template_repo()
 system_config_repo = Environments.get_system_config_repo()
-profile_repo = Environments.get_profile_repo()
-usecase = CreateFormUsecase(repo, file_repo, template_repo, system_config_repo, profile_repo)
+access_control = AccessControl(Environments.get_profile_repo(), Environments.get_system_role_repo())
+usecase = CreateFormUsecase(repo, file_repo, template_repo, system_config_repo, access_control)
 controller = CreateFormController(usecase)
 
 

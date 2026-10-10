@@ -31,6 +31,9 @@ class SystemConfigRepositoryMock(ISystemConfigRepository):
         self.configs.append(deepcopy(config))
         return deepcopy(config)
 
+    def list_all(self) -> List[SystemConfig]:
+        return deepcopy(self.configs)
+
     def get_default_app_config(self) -> Optional[DefaultAppConfig]:
         return deepcopy(self.default_app_config)
 

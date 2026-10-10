@@ -12,6 +12,9 @@ from src.shared.domain.entities.information_field import FileInformationField, T
 from src.shared.domain.entities.justification import Justification, JustificationOption
 from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.system_config import SystemConfig
+from src.shared.domain.entities.system_membership import SystemMembership
+from src.shared.domain.entities.system_role import ADMIN_ROLE_ID
+from src.shared.domain.services.access_control import AccessControl
 from src.shared.domain.entities.file_upload import FileUploadRequest
 from src.shared.domain.enums.form_origin_enum import FormOrigin
 from src.shared.domain.enums.form_status_enum import FormStatus
@@ -23,6 +26,7 @@ from src.shared.infra.repositories.form_repository_mock import FormRepositoryMoc
 from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
 from src.shared.infra.repositories.profile_repository_mock import ProfileRepositoryMock
 from src.shared.infra.repositories.system_config_repository_mock import SystemConfigRepositoryMock
+from src.shared.infra.repositories.system_role_repository_mock import SystemRoleRepositoryMock
 from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
 
 
@@ -116,6 +120,33 @@ class TestCreateFormUsecase:
         assert len(form.sections) == len(template_repo.templates[0].sections)
         assert form.sections[0].section_id == template_repo.templates[0].sections[0].section_id
         assert files == []
+
+    def test_form_without_own_reasons_inherits_template_reasons(self):
+        usecase, payload, template_repo = _make_usecase_and_payload()
+        template = template_repo.templates[0]
+        template.justification_options = [JustificationOption(option="Local inacessível", required_image=True, required_text=False)]
+        payload = deepcopy(payload)
+        payload["template"] = template.id
+        payload["sections"] = []
+        # O app manda um placeholder com opção em branco quando não tem motivos.
+        payload["justification"] = Justification(options=[JustificationOption(option="", required_image=False, required_text=False)])
+
+        form, _ = usecase(**payload)
+
+        assert [option.option for option in form.justification.options] == ["Local inacessível"]
+
+    def test_form_with_own_reasons_keeps_them(self):
+        usecase, payload, template_repo = _make_usecase_and_payload()
+        template = template_repo.templates[0]
+        template.justification_options = [JustificationOption(option="Do template", required_image=False, required_text=False)]
+        payload = deepcopy(payload)
+        payload["template"] = template.id
+        payload["sections"] = []
+        payload["justification"] = Justification(options=[JustificationOption(option="Da Apex", required_image=False, required_text=True)])
+
+        form, _ = usecase(**payload)
+
+        assert [option.option for option in form.justification.options] == ["Da Apex"]
 
     def test_create_form_usecase_with_template_not_found(self):
         usecase, payload, _ = _make_usecase_and_payload()
@@ -267,7 +298,8 @@ INSPECTOR_ID = "d61dbf66-a10f-11ed-a8fc-0242ac120002"
 
 class TestCreateFormUsecaseAppConfig:
     """O back recusa o que a configuração da aplicação esconde no app;
-    ADMIN (conta das integrações, como a Apex) não passa pela regra."""
+    quem administra o sistema (role ADMIN nele, ou super admin) não passa pela
+    regra."""
 
     def _usecase(self, app_config=None, allow_unassigned_forms=False):
         system_config_repo = SystemConfigRepositoryMock()
@@ -275,9 +307,11 @@ class TestCreateFormUsecaseAppConfig:
             system="GAIA", created_at=1, updated_at=1,
             allow_unassigned_forms=allow_unassigned_forms, app_config=app_config,
         ))
+        self.profile_repo = ProfileRepositoryMock()
         return CreateFormUsecase(
             FormRepositoryMock(), FileRepositoryMock(),
-            system_config_repo=system_config_repo, profile_repo=ProfileRepositoryMock(),
+            system_config_repo=system_config_repo,
+            access_control=AccessControl(self.profile_repo, SystemRoleRepositoryMock()),
         )
 
     def _payload(self, created_by, user_id):
@@ -325,6 +359,16 @@ class TestCreateFormUsecaseAppConfig:
         form, _ = usecase(**self._payload(ADMIN_ID, None))
 
         assert form.user_id is None
+
+    def test_system_admin_creates_even_with_create_form_menu_off(self):
+        usecase = self._usecase(app_config={"menus": {"create_form": False}})
+        self.profile_repo.put_membership(SystemMembership(
+            user_id=INSPECTOR_ID, system="GAIA", role_id=ADMIN_ROLE_ID, created_at=1, updated_at=1,
+        ))
+
+        form, _ = usecase(**self._payload(INSPECTOR_ID, INSPECTOR_ID))
+
+        assert form.user_id == INSPECTOR_ID
 
     def test_user_without_profile_follows_app_config(self):
         usecase = self._usecase(app_config={"menus": {"create_form": False}})

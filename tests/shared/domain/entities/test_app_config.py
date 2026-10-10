@@ -19,6 +19,38 @@ class TestAppConfig:
         assert config.flows.cancel_form is False
         assert config.preview.information_images is False
         assert config.creation.allow_open is False
+        assert config.statuses.pending_label == "Pendente"
+        assert config.statuses.in_progress_label == "Em andamento"
+        assert config.statuses.completed_not_sent_label == "Completo e não enviado"
+        assert config.statuses.completed_label == "Completo"
+        assert config.statuses.cancelled_label == "Cancelado"
+        # Sem cor configurada: o app usa a dele.
+        assert config.statuses.pending_color is None
+        assert config.statuses.cancelled_color is None
+
+    def test_status_name_and_color_per_system(self):
+        default_layer = {"statuses": {"pending_color": "#facc15"}}
+        system_layer = {"statuses": {"pending_label": "Aguardando execução", "pending_color": "#1E40AF"}}
+
+        config = AppConfig.resolve(default_layer, system_layer)
+
+        assert config.statuses.pending_label == "Aguardando execução"
+        assert config.statuses.pending_color == "#1E40AF"
+        assert config.statuses.in_progress_label == "Em andamento"
+
+    @pytest.mark.parametrize("color", ["red", "#fff", "#12345g", "1e40af"])
+    def test_status_color_must_be_hex(self, color):
+        with pytest.raises(EntityError):
+            AppConfig.validate_layer({"statuses": {"completed_color": color}})
+
+    def test_status_label_cannot_be_empty(self):
+        with pytest.raises(EntityError):
+            AppConfig.validate_layer({"statuses": {"completed_label": ""}})
+
+    def test_status_color_schema_is_marked_as_color(self):
+        # O Admin gera o seletor de cor a partir deste `format`.
+        properties = AppConfig.model_json_schema()["$defs"]["StatusConfig"]["properties"]
+        assert properties["pending_color"]["format"] == "color"
 
     def test_system_layer_overrides_default_layer_key_by_key(self):
         default_layer = {"menus": {"route_plan": False}, "texts": {"claim_action_label": "Atender"}}

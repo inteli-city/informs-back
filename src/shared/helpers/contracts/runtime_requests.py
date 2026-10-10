@@ -3,16 +3,19 @@ from typing import Any
 from pydantic import AliasChoices, Field, StrictBool, field_validator, model_validator
 
 from src.shared.helpers.contracts.base import RequestContractModel
+from src.shared.helpers.contracts.endpoints.app_config_admin_contract import PutAppConfigLayerRequestSchema
 from src.shared.helpers.contracts.endpoints.assign_form_contract import AssignFormRequestSchema
 from src.shared.helpers.contracts.endpoints.cancel_form_contract import CancelFormRequestSchema
 from src.shared.helpers.contracts.endpoints.create_form_contract import CreateFormRequestSchema
 from src.shared.helpers.contracts.endpoints.create_template_contract import CreateTemplateRequestSchema
 from src.shared.helpers.contracts.endpoints.plan_route_contract import PlanRouteRequestSchema
-from src.shared.helpers.contracts.endpoints.profile_contract import CreateProfileRequestSchema, UpdateProfileRequestSchema
+from src.shared.helpers.contracts.endpoints.profile_contract import CreateProfileRequestSchema
+from src.shared.helpers.contracts.endpoints.system_access_contract import PutSystemUserRequestSchema, SystemRoleRequestSchema
 from src.shared.helpers.contracts.endpoints.refresh_presign_contract import RefreshPresignRequestSchema
 from src.shared.helpers.contracts.endpoints.start_form_contract import StartFormRequestSchema
 from src.shared.helpers.contracts.endpoints.submit_form_contract import SubmitFormFieldFlatSchema, SubmitFormRequestSchema
 from src.shared.helpers.contracts.endpoints.location_history_contract import LocationHistoryRequestSchema
+from src.shared.helpers.contracts.schemas.justification import JustificationOptionSchema
 from src.shared.helpers.contracts.schemas.template import TemplateSectionSchema
 
 
@@ -52,6 +55,7 @@ class UpdateTemplateControllerRequestSchema(RequestContractModel):
         serialization_alias="is_active",
     )
     sections: list[TemplateSectionSchema] | None = None
+    justification_options: list[JustificationOptionSchema] | None = None
 
 
 class StartFormControllerRequestSchema(StartFormRequestSchema):
@@ -122,8 +126,46 @@ class DeleteProfileControllerRequestSchema(RequestContractModel):
     user_id: str
 
 
-class UpdateProfileControllerRequestSchema(UpdateProfileRequestSchema):
+class GetPermissionActionsControllerRequestSchema(RequestContractModel):
     requester_user: RequesterUserSchema
+
+
+class GetSystemRolesControllerRequestSchema(RequestContractModel):
+    requester_user: RequesterUserSchema
+    system: str
+
+
+class CreateSystemRoleControllerRequestSchema(SystemRoleRequestSchema):
+    requester_user: RequesterUserSchema
+    system: str
+
+
+class UpdateSystemRoleControllerRequestSchema(SystemRoleRequestSchema):
+    requester_user: RequesterUserSchema
+    system: str
+    role_id: str
+
+
+class DeleteSystemRoleControllerRequestSchema(RequestContractModel):
+    requester_user: RequesterUserSchema
+    system: str
+    role_id: str
+
+
+class GetSystemUsersControllerRequestSchema(RequestContractModel):
+    requester_user: RequesterUserSchema
+    system: str
+
+
+class PutSystemUserControllerRequestSchema(PutSystemUserRequestSchema):
+    requester_user: RequesterUserSchema
+    system: str
+    user_id: str
+
+
+class DeleteSystemUserControllerRequestSchema(RequestContractModel):
+    requester_user: RequesterUserSchema
+    system: str
     user_id: str
 
 
@@ -143,6 +185,19 @@ class GetTemplateControllerRequestSchema(RequestContractModel):
 
 class GetAppConfigControllerRequestSchema(RequestContractModel):
     requester_user: RequesterUserSchema
+
+
+class GetAppConfigAdminControllerRequestSchema(RequestContractModel):
+    requester_user: RequesterUserSchema
+
+
+class PutDefaultAppConfigControllerRequestSchema(PutAppConfigLayerRequestSchema):
+    requester_user: RequesterUserSchema
+
+
+class PutSystemAppConfigControllerRequestSchema(PutAppConfigLayerRequestSchema):
+    requester_user: RequesterUserSchema
+    system: str
 
 
 class GetAllFormsControllerRequestSchema(RequestContractModel):
@@ -179,6 +234,14 @@ class GetAllTemplatesControllerRequestSchema(RequestContractModel):
     system: str | list[str] | None = None
     name: str | None = None
     exclusive_start_key: str | None = None
+
+    @field_validator("is_active", mode="before")
+    @classmethod
+    def _parse_is_active(cls, value: Any) -> Any:
+        # Query string chega como texto: "?is_active=false" precisa virar False.
+        if isinstance(value, str) and value.strip().lower() in ("true", "false"):
+            return value.strip().lower() == "true"
+        return value
 
     @field_validator("limit", mode="before")
     @classmethod

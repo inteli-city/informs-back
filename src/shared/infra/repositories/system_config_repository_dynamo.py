@@ -1,4 +1,6 @@
-from typing import Optional
+from typing import List, Optional
+
+from boto3.dynamodb.conditions import Attr
 
 from src.shared.domain.entities.default_app_config import DefaultAppConfig
 from src.shared.domain.entities.system_config import SystemConfig
@@ -44,6 +46,21 @@ class SystemConfigRepositoryDynamo(ISystemConfigRepository):
             sort_key=SystemConfigDynamoDTO.build_sk(),
         )
         return config
+
+    def list_all(self) -> List[SystemConfig]:
+        # Scan com filtro: são poucos itens de configuração (um por sistema), e
+        # só o Admin da plataforma chama isto.
+        filter_expression = Attr(self.dynamo.partition_key).begins_with("system#") & Attr(
+            self.dynamo.sort_key
+        ).eq(SystemConfigDynamoDTO.build_sk())
+        configs: List[SystemConfig] = []
+        kwargs = {}
+        while True:
+            resp = self.dynamo.scan_items(filter_expression=filter_expression, **kwargs)
+            configs.extend(SystemConfigDynamoDTO.from_dynamo(item).to_entity() for item in resp.get("Items", []))
+            if "LastEvaluatedKey" not in resp:
+                return configs
+            kwargs["ExclusiveStartKey"] = resp["LastEvaluatedKey"]
 
     def get_default_app_config(self) -> Optional[DefaultAppConfig]:
         resp = self.dynamo.get_item(
