@@ -5,43 +5,12 @@ import sys
 sys.path.append(os.getcwd())
 
 from src.shared.infra.repositories.origin_repository_apex import OriginRepositoryApex
+from tests.shared.infra.repositories.fakes_apex import FakeLogger, FakeResponse
 
 UBERLANDIA_URL = (
     "https://g1a99674895752e-intelicitydataapex.adb.sa-saopaulo-1.oraclecloudapps.com"
     "/ords/supervisao/informs/cadastrar_formulario"
 )
-
-
-class FakeLogger:
-    def __init__(self):
-        self.events = []
-
-    def info(self, message, extra=None):
-        self.events.append(("info", message, extra or {}))
-
-    def warning(self, message, extra=None):
-        self.events.append(("warning", message, extra or {}))
-
-    def error(self, message, extra=None):
-        self.events.append(("error", message, extra or {}))
-
-
-class FakeResponse:
-    def __init__(self, status: int, body: str):
-        self._status = status
-        self._body = body
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc, tb):
-        return False
-
-    def getcode(self):
-        return self._status
-
-    def read(self):
-        return self._body.encode("utf-8")
 
 
 def _spy_urlopen(monkeypatch):
