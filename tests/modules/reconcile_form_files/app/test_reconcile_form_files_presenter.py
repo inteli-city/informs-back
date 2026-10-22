@@ -33,12 +33,14 @@ def test_kuma_push_url_replaces_status_and_msg_from_copied_monitor_url():
 def test_unmonitored_systems_acusa_sistema_conhecido_fora_do_reconcile_systems():
     presenter = _presenter()
 
-    # GIPAV está em KNOWN_SYSTEMS (integrado ao sync_forms_origin) mas não
-    # em RECONCILE_SYSTEMS — é o caso real: hoje só "GAIA" está configurado.
-    assert presenter._unmonitored_systems(("GAIA",)) == ["GIPAV"]
+    # GIPAV e UBERLANDIA estão em KNOWN_SYSTEMS (integrados ao sync_forms_origin) mas não
+    # em RECONCILE_SYSTEMS: só "GAIA" está configurado. UBERLANDIA entrou com o sync novo e
+    # passa a ser cobrado aqui; a reconciliação só avisa, não deixa de rodar.
+    assert presenter._unmonitored_systems(("GAIA",)) == ["GIPAV", "UBERLANDIA"]
 
 
 def test_unmonitored_systems_vazio_quando_todos_configurados():
     presenter = _presenter()
 
-    assert presenter._unmonitored_systems(("GAIA", "GIPAV")) == []
+    assert presenter._unmonitored_systems(("GAIA", "GIPAV")) == ["UBERLANDIA"]
+    assert presenter._unmonitored_systems(("GAIA", "GIPAV", "UBERLANDIA")) == []

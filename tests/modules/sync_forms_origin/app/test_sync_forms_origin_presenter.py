@@ -38,8 +38,8 @@ class TestSyncFormsOriginPresenter:
         body = json.loads(response["body"])
 
         assert response["statusCode"] == 200
-        # roda para todos os sistemas mapeados (GAIA, GIPAV)
-        assert body["requested_systems"] == ["GAIA", "GIPAV"]
+        # roda para todos os sistemas mapeados (GAIA, GIPAV, UBERLANDIA)
+        assert body["requested_systems"] == ["GAIA", "GIPAV", "UBERLANDIA"]
         assert "totals" in body
         assert body["totals"]["processed"] == body["totals"]["sent"] + body["totals"]["failed"]
         assert len(body["results"]) == len(body["requested_systems"])
