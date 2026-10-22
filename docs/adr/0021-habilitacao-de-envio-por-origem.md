@@ -27,7 +27,11 @@ Uberlândia é um novo sistema de origem (91 formulários em dev), com endpoint 
 - Habilitar Uberlândia em DEV é uma decisão de deploy, registrada no comando. Nada é ligado por padrão, e GAIA e GIPAV continuam sem envio fora de PROD.
 - A reconciliação (`reconcile_form_files`) passa a cobrar Uberlândia, porque ela está em `SYSTEM_TO_ORIGIN`. Enquanto `RECONCILE_SYSTEMS` não listar `UBERLANDIA`, a reconciliação registra o sistema como sem monitoramento. Ela não deixa de rodar.
 - O teste de envio por origem (`tests/shared/infra/repositories/test_origin_repository_apex_uberlandia.py`) prova que listar Uberlândia não liga o GAIA, e que lista vazia mantém o comportamento de antes.
-- Não foi feito: envio real ao Apex. A validação de Uberlândia em DEV depende de um Apex de teste ou de uma janela combinada com quem opera o endpoint.
+- **Estado em 22/10/2026:** `uberlandia` está ligada em DEV (`cdk deploy -c apex_sync_enabled_origins=uberlandia`). O endpoint foi validado com o responsável do Apex (Henrique Curci) com envios de teste: HTTP 200, `gravados` igual ao enviado. GAIA e GIPAV seguem sem envio fora de PROD.
+- **Deploy de DEV:** o workflow `CD.yml` não roda (Actions desligadas). O deploy é local, com `cdk deploy` a partir da máquina de quem tem acesso à conta de DEV, lendo da Lambda implantada os valores que o CD tirava dos secrets e exportando-os sem imprimir. Se o CD voltar, ele precisa de um secret ou variável para passar o contexto `apex_sync_enabled_origins`.
+- **Pendência:** `RECONCILE_SYSTEMS` do deploy ainda não lista `UBERLANDIA`; a reconciliação registra um aviso.
+- O checkpoint avança mesmo quando o Apex falha (a recuperação é pela fila `SyncErrorForm`), e não foi alterado.
+- O envio real ao Apex de **produção** não foi feito.
 
 ## Alternativas consideradas
 
