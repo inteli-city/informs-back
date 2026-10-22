@@ -7,38 +7,7 @@ import urllib.error
 sys.path.append(os.getcwd())
 
 from src.shared.infra.repositories.origin_repository_apex import OriginRepositoryApex
-
-
-class FakeLogger:
-    def __init__(self):
-        self.events = []
-
-    def info(self, message, extra=None):
-        self.events.append(("info", message, extra or {}))
-
-    def warning(self, message, extra=None):
-        self.events.append(("warning", message, extra or {}))
-
-    def error(self, message, extra=None):
-        self.events.append(("error", message, extra or {}))
-
-
-class FakeResponse:
-    def __init__(self, status: int, body: str):
-        self._status = status
-        self._body = body
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc, tb):
-        return False
-
-    def getcode(self):
-        return self._status
-
-    def read(self):
-        return self._body.encode("utf-8")
+from tests.shared.infra.repositories.fakes_apex import FakeLogger, FakeResponse
 
 
 def test_origin_repository_apex_sync_forms_200_success(monkeypatch):

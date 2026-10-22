@@ -107,8 +107,11 @@ class IacStack(Stack):
         }
         )
 
+        # Origens do Apex que enviam mesmo fora de PROD (ex.: `cdk deploy -c apex_sync_enabled_origins=uberlandia`).
+        # Ausente = nenhuma: a trava global continua valendo para todas.
         self.lambda_stack = LambdaStack(self, api_gateway_resource=api_gateway_resource,
-                                        environment_variables=ENVIRONMENT_VARIABLES, authorizer=self.cognito_auth)
+                                        environment_variables=ENVIRONMENT_VARIABLES, authorizer=self.cognito_auth,
+                                        apex_sync_enabled_origins=self.node.try_get_context("apex_sync_enabled_origins") or "")
           
         cognito_admin_policy = aws_iam.PolicyStatement(
             effect=aws_iam.Effect.ALLOW,

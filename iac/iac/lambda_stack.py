@@ -40,7 +40,7 @@ class LambdaStack(Construct):
         return function
 
     def __init__(self, scope: Construct, api_gateway_resource: Resource, environment_variables: dict,
-                 authorizer: Optional[IAuthorizer]) -> None:
+                 authorizer: Optional[IAuthorizer], apex_sync_enabled_origins: str = "") -> None:
         super().__init__(scope, "Formularios_Lambda")
 
         self.lambda_layer = lambda_.LayerVersion(self, "Formularios_Layer",
@@ -374,7 +374,11 @@ class LambdaStack(Construct):
             runtime=lambda_.Runtime.PYTHON_3_10,
             layers=[self.lambda_layer],
             memory_size=512,
-            environment=environment_variables,
+            # Só o sync envia ao Apex: a lista de origens habilitadas chega só aqui. Vazia por padrão.
+            environment={
+                **environment_variables,
+                "APEX_SYNC_ENABLED_ORIGINS": apex_sync_enabled_origins,
+            },
             timeout=Duration.seconds(60),
             tracing=lambda_.Tracing.ACTIVE,
             log_retention=logs.RetentionDays.ONE_MONTH,

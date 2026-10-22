@@ -12,5 +12,7 @@ de atualizar o RECONCILE_SYSTEMS à parte.
 SYSTEM_TO_ORIGIN = {
     "GAIA": "gaia",
     "GIPAV": "servicos_poa",
+    # Uberlândia: novo sistema de origem, com endpoint próprio (ver OriginRepositoryApex).
+    "UBERLANDIA": "uberlandia",
 }
 KNOWN_SYSTEMS = tuple(SYSTEM_TO_ORIGIN)
