@@ -31,6 +31,7 @@ from urllib.parse import urlsplit
 
 # Antes de qualquer `src.*`: o `local_env` põe o endpoint local (DynamoDB e LocalStack) no ambiente.
 import local_env  # noqa: F401
+from saida_e2e import pasta_de_saida
 
 import boto3
 from boto3.dynamodb.conditions import Attr, Key
@@ -38,6 +39,7 @@ from boto3.dynamodb.conditions import Attr, Key
 REPO_ROOT = Path(__file__).resolve().parents[2]
 LOCAL_HOSTS = {"127.0.0.1", "localhost"}
 FORMS_TO_CREATE = 120
+PREFIXO_FORM = "form#"
 PATH_PREFIX = "/ords"
 
 
@@ -53,7 +55,10 @@ RESULTADOS: list[Resultado] = []
 
 
 def registrar(cenario: str, ok: bool | None, medido: str, detalhe: dict[str, Any] | None = None) -> None:
-    status = "NAO_MEDIDO" if ok is None else ("PASS" if ok else "FAIL")
+    if ok is None:
+        status = "NAO_MEDIDO"
+    else:
+        status = "PASS" if ok else "FAIL"
     RESULTADOS.append(Resultado(cenario, status, medido, detalhe or {}))
     print(f"[{status}] {cenario}: {medido}", flush=True)
 
@@ -126,7 +131,7 @@ def configurar_overrides(apex: FakeApex, sem: set[str]) -> None:
             os.environ[chave] = f"{apex.base}{PATH_PREFIX}/{alias}/informs/cadastrar_formulario"
 
 
-def guarda(sem: set[str]) -> bool:
+def guarda() -> bool:
     """Monta a URL de toda origem pelo `_build_url` e recusa qualquer host que não seja local."""
     from src.shared.infra.repositories.origin_repository_apex import OriginRepositoryApex
     from src.shared.known_systems import SYSTEM_TO_ORIGIN
@@ -181,7 +186,7 @@ def formularios_scan(sistema: str) -> list[dict[str, Any]]:
     table = tabela()
     itens: list[dict[str, Any]] = []
     parametros: dict[str, Any] = {
-        "FilterExpression": Attr("PK").begins_with("form#") & Attr("system").eq(sistema),
+        "FilterExpression": Attr("PK").begins_with(PREFIXO_FORM) & Attr("system").eq(sistema),
     }
     while True:
         resposta = table.scan(**parametros)
@@ -194,7 +199,7 @@ def formularios_scan(sistema: str) -> list[dict[str, Any]]:
 def erros_pendentes(sistema: str) -> list[str]:
     table = tabela()
     pk = f"sync_error_form#sync_forms_origin#{sistema}"
-    return sorted(item["SK"].split("form#", 1)[1] for item in consulta_todos(table, Key("PK").eq(pk)))
+    return sorted(item["SK"].split(PREFIXO_FORM, 1)[1] for item in consulta_todos(table, Key("PK").eq(pk)))
 
 
 def checkpoint(sistema: str) -> dict[str, Any] | None:
@@ -224,7 +229,7 @@ def preparar_dados() -> dict[str, Any]:
             repo.create_form(formulario)
             criados += 1
     formularios = formularios_scan("UBERLANDIA")
-    sem_dono = [item["PK"].split("form#", 1)[1] for item in formularios if item.get("user_id") is None]
+    sem_dono = [item["PK"].split(PREFIXO_FORM, 1)[1] for item in formularios if item.get("user_id") is None]
     return {"criados": criados, "total_uberlandia": len(formularios), "sem_dono": sorted(sem_dono), "agora": agora}
 
 
@@ -267,8 +272,19 @@ def rodar_callback(corpo: Any) -> tuple[int, Any]:
 
 
 def cenarios(apex: FakeApex, dados: dict[str, Any]) -> None:
-    sem_envio = {"APEX_SYNC_ENABLED_ORIGINS": None, "APEX_SYNC_ENABLED": None}
+    from src.shared.environments import Environments
+
+    repo = Environments.get_form_repo()
     lista_uberlandia = {"APEX_SYNC_ENABLED_ORIGINS": "uberlandia", "APEX_SYNC_ENABLED": None}
+    sem_dono = dados["sem_dono"]
+    _cenarios_envio(apex, dados, lista_uberlandia)
+    alterados = _cenarios_checkpoint_e_falha(apex, repo, sem_dono, lista_uberlandia)
+    _cenarios_callback(apex, alterados, sem_dono)
+    _cenario_gaia_em_dev(apex, repo, lista_uberlandia)
+
+
+def _cenarios_envio(apex: FakeApex, dados: dict[str, Any], lista_uberlandia: dict[str, Any]) -> None:
+    sem_envio = {"APEX_SYNC_ENABLED_ORIGINS": None, "APEX_SYNC_ENABLED": None}
     total = dados["total_uberlandia"]
     sem_dono = dados["sem_dono"]
 
@@ -290,7 +306,7 @@ def cenarios(apex: FakeApex, dados: dict[str, Any]) -> None:
     zerar_estado("UBERLANDIA")
     zerar_estado("GAIA")
     apex.clear()
-    corpo = rodar_sync(lista_uberlandia)
+    rodar_sync(lista_uberlandia)
     caminhos = apex.paths()
     so_supervisao = bool(caminhos) and all(p == f"{PATH_PREFIX}/supervisao/informs/cadastrar_formulario" for p in caminhos)
     corpos_ok = all(set(item["body"].keys()) == {"forms", "execution_id"} for item in apex.requests)
@@ -329,15 +345,16 @@ def cenarios(apex: FakeApex, dados: dict[str, Any]) -> None:
         {"os_sem_dono": len(sem_dono)},
     )
 
+
+def _cenarios_checkpoint_e_falha(
+    apex: FakeApex, repo: Any, sem_dono: list[str], lista_uberlandia: dict[str, Any]
+) -> list[str]:
     # 5. Checkpoint: rodada sem alteração envia 0; alterar um formulário envia só esse.
     apex.clear()
     rodar_sync(lista_uberlandia)
     sem_mudanca = len(apex.requests) == 0
-    from src.shared.environments import Environments
-
-    repo = Environments.get_form_repo()
-    alvo = next(f for f in formularios_scan("UBERLANDIA") if f["PK"].split("form#", 1)[1] not in sem_dono)
-    id_alvo = alvo["PK"].split("form#", 1)[1]
+    alvo = next(f for f in formularios_scan("UBERLANDIA") if f["PK"].split(PREFIXO_FORM, 1)[1] not in sem_dono)
+    id_alvo = alvo["PK"].split(PREFIXO_FORM, 1)[1]
     repo.update_form(user_id=alvo.get("user_id") or "", form_id=id_alvo, updated_at=int(time.time() * 1000))
     apex.clear()
     rodar_sync(lista_uberlandia)
@@ -353,7 +370,7 @@ def cenarios(apex: FakeApex, dados: dict[str, Any]) -> None:
     # Sem zerar o checkpoint: a janela do sync é só a dos formulários alterados logo abaixo.
     apex.clear()
     apex.mode = "fail"
-    alterados = [f["PK"].split("form#", 1)[1] for f in formularios_scan("UBERLANDIA")[:3]]
+    alterados = [f["PK"].split(PREFIXO_FORM, 1)[1] for f in formularios_scan("UBERLANDIA")[:3]]
     for i in alterados:
         repo.update_form(user_id="", form_id=i, updated_at=int(time.time() * 1000))
     corpo_falha = rodar_sync(lista_uberlandia)
@@ -378,7 +395,10 @@ def cenarios(apex: FakeApex, dados: dict[str, Any]) -> None:
         f"reenviados={len(reenviados)}; os 3 com erro reenviados={set(alterados).issubset(set(reenviados))}; "
         f"erros pendentes depois={len(erros_pendentes('UBERLANDIA'))}",
     )
+    return alterados
 
+
+def _cenarios_callback(apex: FakeApex, alterados: list[str], sem_dono: list[str]) -> None:
     # 7. Callback: ids válidos, id inexistente, corpo inválido e OS sem dono.
     valido = alterados[0]
     status_ok, corpo_ok = rodar_callback({"form_ids": [valido, sem_dono[0]], "execution_id": "exec-e2e"})
@@ -399,11 +419,13 @@ def cenarios(apex: FakeApex, dados: dict[str, Any]) -> None:
         "coberto em 7a: a OS sem dono foi registrada com status 200",
     )
 
+
+def _cenario_gaia_em_dev(apex: FakeApex, repo: Any, lista_uberlandia: dict[str, Any]) -> None:
     # 8. Regressão: Gaia alterada, em DEV com a lista de Uberlândia, não envia.
     zerar_estado("GAIA")
     gaia = formularios_scan("GAIA")
     for item in gaia[:3]:
-        repo.update_form(user_id=item.get("user_id") or "", form_id=item["PK"].split("form#", 1)[1],
+        repo.update_form(user_id=item.get("user_id") or "", form_id=item["PK"].split(PREFIXO_FORM, 1)[1],
                          updated_at=int(time.time() * 1000))
     apex.clear()
     rodar_sync(lista_uberlandia)
@@ -419,7 +441,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="E2E local da sincronização de Uberlândia com o Apex (Apex falso em 127.0.0.1).",
     )
-    parser.add_argument("--saida", default=None, help="pasta onde gravar resultado.json")
+    parser.add_argument(
+        "--saida", default=None,
+        help="subpasta de iac/local/.e2e-saida onde gravar resultado.json (caminho fora dela é recusado)",
+    )
     parser.add_argument("--so-guarda", action="store_true", help="roda só a guarda de host local e sai")
     parser.add_argument(
         "--sem-sobrescrita-de",
@@ -429,6 +454,8 @@ def main() -> int:
         help="não define APEX_URL_<ORIGEM> para a origem (usada para provar que a guarda recusa)",
     )
     args = parser.parse_args()
+    # Valida o --saida antes de qualquer cenário: um caminho fora da pasta fixa para sem rodar nada.
+    saida = pasta_de_saida(args.saida) if args.saida else None
 
     inicio = time.time()
     apex = FakeApex()
@@ -438,7 +465,7 @@ def main() -> int:
         os.environ.setdefault("SYNC_FORMS_FIRST_RUN_FULL_SYNC", "true")
         os.environ.setdefault("SYNC_FORMS_TIMEOUT", "5")
 
-        if not guarda(sem):
+        if not guarda():
             return 2
         if args.so_guarda:
             return 0
@@ -457,10 +484,9 @@ def main() -> int:
     passaram = sum(1 for r in RESULTADOS if r.status == "PASS")
     duracao = round(time.time() - inicio, 1)
     print(f"\nRESUMO: {passaram}/{total} PASS em {duracao}s", flush=True)
-    if args.saida:
-        pasta = Path(args.saida)
-        pasta.mkdir(parents=True, exist_ok=True)
-        (pasta / "resultado.json").write_text(
+    if saida:
+        saida.mkdir(parents=True, exist_ok=True)
+        (saida / "resultado.json").write_text(
             json.dumps({"duracao_s": duracao, "cenarios": [r.__dict__ for r in RESULTADOS]},
                        ensure_ascii=False, indent=2, default=str),
             encoding="utf-8",

@@ -143,3 +143,6 @@ lambda_layer_out_temp/
 openapi/
 !src/modules/docs/app/openapi/
 !src/modules/docs/app/openapi/**
+
+# E2E local da sincronização: saída do --saida (nunca versionada)
+iac/local/.e2e-saida/
