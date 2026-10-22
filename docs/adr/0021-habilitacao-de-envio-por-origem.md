@@ -30,6 +30,9 @@ Uberlândia é um novo sistema de origem (91 formulários em dev), com endpoint 
 - **Estado em 22/10/2026:** `uberlandia` está ligada em DEV (`cdk deploy -c apex_sync_enabled_origins=uberlandia`). O endpoint foi validado com o responsável do Apex (Henrique Curci) com envios de teste: HTTP 200, `gravados` igual ao enviado. GAIA e GIPAV seguem sem envio fora de PROD.
 - **Deploy de DEV:** o workflow `CD.yml` não roda (Actions desligadas). O deploy é local, com `cdk deploy` a partir da máquina de quem tem acesso à conta de DEV, lendo da Lambda implantada os valores que o CD tirava dos secrets e exportando-os sem imprimir. Se o CD voltar, ele precisa de um secret ou variável para passar o contexto `apex_sync_enabled_origins`.
 - **Pendência:** `RECONCILE_SYSTEMS` do deploy ainda não lista `UBERLANDIA`; a reconciliação registra um aviso.
+- **Deploy local em máquina não-Linux** pode montar a layer com binários da máquina que roda o CDK e derrubar as
+  Lambdas na primeira invocação, sem o deploy acusar (o `UPDATE_COMPLETE` não basta): ver o parágrafo
+  "Armadilha do deploy local no Mac" do README, com as variáveis `PIP_*` e como conferir depois do deploy.
 - O checkpoint avança mesmo quando o Apex falha (a recuperação é pela fila `SyncErrorForm`), e não foi alterado.
 - O envio real ao Apex de **produção** não foi feito.
 

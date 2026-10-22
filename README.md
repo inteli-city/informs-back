@@ -63,6 +63,24 @@ que o CD tirava dos secrets (user pool, bucket, Kuma, `RECONCILE_SYSTEMS`) são 
 exportados sem serem impressos, junto com `-c apex_sync_enabled_origins=uberlandia`. Se o CD voltar, ele **não**
 passa esse contexto: seria preciso um secret ou variável no workflow.
 
+**Armadilha do deploy local no Mac (incidente de 22/10/2026):** o `iac/adjust_layer_directory.py` monta a layer das
+Lambdas com `pip install -r lambda_layer_requirements.txt -t ...` usando o **pip da máquina que roda o CDK**. Num Mac
+ele instala binários de macOS (ex.: `pydantic_core/_pydantic_core.cpython-310-darwin.so`), e a Lambda (Linux x86_64,
+Python 3.10) falha ao iniciar com `Runtime.ImportModuleError: No module named 'pydantic_core._pydantic_core'`. Como
+as 35 Lambdas usam a mesma layer, o DEV inteiro ficou fora (21:27 a 21:39 UTC de 22/10). O CD do GitHub (Ubuntu) não
+tem o problema. Antes do `cdk deploy`, exporte as quatro variáveis — o mesmo pip passa a baixar wheels Linux:
+
+```bash
+export PIP_PLATFORM=manylinux2014_x86_64 PIP_PYTHON_VERSION=3.10 PIP_IMPLEMENTATION=cp PIP_ONLY_BINARY=:all:
+```
+
+O `cdk diff` **não** mostra esse problema (só diz que a layer muda), e o status `UPDATE_COMPLETE` do deploy **também
+não basta**: a função sobe pela CloudFormation e só falha na primeira invocação. Confira depois do deploy:
+
+1. Dispare uma invocação do sync e leia o log da função em `/aws/lambda/<função do sync>`: **não** pode haver
+   `ImportModuleError`.
+2. Confira que a layer atual traz `_pydantic_core.cpython-310-x86_64-linux-gnu.so` e **nenhum** arquivo `darwin`.
+
 **Pendência conhecida:** `RECONCILE_SYSTEMS` do deploy ainda não lista `UBERLANDIA`. A reconciliação registra um aviso
 para o sistema.
 
