@@ -52,6 +52,8 @@ class Environments:
     kuma_missing_files_push_url: Optional[str]
     reconcile_systems: Tuple[str, ...]
     apex_sync_enabled: bool
+    # Origens que enviam ao Apex mesmo com apex_sync_enabled desligado (ver OriginRepositoryApex).
+    apex_sync_enabled_origins: Tuple[str, ...]
 
     @staticmethod
     def _parse_bool(value) -> bool:
@@ -107,6 +109,7 @@ class Environments:
             # de rede real acontece de qualquer forma. O risco real é só em
             # dev/homolog (Lambda de verdade, rede de verdade), coberto abaixo.
             self.apex_sync_enabled = True
+            self.apex_sync_enabled_origins = ()
         else:
             self.region = os.environ.get("REGION")
             self.endpoint_url = os.environ.get("ENDPOINT_URL")
@@ -141,6 +144,9 @@ class Environments:
             self.apex_sync_enabled = self._parse_bool(
                 os.environ.get("APEX_SYNC_ENABLED", default_apex_sync_enabled)
             )
+            # Habilitação por origem, vazia por padrão: liga o envio de uma origem em DEV/HOMOLOG sem
+            # ligar as outras. Não substitui a trava global; quem decide os nomes é o deploy.
+            self.apex_sync_enabled_origins = self._parse_csv(os.environ.get("APEX_SYNC_ENABLED_ORIGINS"))
 
     @staticmethod
     def get_form_repo() -> IFormRepository:

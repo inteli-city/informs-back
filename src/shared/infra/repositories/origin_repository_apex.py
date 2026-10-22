@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import time
 import urllib.error
@@ -7,6 +8,7 @@ from typing import Optional, Tuple
 
 from src.shared.domain.repositories.origin_repository_interface import IOriginRepository
 from src.shared.environments import Environments
+from src.shared.known_systems import SYSTEM_TO_ORIGIN
 
 
 DEFAULT_URL_TEMPLATE = (
@@ -44,13 +46,45 @@ class OriginRepositoryApex(IOriginRepository):
     def __init__(self):
         self.url_template = DEFAULT_URL_TEMPLATE
         self.gaia_url_template = GAIA_URL_TEMPLATE
+        # Modelo de URL e alias do ORDS por origem. O alias nem sempre é o nome da origem: Uberlândia
+        # fica no host do GAIA, com o alias `supervisao`. Origem fora daqui usa o modelo padrão.
+        self.routes = {
+            "gaia": (self.gaia_url_template, "gaia"),
+            "uberlandia": (self.gaia_url_template, "supervisao"),
+        }
         self.timeout = int(os.environ.get("SYNC_FORMS_TIMEOUT", "20"))
-        self.sync_enabled = Environments.get_envs().apex_sync_enabled
+        envs = Environments.get_envs()
+        self.sync_enabled = envs.apex_sync_enabled
+        self.enabled_origins = self._normalize_enabled_origins(envs.apex_sync_enabled_origins)
+
+    @staticmethod
+    def _normalize_enabled_origins(configured: Tuple[str, ...]) -> frozenset[str]:
+        # Origem que não existe em SYSTEM_TO_ORIGIN é ignorada e registrada: um nome errado na
+        # variável não pode virar habilitação silenciosa de outra origem.
+        known = set(SYSTEM_TO_ORIGIN.values())
+        enabled = set()
+        for raw in configured:
+            origin = raw.strip().lower()
+            if origin in known:
+                enabled.add(origin)
+            else:
+                logging.getLogger(__name__).warning(
+                    "APEX_SYNC_ENABLED_ORIGINS: origem desconhecida ignorada: %s", raw
+                )
+        return frozenset(enabled)
+
+    def _origin_enabled(self, origin_system: str) -> bool:
+        return self.sync_enabled or (origin_system or "").strip().lower() in self.enabled_origins
 
     def _build_url(self, origin_system: str) -> str:
-        normalized_system = (origin_system or "").strip().lower()
-        template = self.gaia_url_template if normalized_system == "gaia" else self.url_template
-        return template.format(system=origin_system)
+        # APEX_URL_<ORIGEM> sobrescreve a URL inteira: troca de endpoint sem deploy de código.
+        override = os.environ.get(f"APEX_URL_{(origin_system or '').strip().upper()}")
+        if override:
+            return override
+        template, alias = self.routes.get(
+            (origin_system or "").strip().lower(), (self.url_template, origin_system)
+        )
+        return template.format(system=alias)
 
     def _post_json(
         self,
@@ -174,10 +208,11 @@ class OriginRepositoryApex(IOriginRepository):
         if not payloads:
             return True, self.SUCCESS_STATUS_CODE, "EMPTY_BATCH"
 
-        if not self.sync_enabled:
+        if not self._origin_enabled(origin_system):
             # Não existe sandbox do Apex por ambiente — a URL é a mesma em
             # qualquer stage. Fora de PROD, avança o checkpoint sem enviar de
-            # verdade (ver Environments.apex_sync_enabled).
+            # verdade (ver Environments.apex_sync_enabled). A exceção é uma origem
+            # listada em APEX_SYNC_ENABLED_ORIGINS, que envia sem ligar as outras.
             if logger:
                 logger.info(
                     "apex sync skipped (não é PROD)",
