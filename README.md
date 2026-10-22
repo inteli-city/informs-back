@@ -52,6 +52,15 @@ cdk deploy -c apex_sync_enabled_origins=uberlandia
 - Origens: `gaia` e `servicos_poa` (GIPAV) usam os endpoints que já existiam. `uberlandia` usa o host do GAIA
   com o alias `supervisao`.
 
+E2E local com um Apex falso, fora do pytest (precisa do DynamoDB Local e do LocalStack de pé, e de
+`python iac/local/bootstrap_local.py --reset-db --seed`). A guarda recusa qualquer origem que não aponte para
+localhost:
+
+```bash
+python iac/local/e2e_sync_uberlandia.py --saida /tmp/e2e-sync   # exit 0 só se os 13 cenários passarem
+python iac/local/e2e_sync_uberlandia.py --so-guarda --sem-sobrescrita-de gaia   # prova a recusa (exit 2)
+```
+
 Não foi feito: envio real de Uberlândia ao Apex, nem o endpoint testado em DEV. Isso depende de um Apex de teste
 ou de uma janela combinada com quem opera o endpoint.
 
