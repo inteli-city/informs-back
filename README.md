@@ -34,6 +34,27 @@ Para desenvolvimento local com SAM/DynamoDB Local, veja `iac/LOCAL_SETUP.md`.
 - `USER_POOL_ARN`, `USER_POOL_ID`, `APP_CLIENT_ID`.
 - `SYNC_FORMS_PAGE_LIMIT`, `SYNC_FORMS_WINDOW_MINUTES`, `SYNC_FORMS_FIRST_RUN_FULL_SYNC`.
 
+## Envio ao Apex por origem
+
+O envio ao Apex só sai de PROD por padrão (`APEX_SYNC_ENABLED`). Fora de PROD, o checkpoint avança e nada é
+enviado, por causa do incidente de 08/09/2026 (ver ADR-0010 e ADR-0021).
+
+Para habilitar uma origem em DEV, sem ligar as demais:
+
+```bash
+cd iac
+cdk deploy -c apex_sync_enabled_origins=uberlandia
+```
+
+- Vale a lista separada por vírgula. Origem que não existe em `SYSTEM_TO_ORIGIN` é ignorada, com aviso no log.
+- Sem o contexto, a variável fica vazia e nenhuma origem envia fora de PROD.
+- `APEX_URL_<ORIGEM>` troca a URL inteira de uma origem, sem deploy de código.
+- Origens: `gaia` e `servicos_poa` (GIPAV) usam os endpoints que já existiam. `uberlandia` usa o host do GAIA
+  com o alias `supervisao`.
+
+Não foi feito: envio real de Uberlândia ao Apex, nem o endpoint testado em DEV. Isso depende de um Apex de teste
+ou de uma janela combinada com quem opera o endpoint.
+
 ## Estrutura
 
 - `src/modules`: Lambdas por feature.
