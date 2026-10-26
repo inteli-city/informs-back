@@ -55,6 +55,7 @@ class IacStack(Stack):
         self.rest_api = RestApi(self, f"Formularios_RestApi_{self.github_ref_name}",
                                 rest_api_name=f"Formularios_RestApi_{self.github_ref_name}",
                                 description="This is the Formularios RestApi",
+                                minimum_compression_size=1024,
                                 default_cors_preflight_options={
                                     "allow_origins": Cors.ALL_ORIGINS,
                                     "allow_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
