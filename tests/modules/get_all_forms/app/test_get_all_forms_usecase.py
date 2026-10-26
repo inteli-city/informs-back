@@ -87,6 +87,57 @@ class TestGetAllFormsUsecase:
         assert next_key is None
 
 
+class TestGetAllFormsUsecasePoolLimit:
+    """Limite padrão do pool (decisão 26/10: paginação no front + gzip no back)."""
+
+    def _pool_requester(self) -> UserGatewayDTO:
+        return UserGatewayDTO(user_id=INSPECTOR_ID, name="User", email="user@test.com", systems=["UBERLANDIA"])
+
+    def test_scope_pool_without_limit_applies_default_200_and_returns_cursor(self):
+        repo = FormRepositoryMock()
+        for i in range(205):
+            repo.forms.append(_pool_form(id=f'd61dbf66-a10f-11ed-a8fc-0242ac1{i:05d}', created_at=i))
+        usecase = GetAllFormsUsecase(repo)
+
+        forms, next_key = usecase(requester=self._pool_requester(), limit=None, system=["UBERLANDIA"], scope="pool")
+
+        assert len(forms) == 200
+        assert next_key is not None
+
+        # O cursor devolvido repagina as 5 OS restantes, sem repetir página.
+        page2, next_key2 = usecase(
+            requester=self._pool_requester(), limit=None,
+            exclusive_start_key=next_key, system=["UBERLANDIA"], scope="pool",
+        )
+        assert len(page2) == 5
+        assert not {f.id for f in page2} & {f.id for f in forms}
+        assert next_key2 is None
+
+    def test_scope_pool_with_informed_limit_is_untouched(self):
+        repo = FormRepositoryMock()
+        for i in range(60):
+            repo.forms.append(_pool_form(id=f'd61dbf66-a10f-11ed-a8fc-0242ac2{i:05d}', created_at=i))
+        usecase = GetAllFormsUsecase(repo)
+
+        forms, _ = usecase(requester=self._pool_requester(), limit=50, system=["UBERLANDIA"], scope="pool")
+
+        assert len(forms) == 50
+
+    def test_scope_mine_without_limit_stays_unlimited(self):
+        repo = FormRepositoryMock()
+        usecase = GetAllFormsUsecase(repo)
+        requester = UserGatewayDTO(
+            user_id=repo.forms[0].user_id,
+            name="User", email="user@test.com", systems=[repo.forms[0].system],
+        )
+
+        forms, next_key = usecase(requester=requester, limit=None)
+
+        mine = [f for f in repo.forms if f.user_id == repo.forms[0].user_id]
+        assert len(forms) == len(mine)
+        assert next_key is None
+
+
 class TestGetAllFormsUsecaseScope:
     """Especificação Uberlândia §6.3: scope=pool|mine|all."""
 

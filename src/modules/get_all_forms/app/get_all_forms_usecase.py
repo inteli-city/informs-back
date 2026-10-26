@@ -10,6 +10,12 @@ from src.shared.helpers.errors.usecase_errors import ForbiddenAction, InvalidPag
 from src.shared.helpers.functions.pagination_token import try_decode_pagination_token
 from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 
+# Limite padrão do pool: sem `limit`, a Lambda GetAllForms estoura o timeout de
+# 15 s no DEV com ~2 mil OS (limit=1000 já levou 7,9 s). O app ainda chama sem
+# paginação; enquanto o front não pagina, o back aplica 200 — página que cabe
+# com folga na janela da Lambda e volta comprimida pelo API Gateway.
+POOL_DEFAULT_LIMIT = 200
+
 
 class GetAllFormsUsecase:
     def __init__(self, form_repo: IFormRepository, access_control: Optional[AccessControl] = None):
@@ -50,7 +56,8 @@ class GetAllFormsUsecase:
         if scope == "pool":
             if len(systems_to_use) != 1:
                 raise EntityError("scope=pool exige um único system")
-            return self.form_repo.get_pool_forms(system=systems_to_use[0], limit=limit, exclusive_start_key=start_key)
+            effective_limit = limit if limit is not None else POOL_DEFAULT_LIMIT
+            return self.form_repo.get_pool_forms(system=systems_to_use[0], limit=effective_limit, exclusive_start_key=start_key)
 
         # scope=all (RN-UBE-003, decisão P3): quem tem `forms.view_all` em
         # todos os sistemas pedidos enxerga todo mundo, não só o próprio.
