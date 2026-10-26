@@ -53,3 +53,41 @@ def test_lambda_logging_handler_logs_and_reraises_unhandled_exception(caplog):
         for record in error_records
     )
     assert "RuntimeError: boom" in caplog.text
+
+
+def test_lambda_logging_handler_masks_search_and_logs_only_allowed_query_keys(caplog):
+    @lambda_logging_handler
+    def handler(event, context):
+        return {"statusCode": 200}
+
+    caplog.set_level(logging.INFO)
+    handler({
+        "rawPath": "/forms",
+        "requestContext": {"http": {"method": "GET"}},
+        "queryStringParameters": {"limit": "50", "scope": "pool", "search": "Fulano"},
+    }, None)
+
+    received = [record.getMessage() for record in caplog.records if "Requisição recebida" in record.getMessage()]
+
+    assert len(received) == 1
+    assert "limit=50" in received[0]
+    assert "scope=pool" in received[0]
+    assert "search=<informado>" in received[0]
+    assert "Fulano" not in received[0]
+
+
+def test_lambda_logging_handler_omits_query_summary_when_there_is_no_query(caplog):
+    @lambda_logging_handler
+    def handler(event, context):
+        return {"statusCode": 200}
+
+    caplog.set_level(logging.INFO)
+    handler({
+        "rawPath": "/forms",
+        "requestContext": {"http": {"method": "GET"}},
+    }, None)
+
+    received = [record.getMessage() for record in caplog.records if "Requisição recebida" in record.getMessage()]
+
+    assert len(received) == 1
+    assert received[0] == "Requisição recebida: GET /forms"
