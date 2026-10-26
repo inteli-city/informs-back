@@ -1,6 +1,6 @@
 from pydantic import ValidationError
 
-from .get_all_forms_usecase import GetAllFormsUsecase
+from .get_all_forms_usecase import GetAllFormsUsecase, POOL_DEFAULT_LIMIT
 from .get_all_forms_viewmodel import GetAllFormsViewmodel
 from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.helpers.controller_error_handler import controller_error_handler
@@ -78,6 +78,13 @@ class GetAllFormsController:
                 created_at_end,
                 exclusive_start_key,
             ) = self._validate_endpoint_parameters(payload)
+
+            # scope=pool sem `limit` corta a página em 200 dentro do usecase;
+            # a resposta precisa refletir o limite que de fato valeu — com
+            # "limit": null, um cliente que ignora last_evaluated_key não
+            # percebe que recebeu só a primeira página.
+            if payload.scope == "pool" and limit is None:
+                limit = POOL_DEFAULT_LIMIT
 
             forms, next_key = self.usecase(
                 requester=requester_user,
