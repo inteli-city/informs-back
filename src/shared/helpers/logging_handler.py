@@ -3,9 +3,35 @@ import logging
 from functools import wraps
 from json import JSONDecodeError
 from typing import Any, Callable, Dict
+from urllib.parse import parse_qs
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+# Únicas chaves da query string que vão para o log: operacionais, sem dado
+# pessoal. `search` pode conter nome de rua, CPF, etc. — dela se registra
+# apenas a presença, nunca o texto buscado.
+_QUERY_LOG_KEYS = ("limit", "scope", "system", "status")
+
+
+def _query_string_summary(event: Dict[str, Any]) -> str:
+    """Resumo da query string numa linha, já filtrado, para anexar ao log de
+    entrada (ex.: ' limit=50 scope=pool search=<informado>')."""
+    if not isinstance(event, dict):
+        return ""
+
+    params = event.get("queryStringParameters")
+    if not isinstance(params, dict):
+        raw = event.get("rawQueryString") or ""
+        if not raw:
+            return ""
+        parsed = parse_qs(raw, keep_blank_values=True)
+        params = {key: values[-1] for key, values in parsed.items() if values}
+
+    parts = [f"{key}={params[key]}" for key in _QUERY_LOG_KEYS if params.get(key) is not None]
+    if params.get("search") is not None:
+        parts.append("search=<informado>")
+    return f" {' '.join(parts)}" if parts else ""
 
 
 def lambda_logging_handler(fn: Callable[[Dict[str, Any], Any], Dict[str, Any]]):
@@ -30,7 +56,7 @@ def lambda_logging_handler(fn: Callable[[Dict[str, Any], Any], Dict[str, Any]]):
                 or ""
             ).upper()
 
-        logger.info("Requisição recebida: %s %s", method, path)
+        logger.info("Requisição recebida: %s %s%s", method, path, _query_string_summary(event))
 
         try:
             response = fn(event, context)
