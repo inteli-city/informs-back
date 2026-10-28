@@ -49,6 +49,12 @@ def adjust_layer_directory(shared_dir_name: str, destination: str):
             "-t",
             layer_python_directory,
             "--upgrade",
+            # Lambda roda Linux x86_64 / Python 3.10: sem isso, build em Mac gera wheels
+            # darwin e a Lambda sobe com ImportModuleError (incidente HRN-INC-10).
+            "--platform", "manylinux2014_x86_64",
+            "--python-version", "3.10",
+            "--implementation", "cp",
+            "--only-binary=:all:",
         ])
     else:
         print(f"Requirements file not found for layer dependencies: {requirements_path}")
