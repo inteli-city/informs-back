@@ -1,5 +1,5 @@
-from src.modules.update_template.app.update_template_controller import UpdateTemplateController
-from src.modules.update_template.app.update_template_usecase import UpdateTemplateUsecase
+from .update_template_controller import UpdateTemplateController
+from .update_template_usecase import UpdateTemplateUsecase
 from src.shared.domain.services.access_control import AccessControl
 from src.shared.environments import Environments
 from src.shared.helpers.error_handler import lambda_error_handler
