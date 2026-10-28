@@ -17,6 +17,7 @@ class TestAppConfig:
         assert config.flows.open_form_after_claim is False
         assert config.flows.return_to_map_after_submit is False
         assert config.flows.cancel_form is False
+        assert config.flows.require_location is False
         assert config.preview.information_images is False
         assert config.creation.allow_open is False
         assert config.statuses.pending_label == "Pendente"
@@ -27,6 +28,16 @@ class TestAppConfig:
         # Sem cor configurada: o app usa a dele.
         assert config.statuses.pending_color is None
         assert config.statuses.cancelled_color is None
+
+    def test_require_location_per_system(self):
+        config = AppConfig.resolve({}, {"flows": {"require_location": True}})
+
+        assert config.flows.require_location is True
+        assert config.flows.cancel_form is False
+
+    def test_require_location_must_be_bool(self):
+        with pytest.raises(EntityError):
+            AppConfig.validate_layer({"flows": {"require_location": "sim"}})
 
     def test_status_name_and_color_per_system(self):
         default_layer = {"statuses": {"pending_color": "#facc15"}}

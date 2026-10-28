@@ -23,5 +23,6 @@ class TemplateViewmodel:
             "created_by": self.template.created_by,
             "created_at": self.template.created_at,
             "updated_at": self.template.updated_at,
+            "version": self.template.version,
         }
         return UpdateTemplateResponseSchema.model_validate(payload).model_dump()

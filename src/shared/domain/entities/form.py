@@ -57,6 +57,7 @@ class Form(abc.ABC):
     claimed_at: Optional[int]
     released_at: Optional[int]
     assignment_source: Optional[AssignmentSource]
+    template_version: Optional[int]
 
     ID_LENGTH = 36
 
@@ -108,6 +109,7 @@ class Form(abc.ABC):
         claimed_at: Optional[int] = None,
         released_at: Optional[int] = None,
         assignment_source: Optional[AssignmentSource] = None,
+        template_version: Optional[int] = None,
     ):
 
         # Validação dividida em blocos para manter a complexidade de cada
@@ -122,6 +124,7 @@ class Form(abc.ABC):
             scheduled_start_at, scheduled_end_at, attributes, completed_by,
         )
         self._init_pool_fields(possession, claimed_at, released_at, assignment_source)
+        self._init_template_version(template_version)
 
     def _init_identity(self, form_title, id, user_id, created_by, template):
         if not isinstance(form_title, str):
@@ -287,6 +290,42 @@ class Form(abc.ABC):
         if assignment_source is not None and not isinstance(assignment_source, AssignmentSource):
             raise EntityError('assignment_source inválido')
         self.assignment_source = assignment_source
+
+    def _init_template_version(self, template_version):
+        """Versão do template de que as seções foram copiadas. Formulário de
+        template gravado antes do versionamento conta como versão 1; sem
+        template (seções enviadas na criação), não há versão."""
+        if template_version is not None and (
+            not isinstance(template_version, int) or isinstance(template_version, bool) or template_version < 1
+        ):
+            raise EntityError('Versão do template do formulário deve ser um inteiro a partir de 1')
+        if template_version is None and Form._is_uuid_string(self.template):
+            template_version = 1
+        self.template_version = template_version
+
+    def is_open_for_template_update(self) -> bool:
+        """Pode receber uma nova versão do template: ainda aberto (pendente ou
+        em execução). Concluído e cancelado já foram salvos com os campos que
+        tinham — trocar os campos deles mudaria o que foi registrado."""
+        return self.status in (FormStatus.PENDING, FormStatus.IN_PROGRESS)
+
+    def apply_template_version(self, sections: List[Section], justification_options, template_version: int, updated_at: int) -> None:
+        """Troca as seções e os motivos de cancelamento pelos da nova versão.
+        Formulário aberto não tem respostas gravadas no servidor (elas ficam no
+        aparelho até o envio), então não há valor a migrar aqui."""
+        if not self.is_open_for_template_update():
+            raise ForbiddenAction('Só formulários pendentes ou em execução recebem a nova versão do template')
+        self._init_content(
+            Justification(options=list(justification_options), selected=None)
+            if justification_options else self.justification,
+            sections,
+            self.template,
+            self.information_fields,
+        )
+        self.template_version = template_version
+        if not isinstance(updated_at, int):
+            raise EntityError(_ERR_UPDATED_AT_MUST_BE_INT)
+        self.updated_at = updated_at
 
     @staticmethod
     def validate_id(id_to_validate: str) -> bool:
@@ -460,7 +499,14 @@ class Form(abc.ABC):
         self.sections.append(new_section)
         return new_section
 
-    def apply_field_values(self, fields: List[dict]) -> Dict[Tuple[int, int, str], List[FileUploadRequest]]:
+    def apply_field_values(self, fields: List[dict], lenient: bool = False) -> Dict[Tuple[int, int, str], List[FileUploadRequest]]:
+        """Grava as respostas do envio nos campos.
+
+        `lenient`: o envio foi preenchido contra uma versão anterior do template
+        (o formulário recebeu a versão nova enquanto o técnico trabalhava).
+        Resposta de campo ou seção que não existe mais é ignorada, e os campos
+        obrigatórios novos não são exigidos — o trabalho feito não se perde.
+        """
         if not isinstance(fields, list):
             raise EntityError("Campos devem ser uma lista")
 
@@ -483,8 +529,13 @@ class Form(abc.ABC):
                 raise EntityError(f"Campo '{field_key}' duplicado na seção {section_id} instância {section_instance}")
             seen.add(key)
 
-            section = self._get_or_materialize_section(section_id, section_instance, base_sections)
-            field_index = self._find_field_index(section, field_key)
+            try:
+                section = self._get_or_materialize_section(section_id, section_instance, base_sections)
+                field_index = self._find_field_index(section, field_key)
+            except EntityError:
+                if lenient:
+                    continue
+                raise
             existing_field = section.fields[field_index]
 
             if isinstance(existing_field, FileField) and value is not None:
@@ -493,7 +544,8 @@ class Form(abc.ABC):
 
             section.fields[field_index] = existing_field.with_value(value)
 
-        self.ensure_required_fields_filled()
+        if not lenient:
+            self.ensure_required_fields_filled()
         return file_uploads
 
     def set_file_field_urls(self, section_id: int, field_key: str, file_urls: List[str], section_instance: int = 0, file_integrity: Optional[List[dict]] = None):
@@ -565,7 +617,7 @@ class Form(abc.ABC):
                 if field.required and field.value is None:
                     raise EntityError("Campo obrigatório não preenchido")
 
-    def complete(self, completed_at: int, updated_at: int, completed_by: Optional[str] = None):
+    def complete(self, completed_at: int, updated_at: int, completed_by: Optional[str] = None, check_required: bool = True):
         if not isinstance(completed_at, int):
             raise EntityError('Timestamp de conclusão deve ser um inteiro')
         if not isinstance(updated_at, int):
@@ -575,7 +627,8 @@ class Form(abc.ABC):
         if self.status is not FormStatus.IN_PROGRESS:
             raise ForbiddenAction("Formulário não está em andamento")
 
-        self.ensure_required_fields_filled()
+        if check_required:
+            self.ensure_required_fields_filled()
         self.status = FormStatus.COMPLETED
         self.completed_at = completed_at
         self.updated_at = updated_at

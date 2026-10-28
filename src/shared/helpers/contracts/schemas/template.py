@@ -31,3 +31,12 @@ class TemplateSchema(ResponseContractModel):
     created_by: str
     created_at: int
     updated_at: int
+    version: int = Field(
+        default=1,
+        description=(
+            "Versão do conteúdo que os formulários copiam (seções e motivos). Sobe "
+            "quando o template já tem formulários e esse conteúdo muda — os "
+            "formulários existentes ficam na versão em que nasceram até alguém "
+            "propagar a nova (POST /templates/{template_id}/propagate)."
+        ),
+    )
