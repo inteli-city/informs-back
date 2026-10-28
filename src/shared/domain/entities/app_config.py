@@ -36,6 +36,9 @@ class FlowsConfig(_ConfigGroup):
     open_form_after_claim: StrictBool = Field(default=False, title="Abrir o formulário ao assumir", description="Depois de confirmar, inicia o preenchimento e abre o formulário.")
     return_to_map_after_submit: StrictBool = Field(default=False, title="Voltar ao mapa ao terminar", description="Depois de enviar ou cancelar, volta ao mapa na posição do usuário.")
     cancel_form: StrictBool = Field(default=False, title="Cancelar formulário em campo", description="Mostra a opção de cancelar para quem é dono do formulário.")
+    # Trava do app, não do back-end: sem a localização do aparelho ligada e
+    # permitida, a lista, o mapa e os formulários não abrem.
+    require_location: StrictBool = Field(default=False, title="Exigir localização", description="Sem a localização do aparelho ligada, o app não abre a lista nem os formulários.")
 
 
 class PreviewConfig(_ConfigGroup):
