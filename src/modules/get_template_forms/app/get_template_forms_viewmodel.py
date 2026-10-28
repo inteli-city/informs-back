@@ -1,6 +1,6 @@
 from typing import Optional
 
-from src.modules.get_template_forms.app.get_template_forms_usecase import TemplateFormsPage
+from .get_template_forms_usecase import TemplateFormsPage
 from src.shared.domain.entities.template_form_summary import TemplateFormSummary
 from src.shared.helpers.contracts.endpoints.template_versioning_contract import GetTemplateFormsResponseSchema
 

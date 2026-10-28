@@ -1,8 +1,8 @@
 from src.shared.domain.entities.justification import JustificationOption
 from pydantic import ValidationError
 
-from src.modules.update_template.app.update_template_usecase import UpdateTemplateUsecase
-from src.modules.update_template.app.update_template_viewmodel import TemplateViewmodel
+from .update_template_usecase import UpdateTemplateUsecase
+from .update_template_viewmodel import TemplateViewmodel
 from src.shared.helpers.controller_error_handler import controller_error_handler
 from src.shared.helpers.contracts.runtime_requests import UpdateTemplateControllerRequestSchema
 from src.shared.helpers.errors.controller_errors import MissingParameters, WrongTypeParameter

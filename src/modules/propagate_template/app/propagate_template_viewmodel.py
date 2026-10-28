@@ -1,4 +1,4 @@
-from src.modules.propagate_template.app.propagate_template_usecase import PropagationResult
+from .propagate_template_usecase import PropagationResult
 from src.shared.helpers.contracts.endpoints.template_versioning_contract import PropagateTemplateResponseSchema
 
 
