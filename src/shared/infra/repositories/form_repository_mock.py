@@ -2,6 +2,7 @@ from copy import deepcopy
 from typing import List, Optional, Union
 from src.shared.domain.entities.field import TextField
 from src.shared.domain.entities.form import Form
+from src.shared.domain.entities.template_form_summary import TemplateFormSummary
 from src.shared.domain.entities.information_field import FileInformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption, SelectedJustification
 from src.shared.domain.entities.section import Section
@@ -363,3 +364,51 @@ class FormRepositoryMock(IFormRepository):
         page = forms[start:end]
         next_key = self._build_next_key(forms, end)
         return deepcopy(page), next_key
+
+    def has_forms_with_template(self, template_id: str) -> bool:
+        return any(form.template == template_id for form in self.forms)
+
+    def get_forms_by_template(
+        self,
+        template_id: str,
+        only_open: bool = True,
+        limit: Optional[int] = None,
+        exclusive_start_key: Optional[dict] = None,
+    ) -> tuple[List[TemplateFormSummary], Optional[str]]:
+        forms = [
+            form for form in self.forms
+            if form.template == template_id and (not only_open or form.is_open_for_template_update())
+        ]
+        forms = sorted(forms, key=lambda f: (f.created_at, f.id))
+
+        start = self._parse_start_index(forms, exclusive_start_key)
+        end = len(forms) if limit is None else start + limit
+        page = [self._template_form_summary(form) for form in forms[start:end]]
+        next_key = None if limit is None else self._build_next_key(forms, end)
+        return page, next_key
+
+    @staticmethod
+    def _template_form_summary(form: Form) -> TemplateFormSummary:
+        return TemplateFormSummary(
+            id=form.id,
+            form_title=form.form_title,
+            system=form.system,
+            status=form.status,
+            possession=form.possession,
+            created_at=form.created_at,
+            template_version=form.template_version or 1,
+            user_id=form.user_id,
+            street=form.street,
+            number=form.number,
+            city=form.city,
+        )
+
+    def apply_template_version(self, form: Form, template_id: str) -> Optional[Form]:
+        for index, stored in enumerate(self.forms):
+            if stored.id != form.id:
+                continue
+            if stored.template != template_id or not stored.is_open_for_template_update():
+                return None
+            self.forms[index] = deepcopy(form)
+            return deepcopy(form)
+        return None

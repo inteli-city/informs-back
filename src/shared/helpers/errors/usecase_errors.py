@@ -20,3 +20,13 @@ class ErrorWithFile(BaseError):
 class InvalidPaginationToken(BaseError):
     def __init__(self):
         super().__init__('Parâmetro de paginação inválido')
+
+
+class TemplateVersionRequired(BaseError):
+    """O template já tem formulários e o pedido muda o que eles copiam
+    (seções, motivos): só entra como nova versão (`new_version`)."""
+    def __init__(self):
+        super().__init__(
+            'Este template já tem formulários. Para alterar seções, campos ou motivos de '
+            'cancelamento, crie uma nova versão.'
+        )

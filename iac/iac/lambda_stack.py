@@ -56,6 +56,8 @@ class LambdaStack(Construct):
         form_id_resource = forms_resource.add_resource("{form_id}")
         templates_resource = api_gateway_resource.add_resource("templates")
         template_id_resource = templates_resource.add_resource("{template_id}")
+        template_forms_resource = template_id_resource.add_resource("forms")
+        template_propagate_resource = template_id_resource.add_resource("propagate")
         profiles_resource = api_gateway_resource.add_resource("profiles")
         profile_user_id_resource = profiles_resource.add_resource("{user_id}")
         locations_resource = api_gateway_resource.add_resource("locations")
@@ -315,6 +317,24 @@ class LambdaStack(Construct):
             authorizer=authorizer,
         )
 
+        # Versionamento de template: os formulários de um template (para saber
+        # se está em uso e escolher quem recebe a versão nova) e a propagação.
+        self.get_template_forms = self.create_lambda_api_gateway_integration(
+            module_name="get_template_forms",
+            method="GET",
+            api_resource=template_forms_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.propagate_template = self.create_lambda_api_gateway_integration(
+            module_name="propagate_template",
+            method="POST",
+            api_resource=template_propagate_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
         self.get_all_templates = self.create_lambda_api_gateway_integration(
             module_name="get_all_templates",
             method="GET",
@@ -496,6 +516,8 @@ class LambdaStack(Construct):
             self.update_template,
             self.get_template,
             self.get_all_templates,
+            self.get_template_forms,
+            self.propagate_template,
             self.get_app_config,
             self.get_app_config_admin,
             self.put_default_app_config,
@@ -523,6 +545,8 @@ class LambdaStack(Construct):
             self.update_template,
             self.get_template,
             self.get_all_templates,
+            self.get_template_forms,
+            self.propagate_template,
             self.plan_route,
         ]
 
@@ -530,6 +554,8 @@ class LambdaStack(Construct):
             # Admin da configuração: o perfil diz quem administra o quê.
             self.create_template,
             self.update_template,
+            self.get_template_forms,
+            self.propagate_template,
             self.get_app_config_admin,
             self.put_default_app_config,
             self.put_system_app_config,

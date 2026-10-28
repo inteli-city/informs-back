@@ -8,6 +8,11 @@ from .create_template_contract import CreateTemplateRequestSchema, CreateTemplat
 from .update_template_contract import UpdateTemplateRequestSchema, UpdateTemplateResponseSchema
 from .get_template_contract import GetTemplateResponseSchema
 from .get_all_templates_contract import GetAllTemplatesResponseSchema
+from .template_versioning_contract import (
+    GetTemplateFormsResponseSchema,
+    PropagateTemplateRequestSchema,
+    PropagateTemplateResponseSchema,
+)
 from .plan_route_contract import PlanRouteRequestSchema, PlanRouteResponseSchema
 from .profile_contract import (
     CreateProfileRequestSchema,
@@ -33,6 +38,9 @@ __all__ = [
     "UpdateTemplateRequestSchema",
     "UpdateTemplateResponseSchema",
     "GetTemplateResponseSchema",
+    "GetTemplateFormsResponseSchema",
+    "PropagateTemplateRequestSchema",
+    "PropagateTemplateResponseSchema",
     "GetAllTemplatesResponseSchema",
     "PlanRouteRequestSchema",
     "PlanRouteResponseSchema",

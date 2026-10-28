@@ -16,6 +16,14 @@ class UpdateTemplateRequestSchema(RequestContractModel):
     )
     sections: list[TemplateSectionSchema]
     justification_options: list[JustificationOptionSchema] | None = None
+    new_version: StrictBool = Field(
+        default=False,
+        description=(
+            "Grava as seções e os motivos como uma nova versão. Obrigatório quando "
+            "o template já tem formulários e esse conteúdo muda (sem ele, 409). "
+            "Nome, descrição e ativo mudam sem nova versão."
+        ),
+    )
 
 
 class UpdateTemplateResponseSchema(TemplateSchema):

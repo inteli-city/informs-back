@@ -58,6 +58,11 @@ from src.shared.helpers.contracts.endpoints.sync_origin_callback_contract import
     SyncCallbackRequestSchema,
     SyncCallbackResponseSchema,
 )
+from src.shared.helpers.contracts.endpoints.template_versioning_contract import (
+    GetTemplateFormsResponseSchema,
+    PropagateTemplateRequestSchema,
+    PropagateTemplateResponseSchema,
+)
 from src.shared.helpers.contracts.endpoints.update_template_contract import (
     UpdateTemplateRequestSchema,
     UpdateTemplateResponseSchema,
@@ -287,6 +292,26 @@ _CONTRACTS = [
         summary="Consulta template por ID",
         success_status_code=200,
         response_model=GetTemplateResponseSchema,
+    ),
+    EndpointContract(
+        path="/templates/{template_id}/forms",
+        method="get",
+        tag="Templates",
+        summary=(
+            "Formulários de um template, em resumo (templates.manage). Query: scope=open "
+            "(padrão: pendentes e em execução) ou all, limit, exclusive_start_key"
+        ),
+        success_status_code=200,
+        response_model=GetTemplateFormsResponseSchema,
+    ),
+    EndpointContract(
+        path="/templates/{template_id}/propagate",
+        method="post",
+        tag="Templates",
+        summary="Passa formulários abertos para a versão atual do template (templates.manage)",
+        success_status_code=200,
+        request_model=PropagateTemplateRequestSchema,
+        response_model=PropagateTemplateResponseSchema,
     ),
     EndpointContract(
         path="/templates",

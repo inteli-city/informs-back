@@ -7,7 +7,7 @@ from src.shared.helpers.controller_error_handler import controller_error_handler
 from src.shared.helpers.contracts.runtime_requests import UpdateTemplateControllerRequestSchema
 from src.shared.helpers.errors.controller_errors import MissingParameters, WrongTypeParameter
 from src.shared.helpers.errors.domain_errors import EntityError
-from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction, NoItemsFound
+from src.shared.helpers.errors.usecase_errors import DuplicatedItem, ForbiddenAction, NoItemsFound, TemplateVersionRequired
 from src.shared.helpers.external_interfaces.external_interface import IRequest, IResponse
 from src.shared.helpers.external_interfaces.http_codes import BadRequest, Conflict, Forbidden, NotFound, OK
 from src.shared.helpers.functions.pydantic_error_parser import get_validation_error_message
@@ -47,6 +47,7 @@ class UpdateTemplateController:
                     if payload.justification_options is not None
                     else None
                 ),
+                new_version=payload.new_version,
             )
 
             viewmodel = TemplateViewmodel(updated_template)
@@ -65,4 +66,6 @@ class UpdateTemplateController:
         except ForbiddenAction as err:
             return Forbidden(err.message)
         except DuplicatedItem as err:
+            return Conflict(err.message)
+        except TemplateVersionRequired as err:
             return Conflict(err.message)

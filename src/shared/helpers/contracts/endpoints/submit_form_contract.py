@@ -17,6 +17,16 @@ class SubmitFormFieldFlatSchema(RequestContractModel):
 class SubmitFormRequestSchema(RequestContractModel):
     fields: list[SubmitFormFieldFlatSchema]
     completed_at: int
+    template_version: int | None = Field(
+        default=None,
+        ge=1,
+        description=(
+            "Versão do template em que o formulário estava quando foi preenchido. "
+            "Se o formulário recebeu uma versão mais nova desde então, o envio é "
+            "aceito assim mesmo: respostas de campos que não existem mais são "
+            "ignoradas e os campos obrigatórios novos não são exigidos."
+        ),
+    )
 
 
 class SubmitFormResponseSchema(ResponseContractModel):
