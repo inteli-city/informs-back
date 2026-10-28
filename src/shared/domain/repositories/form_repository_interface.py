@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Tuple, Union
 
 from src.shared.domain.entities.form import Form
+from src.shared.domain.entities.template_form_summary import TemplateFormSummary
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.assignment_source_enum import AssignmentSource
@@ -100,4 +101,30 @@ class IFormRepository(ABC):
     ) -> Tuple[List[Form], Optional[str]]:
         """OS abertas no pool de um `system`, via GSI3 esparso (§14.1) —
         nunca cai em Scan."""
+        pass
+
+    @abstractmethod
+    def has_forms_with_template(self, template_id: str) -> bool:
+        """Algum formulário (de qualquer status) nasceu deste template? Decide
+        se o template ainda pode ser editado sem criar uma nova versão."""
+        pass
+
+    @abstractmethod
+    def get_forms_by_template(
+        self,
+        template_id: str,
+        only_open: bool = True,
+        limit: Optional[int] = None,
+        exclusive_start_key: Optional[dict] = None,
+    ) -> Tuple[List[TemplateFormSummary], Optional[str]]:
+        """Formulários de um template, pelo `TemplateIndex`, em resumo (sem
+        seções). `only_open`: só pendentes e em execução."""
+        pass
+
+    @abstractmethod
+    def apply_template_version(self, form: Form, template_id: str) -> Optional[Form]:
+        """Grava as seções, os motivos e a versão de template que `form` já
+        recebeu (`Form.apply_template_version`) — só se no banco ele ainda for
+        deste template e estiver aberto. `None` quando mudou nesse meio-tempo
+        (foi concluído, cancelado ou removido)."""
         pass

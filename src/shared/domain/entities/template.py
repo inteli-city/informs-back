@@ -18,6 +18,7 @@ class Template:
     created_by: str
     created_at: int
     updated_at: int
+    version: int
 
     ID_LENGTH = 36
 
@@ -33,6 +34,7 @@ class Template:
         created_at: Optional[int] = None,
         updated_at: Optional[int] = None,
         justification_options: Optional[List[JustificationOption]] = None,
+        version: Optional[int] = None,
     ):
         template_identifier = id or str(uuid.uuid4())
         self._validate_id(template_identifier)
@@ -65,6 +67,23 @@ class Template:
         # Motivos de cancelamento que todo formulário criado a partir deste
         # template herda (quando o criador não manda os próprios).
         self.justification_options = self._validate_justification_options(justification_options)
+
+        # Versão do conteúdo copiado para os formulários (seções e motivos de
+        # cancelamento). Template sem versão gravada é da época anterior ao
+        # versionamento: conta como a 1.
+        self.version = self._validate_version(1 if version is None else version)
+
+    @staticmethod
+    def _validate_version(version: int) -> int:
+        if not isinstance(version, int) or isinstance(version, bool) or version < 1:
+            raise EntityError("Versão do template deve ser um inteiro a partir de 1")
+        return version
+
+    def bump_version(self) -> None:
+        """Nova versão: o template já tem formulários e o conteúdo que eles
+        copiam (seções, motivos) mudou. Os formulários existentes continuam na
+        versão em que nasceram até alguém propagar a nova."""
+        self.version += 1
 
     @staticmethod
     def _validate_id(id_to_validate: str) -> None:

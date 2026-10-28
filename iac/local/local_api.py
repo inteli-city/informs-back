@@ -90,6 +90,8 @@ ROUTES: List[Route] = [
     Route("GET", "/templates", "get_all_templates"),
     Route("PUT", "/templates/{template_id}", "update_template"),
     Route("GET", "/templates/{template_id}", "get_template"),
+    Route("GET", "/templates/{template_id}/forms", "get_template_forms"),
+    Route("POST", "/templates/{template_id}/propagate", "propagate_template"),
     Route("GET", "/app-config", "get_app_config"),
     Route("GET", "/app-config/admin", "get_app_config_admin"),
     Route("PUT", "/app-config/default", "put_default_app_config"),

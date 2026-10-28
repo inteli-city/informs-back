@@ -46,6 +46,8 @@ def test_openapi_contract_registry_covers_http_routes():
         ("/templates", "get"),
         ("/templates/{template_id}", "put"),
         ("/templates/{template_id}", "get"),
+        ("/templates/{template_id}/forms", "get"),
+        ("/templates/{template_id}/propagate", "post"),
         ("/forms/sync-origin/callback", "post"),
         ("/locations/history", "get"),
         ("/app-config", "get"),

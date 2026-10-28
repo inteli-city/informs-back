@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 import uuid
 
 from src.shared.domain.entities.field import FileField
@@ -25,13 +25,28 @@ class SubmitFormUsecase:
         form_id: str,
         fields: List[dict],
         completed_at: int,
+        template_version: Optional[int] = None,
     ) -> list[FileUpload]:
         form = self._get_form_or_raise(user_id=user_id, form_id=form_id)
         self._validate_form_can_be_submitted(form=form, user_id=user_id)
-        file_uploads = form.apply_field_values(fields)
+        # Preenchido contra uma versão anterior do template (a nova chegou
+        # enquanto o técnico trabalhava, talvez offline): aceita o que ainda
+        # cabe no formulário, sem perder o trabalho por campo que mudou.
+        lenient = self._filled_on_older_version(form, template_version)
+        file_uploads = form.apply_field_values(fields, lenient=lenient)
         files = self._upload_file_fields(form=form, form_id=form_id, file_uploads=file_uploads)
-        self._complete_and_persist(form=form, user_id=user_id, form_id=form_id, completed_at=completed_at)
+        self._complete_and_persist(
+            form=form, user_id=user_id, form_id=form_id, completed_at=completed_at, check_required=not lenient,
+        )
         return files
+
+    @staticmethod
+    def _filled_on_older_version(form: Form, template_version: Optional[int]) -> bool:
+        return (
+            template_version is not None
+            and form.template_version is not None
+            and template_version < form.template_version
+        )
 
     def _get_form_or_raise(self, user_id: str, form_id: str) -> Form:
         form = self.form_repo.get_form_by_id(user_id=user_id, form_id=form_id)
@@ -129,9 +144,9 @@ class SubmitFormUsecase:
             checksum_sha256=upload.checksum_sha256,
         )
 
-    def _complete_and_persist(self, form: Form, user_id: str, form_id: str, completed_at: int) -> None:
+    def _complete_and_persist(self, form: Form, user_id: str, form_id: str, completed_at: int, check_required: bool = True) -> None:
         updated_at = now_timestamp_ms()
-        form.complete(completed_at=completed_at, updated_at=updated_at, completed_by=user_id)
+        form.complete(completed_at=completed_at, updated_at=updated_at, completed_by=user_id, check_required=check_required)
 
         self.form_repo.update_form(
             user_id=user_id,

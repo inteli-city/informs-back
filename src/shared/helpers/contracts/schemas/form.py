@@ -78,3 +78,9 @@ class FormResponseSchema(ResponseContractModel):
         "criação), CLAIM (reivindicada pelo próprio usuário) ou MANAGER (atribuída "
         "por um Gestor/Fiscal/Admin).",
     )
+    template_version: int | None = Field(
+        default=None,
+        description="Versão do template de que as seções foram copiadas. Sem "
+        "template (seções enviadas na criação), vem nula. Ao enviar o "
+        "preenchimento, mande esta mesma versão em `template_version`.",
+    )

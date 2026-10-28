@@ -32,6 +32,7 @@ class SubmitFormController:
                 form_id=payload.form_id,
                 fields=[field.model_dump() for field in payload.fields],
                 completed_at=payload.completed_at,
+                template_version=payload.template_version,
             )
 
             viewmodel = SubmitFormViewmodel(files=files)
