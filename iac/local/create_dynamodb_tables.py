@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Cria localmente as tabelas DynamoDB que o CDK cria na AWS
-(`iac/iac/dynamo_stack.py`): formulários (com os três GSIs), perfis e
+(`iac/iac/dynamo_stack.py`): formulários (com os quatro GSIs), perfis e
 localização. Mantenha os índices em sincronia com o stack — um GSI que falta
 aqui só aparece como erro de query em runtime.
 """
@@ -24,12 +24,24 @@ dynamodb = boto3.resource("dynamodb", **dynamo_config)
 client = boto3.client("dynamodb", **dynamo_config)
 
 
-def _gsi(name: str, pk: str, sk: str) -> dict:
+def _gsi(name: str, pk: str, sk: str, include: list | None = None) -> dict:
+    projection = (
+        {"ProjectionType": "INCLUDE", "NonKeyAttributes": include}
+        if include
+        else {"ProjectionType": "ALL"}
+    )
     return {
         "IndexName": name,
         "KeySchema": [{"AttributeName": pk, "KeyType": "HASH"}, {"AttributeName": sk, "KeyType": "RANGE"}],
-        "Projection": {"ProjectionType": "ALL"},
+        "Projection": projection,
     }
+
+
+# Mesma projeção do `TemplateIndex` no stack.
+TEMPLATE_INDEX_ATTRIBUTES = [
+    "form_title", "system", "status", "possession", "created_at",
+    "template", "template_version", "user_id", "street", "number", "city",
+]
 
 
 def _string_attrs(*names: str) -> list:
@@ -43,11 +55,12 @@ def _table_specs() -> list:
         {
             "TableName": envs.dynamo_table_name,
             "KeySchema": key_schema,
-            "AttributeDefinitions": _string_attrs(pk, sk, "GSI1PK", "GSI1SK", "GSI2PK", "GSI2SK", "GSI3PK", "GSI3SK"),
+            "AttributeDefinitions": _string_attrs(pk, sk, "GSI1PK", "GSI1SK", "GSI2PK", "GSI2SK", "GSI3PK", "GSI3SK", "GSI4PK", "GSI4SK"),
             "GlobalSecondaryIndexes": [
                 _gsi("UserPriorityIndex", "GSI1PK", "GSI1SK"),
                 _gsi("SystemUpdatedAtIndex", "GSI2PK", "GSI2SK"),
                 _gsi("PoolIndex", "GSI3PK", "GSI3SK"),
+                _gsi("TemplateIndex", "GSI4PK", "GSI4SK", include=TEMPLATE_INDEX_ATTRIBUTES),
             ],
             "StreamSpecification": {"StreamEnabled": True, "StreamViewType": "NEW_IMAGE"},
         },

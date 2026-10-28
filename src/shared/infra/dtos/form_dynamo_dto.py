@@ -90,6 +90,7 @@ class FormDynamoDTO:
         claimed_at: Optional[int] = None,
         released_at: Optional[int] = None,
         assignment_source: Optional[AssignmentSource] = None,
+        template_version: Optional[int] = None,
     ):
         self.form_title = form_title
         self.id = id
@@ -127,6 +128,7 @@ class FormDynamoDTO:
         self.claimed_at = claimed_at
         self.released_at = released_at
         self.assignment_source = assignment_source
+        self.template_version = template_version
 
     @staticmethod
     def from_entity(form: Form) -> "FormDynamoDTO":
@@ -167,6 +169,7 @@ class FormDynamoDTO:
             claimed_at=form.claimed_at,
             released_at=form.released_at,
             assignment_source=form.assignment_source,
+            template_version=form.template_version,
         )
 
     def to_dynamo(self) -> dict:
@@ -211,6 +214,7 @@ class FormDynamoDTO:
             "claimed_at": self.claimed_at,
             "released_at": self.released_at,
             "assignment_source": self.assignment_source.value if isinstance(self.assignment_source, AssignmentSource) else self.assignment_source,
+            "template_version": self.template_version,
         }
 
     @staticmethod
@@ -260,6 +264,7 @@ class FormDynamoDTO:
             claimed_at=int(data["claimed_at"]) if data.get("claimed_at") is not None else None,
             released_at=int(data["released_at"]) if data.get("released_at") is not None else None,
             assignment_source=AssignmentSource(data["assignment_source"]) if data.get("assignment_source") is not None else None,
+            template_version=int(data["template_version"]) if data.get("template_version") is not None else None,
         )
 
     def to_entity(self) -> Form:
@@ -300,6 +305,7 @@ class FormDynamoDTO:
             claimed_at=self.claimed_at,
             released_at=self.released_at,
             assignment_source=self.assignment_source,
+            template_version=self.template_version,
         )
 
     def to_dict(self) -> dict:

@@ -77,6 +77,30 @@ class DynamoStack(Construct):
                 projection_type=aws_dynamodb.ProjectionType.ALL
             )
 
+            # GSI esparso dos formulários de cada template: GSI4PK só existe em
+            # formulário nascido de template. Diz se o template está em uso (e
+            # então só muda por nova versão) e lista os abertos que podem
+            # receber a versão nova. Projeta só o resumo da tela de propagação
+            # (`TemplateFormSummary`) — com as seções, seria uma cópia da tabela.
+            # Formulários anteriores ao índice entram pelo
+            # `scripts/backfill_template_index.py`.
+            self.gsi_template = self.dynamo_table_forms.add_global_secondary_index(
+                index_name="TemplateIndex",
+                partition_key=aws_dynamodb.Attribute(
+                    name="GSI4PK",
+                    type=aws_dynamodb.AttributeType.STRING
+                ),
+                sort_key=aws_dynamodb.Attribute(
+                    name="GSI4SK",
+                    type=aws_dynamodb.AttributeType.STRING
+                ),
+                projection_type=aws_dynamodb.ProjectionType.INCLUDE,
+                non_key_attributes=[
+                    "form_title", "system", "status", "possession", "created_at",
+                    "template", "template_version", "user_id", "street", "number", "city",
+                ],
+            )
+
             CfnOutput(self, 'DynamoFormulariosRemovalPolicy',
                         value=REMOVAL_POLICY.value,
                         export_name=f'Formularios{self.github_ref_name}DynamoRemovalPolicyValue')

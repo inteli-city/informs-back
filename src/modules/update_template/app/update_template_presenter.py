@@ -9,7 +9,7 @@ from src.shared.helpers.external_interfaces.http_lambda_requests import LambdaHt
 
 repo = Environments.get_template_repo()
 access_control = AccessControl(Environments.get_profile_repo(), Environments.get_system_role_repo())
-usecase = UpdateTemplateUsecase(repo, access_control)
+usecase = UpdateTemplateUsecase(repo, access_control, form_repo=Environments.get_form_repo())
 controller = UpdateTemplateController(usecase)
 
 

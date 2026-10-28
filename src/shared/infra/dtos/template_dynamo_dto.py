@@ -29,6 +29,7 @@ class TemplateDynamoDTO:
         sections: List[Section],
         description: Optional[str] = None,
         justification_options: Optional[List[JustificationOption]] = None,
+        version: int = 1,
     ):
         self.id = id
         self.name = name
@@ -40,6 +41,7 @@ class TemplateDynamoDTO:
         self.updated_at = updated_at
         self.sections = sections
         self.justification_options = justification_options or []
+        self.version = version
 
     @staticmethod
     def from_entity(template: Template) -> "TemplateDynamoDTO":
@@ -54,6 +56,7 @@ class TemplateDynamoDTO:
             updated_at=template.updated_at,
             sections=template.sections,
             justification_options=template.justification_options,
+            version=template.version,
         )
 
     def to_dynamo(self) -> dict:
@@ -70,6 +73,7 @@ class TemplateDynamoDTO:
                 {"option": o.option, "required_image": o.required_image, "required_text": o.required_text}
                 for o in self.justification_options
             ],
+            "version": self.version,
         }
 
     @staticmethod
@@ -96,6 +100,8 @@ class TemplateDynamoDTO:
                 )
                 for item in data.get("justification_options") or []
             ],
+            # Gravado antes do versionamento: versão 1.
+            version=int(data.get("version") or 1),
         )
 
     def to_entity(self) -> Template:
@@ -110,4 +116,5 @@ class TemplateDynamoDTO:
             updated_at=self.updated_at,
             sections=self.sections,
             justification_options=self.justification_options,
+            version=self.version,
         )

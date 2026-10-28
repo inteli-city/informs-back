@@ -150,6 +150,7 @@ class CreateFormUsecase:
             scheduled_start_at=scheduled_start_at,
             scheduled_end_at=scheduled_end_at,
             attributes=attributes,
+            template_version=template_entity.version if template_entity else None,
         )
 
         created_form = self.form_repo.create_form(form)

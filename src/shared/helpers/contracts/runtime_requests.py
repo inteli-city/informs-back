@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import AliasChoices, Field, StrictBool, field_validator, model_validator
 
@@ -15,6 +15,7 @@ from src.shared.helpers.contracts.endpoints.refresh_presign_contract import Refr
 from src.shared.helpers.contracts.endpoints.start_form_contract import StartFormRequestSchema
 from src.shared.helpers.contracts.endpoints.submit_form_contract import SubmitFormFieldFlatSchema, SubmitFormRequestSchema
 from src.shared.helpers.contracts.endpoints.location_history_contract import LocationHistoryRequestSchema
+from src.shared.helpers.contracts.endpoints.template_versioning_contract import PropagateTemplateRequestSchema
 from src.shared.helpers.contracts.schemas.justification import JustificationOptionSchema
 from src.shared.helpers.contracts.schemas.template import TemplateSectionSchema
 
@@ -56,6 +57,7 @@ class UpdateTemplateControllerRequestSchema(RequestContractModel):
     )
     sections: list[TemplateSectionSchema] | None = None
     justification_options: list[JustificationOptionSchema] | None = None
+    new_version: StrictBool = False
 
 
 class StartFormControllerRequestSchema(StartFormRequestSchema):
@@ -179,6 +181,20 @@ class GetFormControllerRequestSchema(RequestContractModel):
 
 
 class GetTemplateControllerRequestSchema(RequestContractModel):
+    requester_user: RequesterUserSchema
+    template_id: str
+
+
+class GetTemplateFormsControllerRequestSchema(RequestContractModel):
+    requester_user: RequesterUserSchema
+    template_id: str
+    # `open`: pendentes e em execução (os que podem receber uma nova versão).
+    scope: Literal["open", "all"] = "open"
+    limit: int | None = Field(default=None, ge=1, le=1000)
+    exclusive_start_key: str | None = None
+
+
+class PropagateTemplateControllerRequestSchema(PropagateTemplateRequestSchema):
     requester_user: RequesterUserSchema
     template_id: str
 

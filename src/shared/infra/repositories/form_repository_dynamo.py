@@ -6,6 +6,7 @@ from botocore.exceptions import ClientError
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import Section
+from src.shared.domain.entities.template_form_summary import TemplateFormSummary
 from src.shared.domain.enums.assignment_source_enum import AssignmentSource
 from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.enums.possession_enum import Possession
@@ -64,6 +65,26 @@ class FormRepositoryDynamo(IFormRepository):
     @staticmethod
     def form_gsi3_sort_key_format(priority: str, created_at: int) -> str:
         return f"priority#{priority}#created_at#{int(created_at):013d}"
+
+    @staticmethod
+    def form_gsi4_partition_key_format(template_id: str) -> str:
+        return f"template#{template_id}"
+
+    @staticmethod
+    def form_gsi4_sort_key_format(created_at: int, form_id: str) -> str:
+        return f"created_at#{int(created_at):013d}#{form_id}"
+
+    @staticmethod
+    def template_index_keys(form: Form) -> dict:
+        """Chaves do `TemplateIndex` (GSI4, esparso): só formulário nascido de
+        template entra. É por ele que o template descobre se está em uso e
+        quais formulários podem receber uma nova versão."""
+        if not Form._is_uuid_string(form.template):
+            return {}
+        return {
+            "GSI4PK": FormRepositoryDynamo.form_gsi4_partition_key_format(form.template),
+            "GSI4SK": FormRepositoryDynamo.form_gsi4_sort_key_format(form.created_at, form.id),
+        }
 
     def __init__(self):
         self.dynamo = DynamoDatasource(
@@ -325,6 +346,7 @@ class FormRepositoryDynamo(IFormRepository):
             item["GSI1SK"] = self.form_gsi1_sort_key_format(priority=form.priority.value, status=form.status, created_at=form.created_at)
         item["GSI2PK"] = self.form_gsi2_partition_key_format(form.system)
         item["GSI2SK"] = self.form_gsi2_sort_key_format(updated_at=form.updated_at, form_id=form.id)
+        item.update(self.template_index_keys(form))
 
         self.dynamo.put_item(
             item=item,
@@ -486,6 +508,93 @@ class FormRepositoryDynamo(IFormRepository):
         forms = [FormDynamoDTO.from_dynamo(item).to_entity() for item in items]
         next_key = start_key if use_dynamo_limit else None
         return forms, encode_pagination_token(next_key)
+
+    def has_forms_with_template(self, template_id: str) -> bool:
+        resp = self.dynamo.query(
+            key_condition_expression=Key("GSI4PK").eq(self.form_gsi4_partition_key_format(template_id)),
+            IndexName="TemplateIndex",
+            Limit=1,
+        )
+        return bool(resp.get("Items"))
+
+    def get_forms_by_template(
+        self,
+        template_id: str,
+        only_open: bool = True,
+        limit: Optional[int] = None,
+        exclusive_start_key: Optional[dict] = None,
+    ) -> Tuple[List[TemplateFormSummary], Optional[str]]:
+        query_kwargs = {
+            "key_condition_expression": Key("GSI4PK").eq(self.form_gsi4_partition_key_format(template_id)),
+            "IndexName": "TemplateIndex",
+        }
+        if only_open:
+            query_kwargs["FilterExpression"] = Attr("status").is_in(
+                [FormStatus.PENDING.value, FormStatus.IN_PROGRESS.value]
+            )
+
+        items = []
+        start_key = exclusive_start_key
+        use_dynamo_limit = limit is not None
+        while True:
+            if not self._apply_pagination_kwargs(query_kwargs, items, start_key, limit, use_dynamo_limit):
+                break
+            resp = self.dynamo.query(**query_kwargs)
+            items.extend(resp.get("Items", []))
+            start_key = resp.get("LastEvaluatedKey")
+            if start_key is None:
+                break
+
+        summaries = [self._template_form_summary(item) for item in items]
+        next_key = start_key if use_dynamo_limit else None
+        return summaries, encode_pagination_token(next_key)
+
+    @staticmethod
+    def _template_form_summary(item: dict) -> TemplateFormSummary:
+        form_id = item["PK"].split("form#", 1)[1]
+        return TemplateFormSummary(
+            id=form_id,
+            form_title=item["form_title"],
+            system=item["system"],
+            status=FormStatus(item["status"]),
+            possession=Possession(item["possession"]) if item.get("possession") else (
+                Possession.OWNED if item.get("user_id") else Possession.OPEN
+            ),
+            created_at=int(item["created_at"]),
+            # Formulário gravado antes do versionamento: versão 1.
+            template_version=int(item.get("template_version") or 1),
+            user_id=item.get("user_id"),
+            street=item.get("street"),
+            number=int(item["number"]) if item.get("number") is not None else None,
+            city=item.get("city"),
+        )
+
+    def apply_template_version(self, form: Form, template_id: str) -> Optional[Form]:
+        update_dict = {
+            "sections": self._coerce_update_value(form.sections),
+            "justification": self._coerce_update_value(form.justification),
+            "template_version": form.template_version,
+            "updated_at": form.updated_at,
+            "GSI2PK": self.form_gsi2_partition_key_format(form.system),
+            "GSI2SK": self.form_gsi2_sort_key_format(updated_at=form.updated_at, form_id=form.id),
+        }
+        condition = Attr("template").eq(template_id) & Attr("status").is_in(
+            [FormStatus.PENDING.value, FormStatus.IN_PROGRESS.value]
+        )
+        try:
+            resp = self.dynamo.update_item(
+                partition_key=self.form_partition_key_format(form.id),
+                sort_key=self.form_sort_key_format(),
+                update_dict=update_dict,
+                condition_expression=condition,
+            )
+        except ClientError as err:
+            if err.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+                return None
+            raise
+        if "Attributes" not in resp:
+            return None
+        return FormDynamoDTO.from_dynamo(resp["Attributes"]).to_entity()
 
     @staticmethod
     def _coerce_update_value(value):

@@ -93,6 +93,7 @@ class GetFormViewmodel:
         self.claimed_at = form.claimed_at
         self.released_at = form.released_at
         self.assignment_source = form.assignment_source
+        self.template_version = form.template_version
 
     def to_dict(self):
         payload = {
@@ -138,6 +139,7 @@ class GetFormViewmodel:
             "claimed_at": self.claimed_at,
             "released_at": self.released_at,
             "assignment_source": self.assignment_source.value if self.assignment_source else None,
+            "template_version": self.template_version,
         }
         validated = GetFormResponseSchema.model_validate(payload).model_dump()
         validated["priority"] = self.priority.value if isinstance(self.priority, Priority) else self.priority
