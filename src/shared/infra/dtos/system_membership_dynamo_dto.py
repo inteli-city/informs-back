@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 from src.shared.domain.entities.system_membership import SystemMembership
 
 
@@ -18,12 +20,16 @@ class SystemMembershipDynamoDTO:
 
     SK_PREFIX = "system#"
 
-    def __init__(self, user_id: str, system: str, role_id: str, created_at: int, updated_at: int):
+    def __init__(
+        self, user_id: str, system: str, role_id: str, created_at: int, updated_at: int,
+        groups: Optional[List[str]] = None,
+    ):
         self.user_id = user_id
         self.system = system
         self.role_id = role_id
         self.created_at = created_at
         self.updated_at = updated_at
+        self.groups = groups if groups is not None else []
 
     @staticmethod
     def from_entity(membership: SystemMembership) -> "SystemMembershipDynamoDTO":
@@ -33,6 +39,7 @@ class SystemMembershipDynamoDTO:
             role_id=membership.role_id,
             created_at=membership.created_at,
             updated_at=membership.updated_at,
+            groups=membership.groups,
         )
 
     def to_dynamo(self) -> dict:
@@ -42,6 +49,7 @@ class SystemMembershipDynamoDTO:
             "role_id": self.role_id,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
+            "groups": self.groups,
             "GSI1PK": SystemMembershipDynamoDTO.build_gsi1_pk(self.system),
             "GSI1SK": SystemMembershipDynamoDTO.build_gsi1_sk(self.role_id, self.user_id),
         }
@@ -54,6 +62,7 @@ class SystemMembershipDynamoDTO:
             role_id=data["role_id"],
             created_at=int(data["created_at"]),
             updated_at=int(data["updated_at"]),
+            groups=list(data.get("groups") or []),
         )
 
     def to_entity(self) -> SystemMembership:
@@ -63,6 +72,7 @@ class SystemMembershipDynamoDTO:
             role_id=self.role_id,
             created_at=self.created_at,
             updated_at=self.updated_at,
+            groups=self.groups,
         )
 
     @staticmethod

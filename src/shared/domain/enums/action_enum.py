@@ -19,6 +19,7 @@ class Action(Enum):
     ROLES_MANAGE = "roles.manage"
     TEMPLATES_MANAGE = "templates.manage"
     APP_CONFIG_EDIT = "app_config.edit"
+    GROUPS_MANAGE = "groups.manage"
 
 
 ACTION_DESCRIPTIONS = {
@@ -31,4 +32,5 @@ ACTION_DESCRIPTIONS = {
     Action.ROLES_MANAGE: "Criar, editar e apagar os papéis do sistema",
     Action.TEMPLATES_MANAGE: "Criar e editar os templates do sistema",
     Action.APP_CONFIG_EDIT: "Editar a configuração da aplicação do sistema",
+    Action.GROUPS_MANAGE: "Criar, renomear e apagar os grupos do sistema",
 }

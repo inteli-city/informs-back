@@ -15,6 +15,7 @@ from src.shared.domain.enums.priority_enum import Priority
 from src.shared.domain.repositories.file_repository_interface import IFileRepository
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.system_config_repository_interface import ISystemConfigRepository
+from src.shared.domain.repositories.system_group_repository_interface import ISystemGroupRepository
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
 from src.shared.domain.services.access_control import AccessControl
 from src.shared.helpers.errors.controller_errors import MissingParameters
@@ -32,12 +33,14 @@ class CreateFormUsecase:
         template_repo: Optional[ITemplateRepository] = None,
         system_config_repo: Optional[ISystemConfigRepository] = None,
         access_control: Optional[AccessControl] = None,
+        group_repo: Optional[ISystemGroupRepository] = None,
     ):
         self.form_repo = form_repo
         self.file_repo = file_repo
         self.template_repo = template_repo
         self.system_config_repo = system_config_repo
         self.access_control = access_control
+        self.group_repo = group_repo
 
     def _allows_unassigned_forms(self, system: str) -> bool:
         if self.system_config_repo is None:
@@ -98,6 +101,7 @@ class CreateFormUsecase:
         scheduled_start_at: Optional[int] = None,
         scheduled_end_at: Optional[int] = None,
         attributes: Optional[dict] = None,
+        groups: Optional[List[str]] = None,
     ) -> tuple[Form, list[FileUpload]]:
         if requester_systems is not None and system not in requester_systems:
             raise ForbiddenAction("Usuário não tem permissão para acessar este sistema")
@@ -111,6 +115,8 @@ class CreateFormUsecase:
 
         if user_id is None and not self._allows_unassigned_forms(system):
             raise MissingParameters("user_id")
+
+        self._ensure_groups_exist(system, groups)
 
         form_id = str(uuid.uuid4())
         now_timestamp = now_timestamp_ms()
@@ -151,10 +157,23 @@ class CreateFormUsecase:
             scheduled_end_at=scheduled_end_at,
             attributes=attributes,
             template_version=template_entity.version if template_entity else None,
+            groups=groups,
         )
 
         created_form = self.form_repo.create_form(form)
         return created_form, files
+
+    def _ensure_groups_exist(self, system: str, groups: Optional[List[str]]) -> None:
+        """Grupo desconhecido é recusado (ADR-0022): um identificador errado
+        deixaria a OS invisível no pool para todo mundo."""
+        if not groups:
+            return
+        if self.group_repo is None:
+            raise EntityError("groups")
+        known = {group.group_id for group in self.group_repo.list_groups(system)}
+        unknown = [group for group in dict.fromkeys(groups) if group not in known]
+        if unknown:
+            raise EntityError(f"grupo(s) inexistente(s) no sistema {system}: {', '.join(unknown)}")
 
     @staticmethod
     def _inherit_justification(justification: Justification, template_entity) -> Justification:

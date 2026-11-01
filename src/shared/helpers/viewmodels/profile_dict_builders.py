@@ -1,4 +1,5 @@
 from src.shared.domain.entities.profile import Profile
+from src.shared.domain.entities.system_group import SystemGroup
 from src.shared.domain.entities.system_role import SystemRole
 from src.shared.domain.services.access_control import SystemAccess
 
@@ -33,4 +34,12 @@ def build_system_role_dict(role: SystemRole) -> dict:
         "actions": [action.value for action in role.actions],
         "is_default": role.is_default,
         "fixed": False,
+    }
+
+
+def build_system_group_dict(group: SystemGroup) -> dict:
+    return {
+        "system": group.system,
+        "group_id": group.group_id,
+        "name": group.name,
     }
