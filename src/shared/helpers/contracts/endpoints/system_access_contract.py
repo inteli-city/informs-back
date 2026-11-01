@@ -1,6 +1,6 @@
 from typing import Annotated, Literal
 
-from pydantic import StringConstraints
+from pydantic import Field, StringConstraints
 
 from src.shared.domain.enums.action_enum import Action
 from src.shared.helpers.contracts.base import RequestContractModel, ResponseContractModel
@@ -11,6 +11,10 @@ from src.shared.helpers.contracts.base import RequestContractModel, ResponseCont
 ActionLiteral = Literal[tuple(action.value for action in Action)]
 RoleNameStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
 RoleIdStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+# Identificador de grupo (ADR-0022): curto, minúsculo, com hífen — é o que o
+# sistema de origem manda no POST /forms. Mesma regra de `SystemGroup`.
+GroupIdStr = Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$")]
+GroupNameStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=60)]
 
 
 class SystemAccessSchema(ResponseContractModel):
@@ -79,6 +83,7 @@ class SystemUserSchema(ResponseContractModel):
     active: bool
     role_id: str
     role_name: str | None = None
+    groups: list[str] = Field(default_factory=list)
 
 
 class GetSystemUsersResponseSchema(ResponseContractModel):
@@ -103,3 +108,52 @@ class PutSystemUserResponseSchema(ResponseContractModel):
 class DeleteSystemUserResponseSchema(ResponseContractModel):
     system: str
     user_id: str
+
+
+# --- Grupos do sistema (ADR-0022) --------------------------------------------
+
+class SystemGroupSchema(ResponseContractModel):
+    system: str
+    group_id: str
+    name: str
+
+
+class GetSystemGroupsResponseSchema(ResponseContractModel):
+    system: str
+    groups: list[SystemGroupSchema]
+
+
+class CreateSystemGroupRequestSchema(RequestContractModel):
+    """Body do POST de grupo. `group_id` não muda depois: é o identificador que
+    o sistema de origem manda no POST /forms."""
+
+    group_id: GroupIdStr
+    name: GroupNameStr
+
+
+class UpdateSystemGroupRequestSchema(RequestContractModel):
+    """Body do PUT de grupo: só o nome muda."""
+
+    name: GroupNameStr
+
+
+class SystemGroupResponseSchema(SystemGroupSchema):
+    pass
+
+
+class DeleteSystemGroupResponseSchema(ResponseContractModel):
+    system: str
+    group_id: str
+
+
+class PutSystemUserGroupsRequestSchema(RequestContractModel):
+    """Body do PUT /systems/{system}/users/{user_id}/groups: a lista inteira de
+    grupos da pessoa no sistema (substitui a anterior)."""
+
+    groups: list[GroupIdStr]
+
+
+class PutSystemUserGroupsResponseSchema(ResponseContractModel):
+    system: str
+    user_id: str
+    groups: list[str]

@@ -98,9 +98,18 @@ class IFormRepository(ABC):
         system: str,
         limit: Optional[int] = None,
         exclusive_start_key: Optional[dict] = None,
+        groups: Optional[List[str]] = None,
     ) -> Tuple[List[Form], Optional[str]]:
         """OS abertas no pool de um `system`, via GSI3 esparso (§14.1) —
-        nunca cai em Scan."""
+        nunca cai em Scan.
+
+        Com `groups` (ADR-0022), só as OS sem grupo e as de algum desses
+        grupos; `None` não filtra."""
+        pass
+
+    @abstractmethod
+    def pool_has_group(self, system: str, group_id: str) -> bool:
+        """Se alguma OS aberta no pool do `system` aponta para o grupo."""
         pass
 
     @abstractmethod

@@ -61,5 +61,7 @@ class PutSystemUserUsecase:
             role_id=role_id,
             created_at=current.created_at if current else now_ms,
             updated_at=now_ms,
+            # Trocar o papel não mexe nos grupos (ADR-0022).
+            groups=current.groups if current else [],
         ))
         return SystemUserSaved(membership=membership, role_name=role_name)

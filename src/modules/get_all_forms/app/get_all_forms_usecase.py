@@ -52,12 +52,19 @@ class GetAllFormsUsecase:
                 raise InvalidPaginationToken()
 
         # scope=pool (especificação Uberlândia §6.3): OS abertas via GSI3, sem
-        # cair em Scan (§14.1) — a filtragem fina por escopo é a Fase 2.
+        # cair em Scan (§14.1). Só as sem grupo e as dos grupos de quem pede
+        # (ADR-0022).
         if scope == "pool":
             if len(systems_to_use) != 1:
                 raise EntityError("scope=pool exige um único system")
             effective_limit = limit if limit is not None else POOL_DEFAULT_LIMIT
-            return self.form_repo.get_pool_forms(system=systems_to_use[0], limit=effective_limit, exclusive_start_key=start_key)
+            groups = (
+                self.access_control.groups_in(requester.user_id, systems_to_use[0])
+                if self.access_control is not None else None
+            )
+            return self.form_repo.get_pool_forms(
+                system=systems_to_use[0], limit=effective_limit, exclusive_start_key=start_key, groups=groups,
+            )
 
         # scope=all (RN-UBE-003, decisão P3): quem tem `forms.view_all` em
         # todos os sistemas pedidos enxerga todo mundo, não só o próprio.

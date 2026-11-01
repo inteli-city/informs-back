@@ -486,12 +486,17 @@ class FormRepositoryDynamo(IFormRepository):
         system: str,
         limit: Optional[int] = None,
         exclusive_start_key: Optional[dict] = None,
+        groups: Optional[List[str]] = None,
     ) -> Tuple[List[Form], Optional[str]]:
         query_kwargs = {
             "key_condition_expression": Key("GSI3PK").eq(self.form_gsi3_partition_key_format(system)),
             "IndexName": "PoolIndex",
             "Select": "ALL_ATTRIBUTES",
         }
+        if groups is not None:
+            # ADR-0022: o `Limit` conta antes do filtro, então a página pode
+            # vir menor que o limite (com token para continuar).
+            query_kwargs["FilterExpression"] = self._pool_groups_filter(groups)
 
         items = []
         start_key = exclusive_start_key
@@ -595,6 +600,29 @@ class FormRepositoryDynamo(IFormRepository):
         if "Attributes" not in resp:
             return None
         return FormDynamoDTO.from_dynamo(resp["Attributes"]).to_entity()
+
+    @staticmethod
+    def _pool_groups_filter(groups: List[str]):
+        """OS sem grupo, ou de algum dos `groups` de quem pede."""
+        condition = Attr("groups").not_exists()
+        for group in groups:
+            condition = condition | Attr("groups").contains(group)
+        return condition
+
+    def pool_has_group(self, system: str, group_id: str) -> bool:
+        query_kwargs = {
+            "IndexName": "PoolIndex",
+            "FilterExpression": Attr("groups").contains(group_id),
+            "Select": "COUNT",
+        }
+        key_condition = Key("GSI3PK").eq(self.form_gsi3_partition_key_format(system))
+        while True:
+            resp = self.dynamo.query(key_condition_expression=key_condition, **query_kwargs)
+            if resp.get("Count", 0) > 0:
+                return True
+            if not resp.get("LastEvaluatedKey"):
+                return False
+            query_kwargs["ExclusiveStartKey"] = resp["LastEvaluatedKey"]
 
     @staticmethod
     def _coerce_update_value(value):

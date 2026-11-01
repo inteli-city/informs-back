@@ -84,3 +84,8 @@ class FormResponseSchema(ResponseContractModel):
         "template (seções enviadas na criação), vem nula. Ao enviar o "
         "preenchimento, mande esta mesma versão em `template_version`.",
     )
+    groups: list[str] = Field(
+        default_factory=list,
+        description="Grupos do sistema a que a OS aberta se destina (ADR-0022). Vazia = "
+        "qualquer pessoa do sistema.",
+    )

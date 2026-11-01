@@ -62,6 +62,11 @@ class AccessControl:
         """Sistemas em que a pessoa tem vínculo."""
         return [membership.system for membership in self.profile_repo.get_memberships(user_id)]
 
+    def groups_in(self, user_id: str, system: str) -> List[str]:
+        """Grupos da pessoa no sistema (ADR-0022). Sem vínculo, nenhum."""
+        membership = self.profile_repo.get_membership(user_id, system)
+        return list(membership.groups) if membership else []
+
     def access_in(self, user_id: str, system: str) -> SystemAccess:
         profile = self.profile_repo.get_by_user_id(user_id)
         if profile is None or not profile.active:
