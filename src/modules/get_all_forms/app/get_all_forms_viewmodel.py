@@ -75,16 +75,51 @@ class FormItemViewmodel:
         )
 
 
+class RemovedFormMarkerViewmodel:
+    """Marcador de OS que saiu do pool numa consulta incremental: só id, status, posse, instante e a marca."""
+
+    def __init__(self, form: Form):
+        self.form = form
+
+    def to_dict(self):
+        return {
+            "id": self.form.id,
+            "status": self.form.status.value,
+            "possession": self.form.possession.value,
+            "updated_at": self.form.updated_at,
+            "removed_from_pool": True,
+        }
+
+
 class GetAllFormsViewmodel:
-    def __init__(self, forms: List[Form], limit: Optional[int], last_evaluated_key: Optional[str]):
+    def __init__(
+        self,
+        forms: List[Form],
+        limit: Optional[int],
+        last_evaluated_key: Optional[str],
+        server_time: Optional[int] = None,
+        in_pool: Optional[List[bool]] = None,
+    ):
         self.forms = forms
         self.limit = limit
         self.last_evaluated_key = last_evaluated_key
+        # `server_time` e `in_pool` só existem na consulta incremental. Sem eles, o corpo é o de sempre.
+        self.server_time = server_time
+        self.in_pool = in_pool
+
+    def _item(self, index: int, form: Form) -> dict:
+        if self.in_pool is not None and not self.in_pool[index]:
+            return RemovedFormMarkerViewmodel(form).to_dict()
+        return FormItemViewmodel(form).to_dict()
 
     def to_dict(self):
         payload = {
-            "forms": [FormItemViewmodel(form).to_dict() for form in self.forms],
+            "forms": [self._item(index, form) for index, form in enumerate(self.forms)],
             "limit": self.limit,
             "last_evaluated_key": self.last_evaluated_key,
         }
-        return GetAllFormsResponseSchema.model_validate(payload).model_dump()
+        if self.server_time is not None:
+            payload["server_time"] = self.server_time
+        # Sem consulta incremental, `server_time` fica fora do corpo (e não vira `null`).
+        excluded = None if self.server_time is not None else {"server_time"}
+        return GetAllFormsResponseSchema.model_validate(payload).model_dump(exclude=excluded)
