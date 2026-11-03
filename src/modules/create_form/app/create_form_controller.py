@@ -84,6 +84,7 @@ class CreateFormController:
             payload.scheduled_start_at,
             payload.scheduled_end_at,
             payload.attributes,
+            payload.groups,
         )
 
     @controller_error_handler
@@ -116,6 +117,7 @@ class CreateFormController:
                 scheduled_start_at,
                 scheduled_end_at,
                 attributes,
+                groups,
             ) = self._build_usecase_payload(payload)
 
             form, files = self.usecase(
@@ -144,6 +146,7 @@ class CreateFormController:
                 scheduled_start_at=scheduled_start_at,
                 scheduled_end_at=scheduled_end_at,
                 attributes=attributes,
+                groups=groups,
             )
 
             viewmodel = CreateFormViewmodel(form=form, files=files)

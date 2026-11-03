@@ -1,3 +1,5 @@
+import time
+from dataclasses import dataclass
 from typing import List, Optional, Tuple, Union
 
 from src.shared.domain.entities.form import Form
@@ -17,6 +19,16 @@ from src.shared.infra.dtos.user_gateway import UserGatewayDTO
 POOL_DEFAULT_LIMIT = 200
 
 
+@dataclass(frozen=True)
+class GetAllFormsDelta:
+    """Resposta da consulta incremental: `in_pool[i]` diz se `forms[i]` ainda está no pool (False vira marcador)."""
+
+    forms: List[Form]
+    in_pool: List[bool]
+    next_key: Optional[str]
+    server_time: int
+
+
 class GetAllFormsUsecase:
     def __init__(self, form_repo: IFormRepository, access_control: Optional[AccessControl] = None):
         self.form_repo = form_repo
@@ -34,30 +46,23 @@ class GetAllFormsUsecase:
         search: Optional[str] = None,
         scope: str = "mine",
     ) -> Tuple[List[Form], Optional[str]]:
-        if system is not None and len(system) == 0:
-            raise EntityError("Lista de sistemas não pode ser vazia")
-
-        systems_to_use = system if system is not None else requester.systems
-        if not systems_to_use:
-            raise ForbiddenAction("Usuário não tem permissão para acessar sistemas")
-
-        for system_name in systems_to_use:
-            if system_name not in requester.systems:
-                raise ForbiddenAction("Usuário não tem permissão para acessar este sistema")
-
-        start_key = None
-        if exclusive_start_key is not None:
-            start_key = try_decode_pagination_token(exclusive_start_key)
-            if start_key is None:
-                raise InvalidPaginationToken()
+        systems_to_use = self._systems_to_use(requester, system)
+        start_key = self._decode_start_key(exclusive_start_key)
 
         # scope=pool (especificação Uberlândia §6.3): OS abertas via GSI3, sem
-        # cair em Scan (§14.1) — a filtragem fina por escopo é a Fase 2.
+        # cair em Scan (§14.1). Só as sem grupo e as dos grupos de quem pede
+        # (ADR-0022).
         if scope == "pool":
             if len(systems_to_use) != 1:
                 raise EntityError("scope=pool exige um único system")
             effective_limit = limit if limit is not None else POOL_DEFAULT_LIMIT
-            return self.form_repo.get_pool_forms(system=systems_to_use[0], limit=effective_limit, exclusive_start_key=start_key)
+            groups = (
+                self.access_control.groups_in(requester.user_id, systems_to_use[0])
+                if self.access_control is not None else None
+            )
+            return self.form_repo.get_pool_forms(
+                system=systems_to_use[0], limit=effective_limit, exclusive_start_key=start_key, groups=groups,
+            )
 
         # scope=all (RN-UBE-003, decisão P3): quem tem `forms.view_all` em
         # todos os sistemas pedidos enxerga todo mundo, não só o próprio.
@@ -80,6 +85,91 @@ class GetAllFormsUsecase:
             created_at_end=created_at_end,
             search=search,
         )
+
+    def get_changes(
+        self,
+        requester: UserGatewayDTO,
+        limit: Optional[int],
+        exclusive_start_key: Optional[str],
+        system: Optional[List[str]],
+        updated_after: int,
+        scope: str,
+    ) -> GetAllFormsDelta:
+        """Consulta incremental (`updated_after`): só o que mudou depois do instante, em ordem crescente.
+
+        O `server_time` é lido antes de qualquer consulta: o cliente o usa como próximo `updated_after`, e uma OS
+        gravada durante a consulta cai no próximo ciclo em vez de se perder.
+        """
+        server_time = int(time.time() * 1000)
+        systems_to_use = self._systems_to_use(requester, system)
+        start_key = self._decode_start_key(exclusive_start_key)
+
+        if scope == "pool":
+            if len(systems_to_use) != 1:
+                raise EntityError("scope=pool exige um único system")
+            effective_limit = limit if limit is not None else POOL_DEFAULT_LIMIT
+            pairs, next_key = self.form_repo.get_pool_changes(
+                system=systems_to_use[0],
+                updated_after=updated_after,
+                limit=effective_limit,
+                exclusive_start_key=start_key,
+            )
+            # Mesmo critério da listagem do pool (ADR-0022): OS aberta de grupo alheio, ou de quem já saiu
+            # do grupo, não pode voltar como formulário. Entra como marcador, então a paginação não muda.
+            # Sem `access_control` (como na listagem), não há como decidir grupo, e nada é convertido.
+            groups = (
+                self.access_control.groups_in(requester.user_id, systems_to_use[0])
+                if self.access_control is not None else None
+            )
+            return GetAllFormsDelta(
+                forms=[form for form, _ in pairs],
+                in_pool=[
+                    in_pool and (groups is None or form.is_open_to_groups(groups))
+                    for form, in_pool in pairs
+                ],
+                next_key=next_key,
+                server_time=server_time,
+            )
+
+        # scope=mine: o índice por usuário não tem a ordem de `updated_at`, então a página sai ordenada por
+        # ele dentro dela. Entre páginas, a ordem é a do índice (o cursor do Dynamo não aceita outra).
+        forms, next_key = self.form_repo.get_all_forms(
+            limit=limit,
+            exclusive_start_key=start_key,
+            system=systems_to_use,
+            user_id=requester.user_id,
+            updated_at_start=updated_after + 1,
+        )
+        forms = sorted(forms, key=lambda form: (form.updated_at, form.id))
+        return GetAllFormsDelta(
+            forms=forms,
+            in_pool=[True] * len(forms),
+            next_key=next_key,
+            server_time=server_time,
+        )
+
+    @staticmethod
+    def _systems_to_use(requester: UserGatewayDTO, system: Optional[List[str]]) -> List[str]:
+        if system is not None and len(system) == 0:
+            raise EntityError("Lista de sistemas não pode ser vazia")
+
+        systems_to_use = system if system is not None else requester.systems
+        if not systems_to_use:
+            raise ForbiddenAction("Usuário não tem permissão para acessar sistemas")
+
+        for system_name in systems_to_use:
+            if system_name not in requester.systems:
+                raise ForbiddenAction("Usuário não tem permissão para acessar este sistema")
+        return systems_to_use
+
+    @staticmethod
+    def _decode_start_key(exclusive_start_key: Optional[str]) -> Optional[dict]:
+        if exclusive_start_key is None:
+            return None
+        start_key = try_decode_pagination_token(exclusive_start_key)
+        if start_key is None:
+            raise InvalidPaginationToken()
+        return start_key
 
     def _ensure_requester_can_see_all(self, requester_user_id: str, systems: List[str]) -> None:
         if self.access_control is None or not all(

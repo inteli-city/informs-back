@@ -20,6 +20,7 @@ class GetSystemUsersViewmodel:
                     "active": bool(user.profile and user.profile.active),
                     "role_id": user.membership.role_id,
                     "role_name": user.role_name,
+                    "groups": user.membership.groups,
                 }
                 for user in self.users
             ],

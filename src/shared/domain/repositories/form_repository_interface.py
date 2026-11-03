@@ -98,9 +98,32 @@ class IFormRepository(ABC):
         system: str,
         limit: Optional[int] = None,
         exclusive_start_key: Optional[dict] = None,
+        groups: Optional[List[str]] = None,
     ) -> Tuple[List[Form], Optional[str]]:
         """OS abertas no pool de um `system`, via GSI3 esparso (§14.1) —
-        nunca cai em Scan."""
+        nunca cai em Scan.
+
+        Com `groups` (ADR-0022), só as OS sem grupo e as de algum desses
+        grupos; `None` não filtra."""
+        pass
+
+    @abstractmethod
+    def pool_has_group(self, system: str, group_id: str) -> bool:
+        """Se alguma OS aberta no pool do `system` aponta para o grupo."""
+        pass
+
+    @abstractmethod
+    def get_pool_changes(
+        self,
+        system: str,
+        updated_after: int,
+        limit: Optional[int] = None,
+        exclusive_start_key: Optional[dict] = None,
+    ) -> Tuple[List[Tuple[Form, bool]], Optional[str]]:
+        """OS do `system` com `updated_at` estritamente maior que `updated_after`, em ordem crescente de
+        `updated_at`, pelo `SystemUpdatedAtIndex` (GSI2). Cada OS vem com o flag "continua no pool": é o
+        mesmo critério do pool (GSI3), então uma OS que saiu do pool volta com `False` e sem os demais campos
+        quando a apresentação for montada."""
         pass
 
     @abstractmethod

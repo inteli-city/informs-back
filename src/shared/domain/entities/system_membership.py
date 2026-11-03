@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 from src.shared.helpers.errors.domain_errors import EntityError
 
 
@@ -8,6 +10,9 @@ class SystemMembership:
 
     O acesso ao sistema continua vindo do grupo do Cognito; o vínculo só diz
     o que a pessoa pode fazer dentro dele.
+
+    `groups` são os grupos do sistema em que a pessoa está (ADR-0022): decidem
+    quais OS abertas com grupo ela vê e pega no pool.
     """
 
     user_id: str
@@ -15,13 +20,24 @@ class SystemMembership:
     role_id: str
     created_at: int
     updated_at: int
+    groups: List[str]
 
-    def __init__(self, user_id: str, system: str, role_id: str, created_at: int, updated_at: int):
+    def __init__(
+        self, user_id: str, system: str, role_id: str, created_at: int, updated_at: int,
+        groups: Optional[List[str]] = None,
+    ):
         self.user_id = self._validate_str(user_id, "ID do usuário")
         self.system = self._validate_str(system, "Sistema")
         self.role_id = self._validate_str(role_id, "Role")
         self.created_at = self._validate_timestamp(created_at, label="criação")
         self.updated_at = self._validate_timestamp(updated_at, label="atualização")
+        self.groups = self._validate_groups(groups if groups is not None else [])
+
+    @staticmethod
+    def _validate_groups(groups: List[str]) -> List[str]:
+        if not isinstance(groups, list) or not all(isinstance(g, str) and g.strip() for g in groups):
+            raise EntityError("Grupos do vínculo devem ser uma lista de identificadores")
+        return list(dict.fromkeys(groups))
 
     @staticmethod
     def _validate_str(value: str, label: str) -> str:

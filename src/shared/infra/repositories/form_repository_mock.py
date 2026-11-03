@@ -352,8 +352,13 @@ class FormRepositoryMock(IFormRepository):
         system: str,
         limit: Optional[int] = None,
         exclusive_start_key: Optional[dict] = None,
+        groups: Optional[List[str]] = None,
     ) -> tuple[List[Form], Optional[str]]:
-        forms = [f for f in self.forms if f.system == system and f.possession == Possession.OPEN]
+        forms = [
+            f for f in self.forms
+            if f.system == system and f.possession == Possession.OPEN
+            and (groups is None or f.is_open_to_groups(groups))
+        ]
         forms = sorted(forms, key=lambda f: (-int(f.priority.value), f.created_at))
 
         start = self._parse_start_index(forms, exclusive_start_key)
@@ -364,6 +369,30 @@ class FormRepositoryMock(IFormRepository):
         page = forms[start:end]
         next_key = self._build_next_key(forms, end)
         return deepcopy(page), next_key
+
+    def pool_has_group(self, system: str, group_id: str) -> bool:
+        return any(
+            f.system == system and f.possession == Possession.OPEN and group_id in f.groups
+            for f in self.forms
+        )
+
+    def get_pool_changes(
+        self,
+        system: str,
+        updated_after: int,
+        limit: Optional[int] = None,
+        exclusive_start_key: Optional[dict] = None,
+    ) -> tuple[List[tuple[Form, bool]], Optional[str]]:
+        forms = [f for f in self.forms if f.system == system and (f.updated_at or 0) > updated_after]
+        forms = sorted(forms, key=lambda f: (f.updated_at, f.id))
+
+        start = self._parse_start_index(forms, exclusive_start_key)
+        end = len(forms) if limit is None else start + limit
+        page = forms[start:end]
+        next_key = None if limit is None else self._build_next_key(forms, end)
+        # Mesmo critério do pool no mock: sem dono é OPEN, então está no pool.
+        result = [(deepcopy(f), f.possession == Possession.OPEN) for f in page]
+        return result, next_key
 
     def has_forms_with_template(self, template_id: str) -> bool:
         return any(form.template == template_id for form in self.forms)

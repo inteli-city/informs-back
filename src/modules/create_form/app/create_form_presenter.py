@@ -12,7 +12,8 @@ file_repo = Environments.get_file_repo()
 template_repo = Environments.get_template_repo()
 system_config_repo = Environments.get_system_config_repo()
 access_control = AccessControl(Environments.get_profile_repo(), Environments.get_system_role_repo())
-usecase = CreateFormUsecase(repo, file_repo, template_repo, system_config_repo, access_control)
+group_repo = Environments.get_system_group_repo()
+usecase = CreateFormUsecase(repo, file_repo, template_repo, system_config_repo, access_control, group_repo)
 controller = CreateFormController(usecase)
 
 

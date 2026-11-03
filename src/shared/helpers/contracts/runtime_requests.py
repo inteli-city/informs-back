@@ -10,7 +10,13 @@ from src.shared.helpers.contracts.endpoints.create_form_contract import CreateFo
 from src.shared.helpers.contracts.endpoints.create_template_contract import CreateTemplateRequestSchema
 from src.shared.helpers.contracts.endpoints.plan_route_contract import PlanRouteRequestSchema
 from src.shared.helpers.contracts.endpoints.profile_contract import CreateProfileRequestSchema
-from src.shared.helpers.contracts.endpoints.system_access_contract import PutSystemUserRequestSchema, SystemRoleRequestSchema
+from src.shared.helpers.contracts.endpoints.system_access_contract import (
+    CreateSystemGroupRequestSchema,
+    PutSystemUserGroupsRequestSchema,
+    PutSystemUserRequestSchema,
+    SystemRoleRequestSchema,
+    UpdateSystemGroupRequestSchema,
+)
 from src.shared.helpers.contracts.endpoints.refresh_presign_contract import RefreshPresignRequestSchema
 from src.shared.helpers.contracts.endpoints.start_form_contract import StartFormRequestSchema
 from src.shared.helpers.contracts.endpoints.submit_form_contract import SubmitFormFieldFlatSchema, SubmitFormRequestSchema
@@ -226,8 +232,10 @@ class GetAllFormsControllerRequestSchema(RequestContractModel):
     created_at_end: int | None = None
     exclusive_start_key: str | None = None
     scope: str = Field(default="mine", pattern="^(mine|pool|all)$")
+    # Epoch em milissegundos. Sem ele, a consulta é a de sempre; com ele, só o que mudou depois desse instante.
+    updated_after: int | None = None
 
-    @field_validator("limit", "created_at_start", "created_at_end", mode="before")
+    @field_validator("limit", "created_at_start", "created_at_end", "updated_after", mode="before")
     @classmethod
     def _parse_optional_int(cls, value: Any) -> Any:
         if value is None:
@@ -276,3 +284,31 @@ class GetAllTemplatesControllerRequestSchema(RequestContractModel):
         if not isinstance(value, int):
             raise ValueError("int")
         return value
+
+
+class GetSystemGroupsControllerRequestSchema(RequestContractModel):
+    requester_user: RequesterUserSchema
+    system: str
+
+
+class CreateSystemGroupControllerRequestSchema(CreateSystemGroupRequestSchema):
+    requester_user: RequesterUserSchema
+    system: str
+
+
+class UpdateSystemGroupControllerRequestSchema(UpdateSystemGroupRequestSchema):
+    requester_user: RequesterUserSchema
+    system: str
+    group_id: str
+
+
+class DeleteSystemGroupControllerRequestSchema(RequestContractModel):
+    requester_user: RequesterUserSchema
+    system: str
+    group_id: str
+
+
+class PutSystemUserGroupsControllerRequestSchema(PutSystemUserGroupsRequestSchema):
+    requester_user: RequesterUserSchema
+    system: str
+    user_id: str
