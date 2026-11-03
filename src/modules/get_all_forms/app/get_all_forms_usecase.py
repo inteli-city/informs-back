@@ -114,9 +114,19 @@ class GetAllFormsUsecase:
                 limit=effective_limit,
                 exclusive_start_key=start_key,
             )
+            # Mesmo critério da listagem do pool (ADR-0022): OS aberta de grupo alheio, ou de quem já saiu
+            # do grupo, não pode voltar como formulário. Entra como marcador, então a paginação não muda.
+            # Sem `access_control` (como na listagem), não há como decidir grupo, e nada é convertido.
+            groups = (
+                self.access_control.groups_in(requester.user_id, systems_to_use[0])
+                if self.access_control is not None else None
+            )
             return GetAllFormsDelta(
                 forms=[form for form, _ in pairs],
-                in_pool=[in_pool for _, in_pool in pairs],
+                in_pool=[
+                    in_pool and (groups is None or form.is_open_to_groups(groups))
+                    for form, in_pool in pairs
+                ],
                 next_key=next_key,
                 server_time=server_time,
             )
