@@ -149,18 +149,20 @@ class TestRegressaoSemDelta:
         response = _call(repo)
 
         assert response.status_code == 200
-        assert set(response.body.keys()) == {"forms", "limit", "last_evaluated_key"}
+        # `server_time` passou a vir em toda resposta (INF-SRVTIME); o resto do corpo continua o de hoje.
+        assert set(response.body.keys()) == {"forms", "limit", "last_evaluated_key", "server_time"}
         assert len(response.body["forms"]) == 2
         for form in response.body["forms"]:
             assert "removed_from_pool" not in form
+        corpo = {k: v for k, v in response.body.items() if k != "server_time"}
         # Referência: a viewmodel de hoje, sem os argumentos do delta, sobre os mesmos formulários.
         referencia = GetAllFormsViewmodel(forms=repo.forms, limit=POOL_DEFAULT_LIMIT, last_evaluated_key=None).to_dict()
-        assert response.body == referencia
+        assert corpo == {k: v for k, v in referencia.items() if k != "server_time"}
 
-    def test_sem_updated_after_nao_ha_server_time(self):
+    def test_sem_updated_after_ha_server_time_inteiro(self):
         response = _call(_repo(_form(updated_at=200)))
 
-        assert "server_time" not in response.body
+        assert isinstance(response.body["server_time"], int)
 
 
 class TestServerTime:

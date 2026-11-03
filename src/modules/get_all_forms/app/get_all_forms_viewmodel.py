@@ -103,7 +103,8 @@ class GetAllFormsViewmodel:
         self.forms = forms
         self.limit = limit
         self.last_evaluated_key = last_evaluated_key
-        # `server_time` e `in_pool` só existem na consulta incremental. Sem eles, o corpo é o de sempre.
+        # `server_time` vem da controller em toda resposta. Sem ele (chamada que não o informa), o campo sai do
+        # corpo em vez de virar `null`. `in_pool` só existe na consulta incremental.
         self.server_time = server_time
         self.in_pool = in_pool
 
@@ -120,6 +121,6 @@ class GetAllFormsViewmodel:
         }
         if self.server_time is not None:
             payload["server_time"] = self.server_time
-        # Sem consulta incremental, `server_time` fica fora do corpo (e não vira `null`).
+        # Sem `server_time` informado, o campo fica fora do corpo (e não vira `null`).
         excluded = None if self.server_time is not None else {"server_time"}
         return GetAllFormsResponseSchema.model_validate(payload).model_dump(exclude=excluded)
