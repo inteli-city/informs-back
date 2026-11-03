@@ -3,7 +3,7 @@ services:
     image: amazon/dynamodb-local:latest
     container_name: dynamodb-local
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     command: "-jar DynamoDBLocal.jar -sharedDb"
     networks:
       - formularios-network
@@ -18,7 +18,7 @@ services:
     image: aaronshaf/dynamodb-admin:latest
     container_name: dynamodb-admin
     ports:
-      - "8001:8001"
+      - "127.0.0.1:8001:8001"
     environment:
       - DYNAMO_ENDPOINT=http://dynamodb-local:8000
       - AWS_REGION=sa-east-1
@@ -28,16 +28,16 @@ services:
     networks:
       - formularios-network
 
-  localstack:
-    # Fixado na 4.9, a última imagem comunitária: a partir da 2026.x a `latest`
-    # exige conta e LOCALSTACK_AUTH_TOKEN, e o container sai com exit 55 sem ela.
-    image: localstack/localstack:4.9
-    container_name: localstack
+  floci:
+    # Emulador de S3 (fotos por URL assinada) no lugar do LocalStack, que passou a exigir conta.
+    # Tag fixa, nunca `latest`. O DynamoDB continua no DynamoDB Local (código da própria AWS).
+    # Só no loopback: o emulador aceita qualquer credencial.
+    image: floci/floci:2.4.0
+    container_name: floci
     ports:
-      - "4566:4566"
+      - "127.0.0.1:4566:4566"
     environment:
-      - SERVICES=s3
-      - DEFAULT_REGION=sa-east-1
+      - FLOCI_DEFAULT_REGION=sa-east-1
     networks:
       - formularios-network
 
