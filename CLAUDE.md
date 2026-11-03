@@ -19,7 +19,7 @@ pytest tests/modules/cancel_form/app/test_cancel_form_controller.py
 pytest tests/modules/cancel_form/app/test_cancel_form_controller.py::TestClass::test_method
 
 # Local development (requires Docker)
-cd iac && make local-bootstrap      # spin up DynamoDB local + LocalStack, create tables
+cd iac && make local-bootstrap      # spin up DynamoDB local + Floci, create tables
 cd iac && make local-api            # build Lambda layer + start SAM local API
 cd iac && make local-api-no-build   # start SAM local API without rebuilding
 cd iac && make local-down           # tear down Docker containers
@@ -72,7 +72,7 @@ Presenter  (lambda_handler — extracts Cognito claims, builds HttpRequest, retu
 - `app.py` — CDK app entry point
 - `iac/iac_stack.py` — API Gateway, Cognito, S3, IAM
 - `iac/lambda_stack.py` — all Lambda functions, routes, and environment variables
-- `local/` — Docker Compose for DynamoDB-local + LocalStack, bootstrap script, env templates
+- `local/` — Docker Compose for DynamoDB-local + Floci, bootstrap script, env templates
 
 ### DynamoDB
 
