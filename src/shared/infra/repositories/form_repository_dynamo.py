@@ -509,6 +509,46 @@ class FormRepositoryDynamo(IFormRepository):
         next_key = start_key if use_dynamo_limit else None
         return forms, encode_pagination_token(next_key)
 
+    def get_pool_changes(
+        self,
+        system: str,
+        updated_after: int,
+        limit: Optional[int] = None,
+        exclusive_start_key: Optional[dict] = None,
+    ) -> Tuple[List[Tuple[Form, bool]], Optional[str]]:
+        # Estritamente maior: a chave começa em `updated_after + 1`. A chave de GSI2 tem o instante antes do
+        # id, então `updated_at#<T+1>#form#` pega exatamente as OS com instante maior que T, sem trazer as que
+        # foram gravadas no próprio milissegundo T.
+        start_key = self.form_gsi2_sort_key_format(updated_at=int(updated_after) + 1, form_id="")
+        query_kwargs = {
+            "key_condition_expression": Key("GSI2PK").eq(self.form_gsi2_partition_key_format(system))
+            & Key("GSI2SK").gte(start_key),
+            "IndexName": "SystemUpdatedAtIndex",
+            "Select": "ALL_ATTRIBUTES",
+            "ScanIndexForward": True,
+        }
+
+        use_dynamo_limit = limit is not None
+        items: List[dict] = []
+        page_start_key = exclusive_start_key
+        while True:
+            if not self._apply_pagination_kwargs(query_kwargs, items, page_start_key, limit, use_dynamo_limit):
+                break
+            resp = self.dynamo.query(**query_kwargs)
+            items.extend(resp.get("Items", []))
+            page_start_key = resp.get("LastEvaluatedKey")
+            if page_start_key is None:
+                break
+
+        # Continua no pool quando a linha ainda tem a chave de GSI3 (a mesma que o pool consulta). Assumir ou
+        # concluir a OS remove essa chave (claim_form, update_form), então a presença dela é o critério.
+        pool_partition = self.form_gsi3_partition_key_format(system)
+        result = [
+            (FormDynamoDTO.from_dynamo(item).to_entity(), item.get("GSI3PK") == pool_partition)
+            for item in items
+        ]
+        return result, encode_pagination_token(page_start_key)
+
     def has_forms_with_template(self, template_id: str) -> bool:
         resp = self.dynamo.query(
             key_condition_expression=Key("GSI4PK").eq(self.form_gsi4_partition_key_format(template_id)),

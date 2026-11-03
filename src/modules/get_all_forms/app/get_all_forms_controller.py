@@ -44,6 +44,18 @@ class GetAllFormsController:
             return [system_raw]
         raise WrongTypeParameter("system", "list[str]", type(system_raw))
 
+    def _validate_updated_after(self, payload: GetAllFormsControllerRequestSchema):
+        updated_after = payload.updated_after
+        if updated_after is None:
+            return None
+        if updated_after < 0:
+            raise EntityError(f"Parâmetro 'updated_after' deve ser um inteiro maior ou igual a 0 (epoch em milissegundos), recebido: {updated_after}")
+        if payload.scope == "all":
+            raise EntityError("'updated_after' não é aceito com scope=all")
+        if payload.search is not None:
+            raise EntityError("'updated_after' não é aceito junto com 'search'")
+        return updated_after
+
     def _validate_endpoint_parameters(self, payload: GetAllFormsControllerRequestSchema):
         limit = payload.limit
         if limit is not None and (limit < 1 or limit > 10000):
@@ -85,6 +97,26 @@ class GetAllFormsController:
             # percebe que recebeu só a primeira página.
             if payload.scope == "pool" and limit is None:
                 limit = POOL_DEFAULT_LIMIT
+
+            # Consulta incremental: resposta com `server_time` e marcador para a OS que saiu do pool.
+            updated_after = self._validate_updated_after(payload)
+            if updated_after is not None:
+                delta = self.usecase.get_changes(
+                    requester=requester_user,
+                    limit=limit,
+                    exclusive_start_key=exclusive_start_key,
+                    system=system,
+                    updated_after=updated_after,
+                    scope=payload.scope,
+                )
+                viewmodel = GetAllFormsViewmodel(
+                    forms=delta.forms,
+                    limit=limit,
+                    last_evaluated_key=delta.next_key,
+                    server_time=delta.server_time,
+                    in_pool=delta.in_pool,
+                )
+                return OK(viewmodel.to_dict())
 
             forms, next_key = self.usecase(
                 requester=requester_user,
