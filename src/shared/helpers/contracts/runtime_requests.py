@@ -232,8 +232,10 @@ class GetAllFormsControllerRequestSchema(RequestContractModel):
     created_at_end: int | None = None
     exclusive_start_key: str | None = None
     scope: str = Field(default="mine", pattern="^(mine|pool|all)$")
+    # Epoch em milissegundos. Sem ele, a consulta é a de sempre; com ele, só o que mudou depois desse instante.
+    updated_after: int | None = None
 
-    @field_validator("limit", "created_at_start", "created_at_end", mode="before")
+    @field_validator("limit", "created_at_start", "created_at_end", "updated_after", mode="before")
     @classmethod
     def _parse_optional_int(cls, value: Any) -> Any:
         if value is None:

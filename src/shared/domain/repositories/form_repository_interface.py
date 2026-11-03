@@ -113,6 +113,20 @@ class IFormRepository(ABC):
         pass
 
     @abstractmethod
+    def get_pool_changes(
+        self,
+        system: str,
+        updated_after: int,
+        limit: Optional[int] = None,
+        exclusive_start_key: Optional[dict] = None,
+    ) -> Tuple[List[Tuple[Form, bool]], Optional[str]]:
+        """OS do `system` com `updated_at` estritamente maior que `updated_after`, em ordem crescente de
+        `updated_at`, pelo `SystemUpdatedAtIndex` (GSI2). Cada OS vem com o flag "continua no pool": é o
+        mesmo critério do pool (GSI3), então uma OS que saiu do pool volta com `False` e sem os demais campos
+        quando a apresentação for montada."""
+        pass
+
+    @abstractmethod
     def has_forms_with_template(self, template_id: str) -> bool:
         """Algum formulário (de qualquer status) nasceu deste template? Decide
         se o template ainda pode ser editado sem criar uma nova versão."""

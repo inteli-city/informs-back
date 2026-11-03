@@ -564,3 +564,49 @@ class TestFormRepositoryDynamoPool:
         assert len(forms) == 1
         assert next_key is None
         assert repo.dynamo.query_kwargs["IndexName"] == "PoolIndex"
+
+
+def test_form_repository_dynamo_get_pool_changes_consulta_o_gsi2_em_ordem_crescente():
+    # O delta do pool sai do índice do sistema (GSI2), não do GSI3: é ali que as OS que saíram do pool
+    # continuam aparecendo, com a data da mudança.
+    repo, form, item = _make_repo_with_item()
+    repo.dynamo.query_response = {"Items": [item], "LastEvaluatedKey": None}
+
+    pairs, next_key = repo.get_pool_changes(system=form.system, updated_after=100, limit=10)
+
+    assert next_key is None
+    assert repo.dynamo.query_kwargs["IndexName"] == "SystemUpdatedAtIndex"
+    assert repo.dynamo.query_kwargs["ScanIndexForward"] is True
+    assert "FilterExpression" not in repo.dynamo.query_kwargs
+    # O limite inferior é `updated_at#<T+1>#form#`: T é o instante já entregue e não volta.
+    esperado = FormRepositoryDynamo.form_gsi2_sort_key_format(updated_at=101, form_id="")
+    condicao_sort = repo.dynamo.query_kwargs["key_condition_expression"].get_expression()["values"][1]
+    limite_inferior = condicao_sort.get_expression()["values"][1]
+    assert limite_inferior == esperado
+
+
+def test_form_repository_dynamo_get_pool_changes_marca_quem_continua_no_pool():
+    repo, form, item = _make_repo_with_item()
+    no_pool = dict(item, GSI3PK=f"pool#{form.system}")
+    fora_do_pool = {k: v for k, v in item.items() if not k.startswith("GSI3")}
+    repo.dynamo.query_response = {"Items": [no_pool, fora_do_pool], "LastEvaluatedKey": None}
+
+    pairs, _ = repo.get_pool_changes(system=form.system, updated_after=100, limit=10)
+
+    assert [in_pool for _, in_pool in pairs] == [True, False]
+
+
+def test_form_repository_dynamo_get_pool_changes_segue_o_cursor_do_dynamo():
+    repo, form, item = _make_repo_with_item()
+    cursor = {"PK": f"form#{form.id}", "SK": "METADATA"}
+    repo.dynamo.query_responses = [
+        {"Items": [item], "LastEvaluatedKey": cursor},
+        {"Items": [item], "LastEvaluatedKey": None},
+    ]
+
+    pairs, next_key = repo.get_pool_changes(system=form.system, updated_after=100, limit=2)
+
+    assert len(pairs) == 2
+    assert next_key is None
+    assert len(repo.dynamo.query_calls) == 2
+    assert repo.dynamo.query_calls[1]["ExclusiveStartKey"] == cursor
