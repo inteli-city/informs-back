@@ -6,7 +6,7 @@ Roda os handlers reais de `sync_forms_origin` e `sync_forms_origin_callback` con
 conexão para host que não seja local: uma guarda monta a URL de cada origem antes de qualquer cenário
 e aborta com exit 2 se alguma sair de localhost. Não usa segredo nem AWS real.
 
-Uso (com o DynamoDB Local e o LocalStack de pé):
+Uso (com o DynamoDB Local e o Floci de pé):
     python iac/local/e2e_sync_uberlandia.py --saida DIR
     python iac/local/e2e_sync_uberlandia.py --so-guarda --sem-sobrescrita-de gaia   # prova que a guarda recusa
 
@@ -29,7 +29,7 @@ from types import SimpleNamespace
 from typing import Any
 from urllib.parse import urlsplit
 
-# Antes de qualquer `src.*`: o `local_env` põe o endpoint local (DynamoDB e LocalStack) no ambiente.
+# Antes de qualquer `src.*`: o `local_env` põe o endpoint local (DynamoDB e Floci) no ambiente.
 import local_env  # noqa: F401
 from saida_e2e import pasta_de_saida
 

@@ -116,7 +116,7 @@ def _upload_image(key: str, rgb: tuple) -> str:
     s3 = boto3.client("s3", endpoint_url=envs.s3_endpoint_url, region_name=envs.region)
     s3.put_object(
         Bucket=envs.bucket_name, Key=key, Body=_png(rgb), ContentType="image/png",
-        ExpectedBucketOwner=local_env.LOCALSTACK_ACCOUNT_ID,
+        ExpectedBucketOwner=local_env.LOCAL_ACCOUNT_ID,
     )
     return build_s3_url(key)
 
