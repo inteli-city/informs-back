@@ -12,7 +12,7 @@ tanto o id_token de um login real no Gates quanto o token falso que o modo
 de login local do front gera. Por isso ela só sobe em endereço de loopback
 (`127.0.0.1`, `::1`, `localhost`): `--host 0.0.0.0` é recusado.
 
-Uso (com DynamoDB Local e LocalStack de pé — ver `iac/LOCAL_SETUP.md`):
+Uso (com DynamoDB Local e Floci de pé — ver `iac/LOCAL_SETUP.md`):
 
     python iac/local/local_api.py            # http://127.0.0.1:4010/mss-formularios
     python iac/local/local_api.py --port 4011

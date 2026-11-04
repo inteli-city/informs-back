@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sobe e prepara o ambiente local: DynamoDB Local, LocalStack (S3), tabelas e bucket.
+"""Sobe e prepara o ambiente local: DynamoDB Local, Floci (S3), tabelas e bucket.
 
     python iac/local/bootstrap_local.py              # sobe e cria o que faltar
     python iac/local/bootstrap_local.py --reset-db   # recria as tabelas (apaga os dados)
@@ -67,7 +67,7 @@ def _ensure_bucket() -> None:
     # volta pela URL do objeto: sem CORS o navegador bloqueia as duas coisas.
     s3.put_bucket_cors(
         Bucket=envs.bucket_name,
-        ExpectedBucketOwner=local_env.LOCALSTACK_ACCOUNT_ID,
+        ExpectedBucketOwner=local_env.LOCAL_ACCOUNT_ID,
         CORSConfiguration={
             "CORSRules": [{
                 "AllowedOrigins": ["*"],
@@ -93,7 +93,7 @@ def main() -> int:
 
         dynamo = boto3.client("dynamodb", endpoint_url=envs.endpoint_url, region_name=envs.region)
         _wait("DynamoDB Local", dynamo.list_tables)
-        _wait("LocalStack", lambda: urllib.request.urlopen(f"{envs.s3_endpoint_url}/_localstack/health", timeout=2))
+        _wait("Floci", lambda: urllib.request.urlopen(f"{envs.s3_endpoint_url}/_floci/health", timeout=2))
 
         tables_command = [sys.executable, str(LOCAL_DIR / "create_dynamodb_tables.py")]
         if args.reset_db:
