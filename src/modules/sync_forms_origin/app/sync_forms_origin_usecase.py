@@ -5,7 +5,7 @@ from uuid import uuid4
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Tuple
 
 from src.shared.infra.dtos.form_dynamo_dto import FormDynamoDTO
 from src.shared.domain.entities.sync_error_form import SyncErrorForm
@@ -35,10 +35,15 @@ class SyncExecutionMetrics:
     status_code_counts: Optional[Dict[str, int]] = None
     response_tails_80_sample: Optional[List[str]] = None
     errors: Optional[List[str]] = None
+    # True quando a execução parou antes do fim da janela, por falta de tempo (INF-BE-SYNC-HORA).
+    partial: bool = False
 
 
 class SyncFormsOriginUsecase:
     JOB_NAME = "sync_forms_origin"
+    # Abaixo disso de tempo restante, a execução para depois do lote em curso (a Lambda tem 900 s e morre sem
+    # gravar checkpoint se for pega no meio). Sessenta segundos cobrem um lote e a gravação do estado.
+    MIN_REMAINING_MS = 60_000
 
     def __init__(
         self,
@@ -90,6 +95,15 @@ class SyncFormsOriginUsecase:
         return value
 
     @staticmethod
+    def _progress_of(state: Optional[SyncState]) -> Optional[Tuple[int, str]]:
+        if state is None or state.progress_updated_at is None or state.progress_form_id is None:
+            return None
+        return state.progress_updated_at, state.progress_form_id
+
+    def _sem_tempo_para_o_proximo_lote(self, remaining_time_ms: Optional[Callable[[], int]]) -> bool:
+        return remaining_time_ms is not None and remaining_time_ms() < self.MIN_REMAINING_MS
+
+    @staticmethod
     def _fingerprint(value) -> Optional[str]:
         if value is None:
             return None
@@ -107,6 +121,7 @@ class SyncFormsOriginUsecase:
         page_size: int,
         full_sync_on_first_run: bool = False,
         logger=None,
+        remaining_time_ms: Optional[Callable[[], int]] = None,
     ) -> List[SyncExecutionMetrics]:
         now_at = int(time.time() * 1000)
         bootstrap_window = bootstrap_window_minutes * 60 * 1000
@@ -125,7 +140,12 @@ class SyncFormsOriginUsecase:
             previous_state = self.sync_state_repo.get_state(self.JOB_NAME, system)
             previous_synced_at = previous_state.checkpoint_synced_at if previous_state is not None else None
             is_first_sync = previous_state is None
-            if previous_synced_at is None:
+            progress = self._progress_of(previous_state)
+            if progress is not None:
+                # Execução anterior parou no meio: a janela começa no instante do último formulário tratado
+                # (inclusive); os que empatam nesse instante e já foram tratados são pulados por id.
+                sync_started_at = progress[0]
+            elif previous_synced_at is None:
                 if full_sync_on_first_run:
                     previous_synced_at = 0
                     sync_started_at = 0
@@ -137,6 +157,7 @@ class SyncFormsOriginUsecase:
             sync_ended_at = now_at
             start_key = None
             execution_id = str(uuid4())
+            current_progress = progress
 
             self.sync_state_repo.set_state(
                 SyncState(
@@ -149,6 +170,8 @@ class SyncFormsOriginUsecase:
                     ended_at=None,
                     window_end=sync_ended_at,
                     updated_at=now_at,
+                    progress_updated_at=progress[0] if progress else None,
+                    progress_form_id=progress[1] if progress else None,
                 )
             )
 
@@ -307,11 +330,55 @@ class SyncFormsOriginUsecase:
                         },
                     )
 
-                for form in batch:
+                # Já tratados numa execução anterior: os que empatam no instante do progresso e têm id menor
+                # ou igual ao último tratado. Quem vem depois do progresso é mandado.
+                pending_batch = [
+                    form for form in batch
+                    if progress is None or (form.updated_at, form.id) > progress
+                ]
+                for form in pending_batch:
                     processed_form_ids.add(form.id)
-                process_batch(batch)
+                process_batch(pending_batch)
+
+                # Checkpoint por lote: o progresso só avança. Um lote só com formulários já tratados não o
+                # move para trás.
+                if batch:
+                    last = batch[-1]
+                    if current_progress is None or (last.updated_at, last.id) > current_progress:
+                        current_progress = (last.updated_at, last.id)
+                        self.sync_state_repo.set_state(
+                            SyncState(
+                                job_name=self.JOB_NAME,
+                                system=system,
+                                checkpoint_synced_at=previous_synced_at,
+                                status="RUNNING",
+                                execution_id=execution_id,
+                                started_at=now_at,
+                                ended_at=None,
+                                window_end=sync_ended_at,
+                                updated_at=int(time.time() * 1000),
+                                progress_updated_at=current_progress[0],
+                                progress_form_id=current_progress[1],
+                            )
+                        )
 
                 if not next_key:
+                    break
+
+                # Pouco tempo e ainda há páginas: para aqui, depois do lote que acabou de sair.
+                if self._sem_tempo_para_o_proximo_lote(remaining_time_ms):
+                    result.partial = True
+                    if logger:
+                        logger.warning(
+                            "sync stopped before the end of the window: low remaining time",
+                            extra={
+                                "system": system,
+                                "origin_system": origin_system,
+                                "execution_id": execution_id,
+                                "progress_updated_at": current_progress[0] if current_progress else None,
+                                "progress_form_id": current_progress[1] if current_progress else None,
+                            },
+                        )
                     break
 
                 start_key = try_decode_pagination_token(next_key)
@@ -329,7 +396,10 @@ class SyncFormsOriginUsecase:
                     break
                 page += 1
 
-            pending_error_forms = self.sync_error_form_repo.list_error_forms(self.JOB_NAME, system)
+            # Parcial: a janela não terminou, então a tabela de erros fica para a execução que terminar.
+            pending_error_forms = (
+                [] if result.partial else self.sync_error_form_repo.list_error_forms(self.JOB_NAME, system)
+            )
             pending_forms_to_retry = []
             for pending_error in pending_error_forms:
                 if pending_error.form_id in processed_form_ids:
@@ -349,20 +419,34 @@ class SyncFormsOriginUsecase:
 
             total_loaded += len(pending_forms_to_retry)
             for idx in range(0, len(pending_forms_to_retry), page_size):
+                # Sem tempo para a repetição: a janela já está inteira, e o que sobrou continua na tabela de erros.
+                if self._sem_tempo_para_o_proximo_lote(remaining_time_ms):
+                    if logger:
+                        logger.warning(
+                            "error retry stopped: low remaining time; rest stays in the error table",
+                            extra={"system": system, "execution_id": execution_id},
+                        )
+                    break
                 process_batch(pending_forms_to_retry[idx : idx + page_size])
 
-            result.new_synced_at = sync_ended_at
+            if result.partial:
+                checkpoint, progress_to_keep = previous_synced_at, current_progress
+            else:
+                checkpoint, progress_to_keep = sync_ended_at, None
+            result.new_synced_at = checkpoint
             self.sync_state_repo.set_state(
                 SyncState(
                     job_name=self.JOB_NAME,
                     system=system,
-                    checkpoint_synced_at=sync_ended_at,
+                    checkpoint_synced_at=checkpoint,
                     status="COMPLETED",
                     execution_id=execution_id,
                     started_at=now_at,
                     ended_at=int(time.time() * 1000),
                     window_end=sync_ended_at,
                     updated_at=int(time.time() * 1000),
+                    progress_updated_at=progress_to_keep[0] if progress_to_keep else None,
+                    progress_form_id=progress_to_keep[1] if progress_to_keep else None,
                 )
             )
             result.pages_loaded = page
@@ -384,6 +468,7 @@ class SyncFormsOriginUsecase:
                         "execution_id": execution_id,
                         "previous_synced_at": result.previous_synced_at,
                         "new_synced_at": result.new_synced_at,
+                        "partial": result.partial,
                         "errors_count": len(result.errors),
                         "response_tails_80_sample": result.response_tails_80_sample,
                     },

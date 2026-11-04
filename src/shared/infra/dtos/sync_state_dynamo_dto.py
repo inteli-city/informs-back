@@ -26,6 +26,8 @@ class SyncStateDynamoDTO:
                 ended_at=int(item["ended_at"]) if item.get("ended_at") is not None else None,
                 window_end=int(item["window_end"]) if item.get("window_end") is not None else None,
                 updated_at=int(item["updated_at"]),
+                progress_updated_at=int(item["progress_updated_at"]) if item.get("progress_updated_at") is not None else None,
+                progress_form_id=item.get("progress_form_id"),
             )
         )
 
@@ -38,6 +40,8 @@ class SyncStateDynamoDTO:
             "ended_at": self.state.ended_at,
             "window_end": self.state.window_end,
             "updated_at": self.state.updated_at,
+            "progress_updated_at": self.state.progress_updated_at,
+            "progress_form_id": self.state.progress_form_id,
         }
 
     def to_entity(self) -> SyncState:
