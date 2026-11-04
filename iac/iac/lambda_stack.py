@@ -399,7 +399,9 @@ class LambdaStack(Construct):
                 **environment_variables,
                 "APEX_SYNC_ENABLED_ORIGINS": apex_sync_enabled_origins,
             },
-            timeout=Duration.seconds(60),
+            # Com a execução de hora em hora, uma rodada com ~1 h de acúmulo (ou a carga inicial) não cabe em 60 s.
+            # O checkpoint por lote deixa a próxima continuar do ponto; 900 s é o teto da Lambda.
+            timeout=Duration.seconds(900),
             tracing=lambda_.Tracing.ACTIVE,
             log_retention=logs.RetentionDays.ONE_MONTH,
         )
@@ -423,7 +425,7 @@ class LambdaStack(Construct):
         self.sync_forms_origin_schedule = scheduler.CfnSchedule(
             self,
             "SyncFormsOriginEventBridgeScheduler",
-            schedule_expression="rate(5 minutes)",
+            schedule_expression="rate(1 hour)",
             flexible_time_window=scheduler.CfnSchedule.FlexibleTimeWindowProperty(
                 mode="OFF",
             ),
@@ -432,7 +434,7 @@ class LambdaStack(Construct):
                 role_arn=self.sync_forms_origin_scheduler_role.role_arn,
                 input='{"trigger":"eventbridge-scheduler","job":"sync_forms_origin"}',
             ),
-            description="Runs sync_forms_origin every 5 minutes",
+            description="Runs sync_forms_origin every hour",
             state="ENABLED",
         )
 
