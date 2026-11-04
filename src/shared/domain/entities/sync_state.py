@@ -13,6 +13,10 @@ class SyncState:
     ended_at: Optional[int]
     window_end: Optional[int]
     updated_at: int
+    # Último formulário já tratado pela execução (INF-BE-SYNC-HORA): a próxima recomeça depois dele, no par
+    # (updated_at, id). Ausente em estados antigos, que continuam do checkpoint.
+    progress_updated_at: Optional[int]
+    progress_form_id: Optional[str]
 
     VALID_STATUS = {"IDLE", "RUNNING", "COMPLETED", "FAILED"}
 
@@ -27,6 +31,8 @@ class SyncState:
         ended_at: Optional[int],
         window_end: Optional[int],
         updated_at: int,
+        progress_updated_at: Optional[int] = None,
+        progress_form_id: Optional[str] = None,
     ):
         if not isinstance(job_name, str) or not job_name:
             raise EntityError("job_name")
@@ -58,6 +64,15 @@ class SyncState:
         if not isinstance(updated_at, int):
             raise EntityError("updated_at")
         self.updated_at = updated_at
+
+        if (progress_updated_at is None) != (progress_form_id is None):
+            raise EntityError("progresso precisa de updated_at e id juntos")
+        if progress_updated_at is not None and not isinstance(progress_updated_at, int):
+            raise EntityError("progress_updated_at")
+        if progress_form_id is not None and (not isinstance(progress_form_id, str) or not progress_form_id):
+            raise EntityError("progress_form_id")
+        self.progress_updated_at = progress_updated_at
+        self.progress_form_id = progress_form_id
 
     @staticmethod
     def make_pk(job_name: str, system: str) -> str:
