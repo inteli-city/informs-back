@@ -59,7 +59,7 @@ class TestLoginProfileController:
         assert response.body["just_created"] is False
         assert response.body["super_admin"] is False
         assert response.body["systems"] == [
-            {"system": "GAIA", "role_id": MOCK_TECNICO_ROLE_ID, "role_name": "Técnico", "actions": ["tracking.start"]},
+            {"system": "GAIA", "role_id": MOCK_TECNICO_ROLE_ID, "role_name": "Técnico", "actions": ["forms.create", "tracking.start"]},
         ]
 
     def test_first_login_creates_profile_and_joins_with_default_role(self):
