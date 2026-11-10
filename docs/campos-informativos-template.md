@@ -1,5 +1,7 @@
 # Campos informativos exigidos por template
 
+Decisão e consequências: [ADR-0024](adr/0024-campos-informativos-exigidos-por-template.md).
+
 O template pode declarar `information_fields` para orientar e validar as informações entregues por quem cria o formulário. Esses campos são distintos das seções preenchidas pelo executor. Templates anteriores não possuem exigências e continuam funcionando.
 
 Exemplo no corpo de `POST /templates` ou `PUT /templates/{id}`, junto aos demais campos do template:
