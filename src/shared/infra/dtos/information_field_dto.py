@@ -74,6 +74,12 @@ class InformationFieldDTO():
         return InformationFieldDTO(information_field)
 
     def to_dynamo(self) -> dict:
+        payload = self._to_dynamo_value()
+        if getattr(self.information_field, "key", None) is not None:
+            payload["key"] = self.information_field.key
+        return payload
+
+    def _to_dynamo_value(self) -> dict:
         if isinstance(self.information_field, TextInformationField):
             return {
                 "information_field_type": self.information_field.information_field_type.value,
@@ -103,6 +109,13 @@ class InformationFieldDTO():
     
     @staticmethod
     def from_dynamo(information_field_dict: dict) -> "InformationFieldDTO":
+        dto = InformationFieldDTO._from_dynamo_value(information_field_dict)
+        if information_field_dict.get("key") is not None:
+            dto.information_field.key = information_field_dict["key"]
+        return dto
+
+    @staticmethod
+    def _from_dynamo_value(information_field_dict: dict) -> "InformationFieldDTO":
         if information_field_dict.get('information_field_type') is None:
             raise MissingParameters('information_field_type')
         

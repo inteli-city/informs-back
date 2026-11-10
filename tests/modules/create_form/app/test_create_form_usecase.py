@@ -375,3 +375,30 @@ class TestCreateFormUsecaseAppConfig:
 
         with pytest.raises(ForbiddenAction):
             usecase(**self._payload("user-sem-perfil", "user-sem-perfil"))
+
+
+def test_template_requires_keyed_information_image_before_creating():
+    usecase, payload, templates = _make_usecase_and_payload()
+    template = templates.templates[0]
+    template.information_fields = [{"key": "evidencia", "label": "Evidência", "information_field_type": "FILE_INFORMATION_FIELD", "required": True, "file_type": "IMAGE"}]
+    payload.update(template=template.id, sections=[], information_fields=[])
+    with pytest.raises(EntityError, match="obrigatório"):
+        usecase(**payload)
+    wrong = FileInformationField(file_path="")
+    wrong.key = "evidencia"
+    payload.update(information_fields=[wrong], information_fields_uploads=[FileUploadRequest(filename="x.pdf", mimetype="application/pdf")])
+    with pytest.raises(EntityError, match="Tipo de arquivo"):
+        usecase(**payload)
+    payload["information_fields_uploads"] = [FileUploadRequest(filename="x.jpg", mimetype="image/jpeg")]
+    form, uploads = usecase(**payload)
+    assert form.information_fields[0].key == "evidencia"
+    assert len(uploads) == 1
+
+
+def test_keyed_information_fields_survive_dynamo_round_trip():
+    from src.shared.infra.dtos.information_field_dto import InformationFieldDTO
+    field = TextInformationField("texto")
+    field.key = "observacao_gestor"
+    stored = InformationFieldDTO.from_entity(field).to_dynamo()
+    assert InformationFieldDTO.from_dynamo(stored).to_entity().key == "observacao_gestor"
+    assert not hasattr(InformationFieldDTO.from_dynamo({"information_field_type": "TEXT_INFORMATION_FIELD", "value": "legado"}).to_entity(), "key")

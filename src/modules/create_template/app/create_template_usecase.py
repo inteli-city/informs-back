@@ -36,6 +36,7 @@ class CreateTemplateUsecase:
         sections: List[Section],
         requester_systems: Optional[List[str]] = None,
         justification_options: Optional[List[JustificationOption]] = None,
+        information_fields: Optional[list] = None,
     ) -> Template:
         if requester_systems is not None and system not in requester_systems:
             raise ForbiddenAction("Usuário não tem permissão para acessar este sistema")
@@ -57,6 +58,7 @@ class CreateTemplateUsecase:
             updated_at=now_ts,
             sections=sections,
             justification_options=justification_options,
+            information_fields=information_fields,
         )
 
         return self.template_repo.create_template(template)

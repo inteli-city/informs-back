@@ -41,6 +41,7 @@ class CreateTemplateController:
                     else None
                 ),
                 requester_systems=requester.systems,
+                information_fields=[field.model_dump() for field in payload.information_fields] if payload.information_fields is not None else None,
             )
 
             viewmodel = TemplateViewmodel(template)

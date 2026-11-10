@@ -35,6 +35,7 @@ class Template:
         updated_at: Optional[int] = None,
         justification_options: Optional[List[JustificationOption]] = None,
         version: Optional[int] = None,
+        information_fields: Optional[list] = None,
     ):
         template_identifier = id or str(uuid.uuid4())
         self._validate_id(template_identifier)
@@ -72,6 +73,15 @@ class Template:
         # cancelamento). Template sem versão gravada é da época anterior ao
         # versionamento: conta como a 1.
         self.version = self._validate_version(1 if version is None else version)
+        self.change_information_fields(information_fields or [])
+
+    def change_information_fields(self, fields):
+        if not isinstance(fields, list):
+            raise EntityError("Campos informativos devem ser uma lista")
+        keys = [item.get("key") for item in fields if isinstance(item, dict)]
+        if len(keys) != len(fields) or any(not isinstance(k, str) or not k.strip() for k in keys) or len(set(keys)) != len(keys):
+            raise EntityError("Chaves de campos informativos inválidas ou repetidas")
+        self.information_fields = fields
 
     @staticmethod
     def _validate_version(version: int) -> int:

@@ -6,17 +6,20 @@ from src.shared.helpers.contracts.base import RequestContractModel, ResponseCont
 
 
 class TextInformationFieldInputSchema(RequestContractModel):
+    key: str | None = None
     information_field_type: Literal["TEXT_INFORMATION_FIELD"]
     value: str
 
 
 class MapInformationFieldInputSchema(RequestContractModel):
+    key: str | None = None
     information_field_type: Literal["MAP_INFORMATION_FIELD"]
     latitude: float
     longitude: float
 
 
 class FileInformationFieldInputSchema(RequestContractModel):
+    key: str | None = None
     information_field_type: Literal["FILE_INFORMATION_FIELD"]
     filename: str
     mimetype: str
@@ -24,6 +27,7 @@ class FileInformationFieldInputSchema(RequestContractModel):
 
 
 class UrlInformationFieldInputSchema(RequestContractModel):
+    key: str | None = None
     information_field_type: Literal["URL_INFORMATION_FIELD"]
     # Quando um campo URL é enviado, url/mimetype são obrigatórios e não-vazios:
     # min_length=1 alinha o contrato à validação do domínio (UrlInformationField)
@@ -43,23 +47,27 @@ InformationFieldInputSchema = Annotated[
 
 
 class TextInformationFieldSchema(ResponseContractModel):
+    key: str | None = None
     information_field_type: Literal["TEXT_INFORMATION_FIELD"]
     value: str
 
 
 class MapInformationFieldSchema(ResponseContractModel):
+    key: str | None = None
     information_field_type: Literal["MAP_INFORMATION_FIELD"]
     latitude: float
     longitude: float
 
 
 class FileInformationFieldSchema(ResponseContractModel):
+    key: str | None = None
     information_field_type: Literal["FILE_INFORMATION_FIELD"]
     file_path: str
     file_type: Literal["IMAGE", "DOCUMENT"] | None = None
 
 
 class UrlInformationFieldSchema(ResponseContractModel):
+    key: str | None = None
     information_field_type: Literal["URL_INFORMATION_FIELD"]
     url: str
     mimetype: str

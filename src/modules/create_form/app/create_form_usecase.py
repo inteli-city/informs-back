@@ -116,6 +116,7 @@ class CreateFormUsecase:
         now_timestamp = now_timestamp_ms()
 
         template_entity = self._load_template(template, system)
+        self._validate_information_fields(template_entity, information_fields, information_fields_uploads)
         resolved_sections = deepcopy(template_entity.sections) if template_entity else sections
         justification = self._inherit_justification(justification, template_entity)
         files = self._process_information_field_uploads(
@@ -155,6 +156,39 @@ class CreateFormUsecase:
 
         created_form = self.form_repo.create_form(form)
         return created_form, files
+
+    @staticmethod
+    def _validate_information_fields(template, fields, uploads):
+        if template is None or not template.information_fields:
+            return
+        supplied = {}
+        for index, field in enumerate(fields or []):
+            key = getattr(field, "key", None)
+            if key is None:
+                continue
+            if key in supplied:
+                raise EntityError(f"Campo informativo repetido: {key}")
+            supplied[key] = (field, index)
+        for definition in template.information_fields:
+            key = definition["key"]
+            item = supplied.get(key)
+            if item is None:
+                if definition["required"]:
+                    raise EntityError(f"Campo informativo obrigatório: {key}")
+                continue
+            field, index = item
+            if field.information_field_type.value != definition["information_field_type"]:
+                raise EntityError(f"Tipo inválido do campo informativo: {key}")
+            expected = definition.get("file_type")
+            if isinstance(field, FileInformationField):
+                upload = (uploads or [])[index] if index < len(uploads or []) else None
+                if upload is None:
+                    raise EntityError(f"Arquivo ausente: {key}")
+                actual = "IMAGE" if upload.mimetype.lower().startswith("image/") else "DOCUMENT"
+                if expected and (actual != expected or (field.file_type and field.file_type.value != expected)):
+                    raise EntityError(f"Tipo de arquivo inválido: {key}")
+            elif definition["required"] and hasattr(field, "value") and not field.value.strip():
+                raise EntityError(f"Campo informativo obrigatório: {key}")
 
     @staticmethod
     def _inherit_justification(justification: Justification, template_entity) -> Justification:
