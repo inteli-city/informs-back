@@ -80,3 +80,21 @@ def test_template_without_information_fields_keeps_working():
     created = create_template(HttpRequest(body=body))
     assert created.status_code == 201 and created.body["information_fields"] == []
     assert create_form(HttpRequest(body=_form_body(created.body["id"], []))).status_code == 201
+
+
+def test_form_responses_return_the_template_id():
+    from src.modules.get_form.app.get_form_controller import GetFormController
+    from src.modules.get_form.app.get_form_usecase import GetFormUsecase
+
+    templates = TemplateRepositoryMock()
+    forms = FormRepositoryMock()
+    create_template = CreateTemplateController(CreateTemplateUsecase(templates))
+    create_form = CreateFormController(CreateFormUsecase(forms, FileRepositoryMock(), template_repo=templates))
+    template_id = create_template(HttpRequest(body=_template_body(None))).body["id"]
+
+    created = create_form(HttpRequest(body=_form_body(template_id, [])))
+    assert created.status_code == 201 and created.body["template"] == template_id
+
+    got = GetFormController(GetFormUsecase(forms))(
+        HttpRequest(body={"requester_user": USER, "form_id": created.body["id"]}))
+    assert got.status_code == 200 and got.body["template"] == template_id
