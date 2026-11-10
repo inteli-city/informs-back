@@ -56,11 +56,9 @@ class CreateFormController:
 
                     file_type_raw = information_field.get("file_type")
                     file_type = FileType(file_type_raw) if file_type_raw is not None else None
-                    information_fields.append(FileInformationField(file_path="", file_type=file_type))
+                    information_fields.append(FileInformationField(file_path="", file_type=file_type, key=information_field.get("key")))
                 else:
                     information_fields.append(InformationFieldDTO.from_request(information_field).to_entity())
-                if information_field.get("key") is not None:
-                    information_fields[-1].key = information_field["key"]
 
         return (
             payload.form_title,

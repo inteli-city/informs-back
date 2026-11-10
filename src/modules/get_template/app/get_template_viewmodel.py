@@ -26,7 +26,7 @@ class GetTemplateViewmodel:
             "created_at": self.template.created_at,
             "updated_at": self.template.updated_at,
             "version": self.template.version,
-            "information_fields": self.template.information_fields,
+            "information_fields": [field.to_dict() for field in self.template.information_fields],
         }
         return GetTemplateResponseSchema.model_validate(payload).model_dump()
         

@@ -2,6 +2,10 @@ import os
 import sys
 from copy import deepcopy
 
+from src.shared.domain.entities.template import Template
+from src.shared.domain.entities.template_information_field import TemplateInformationField
+from src.shared.domain.enums.file_type_enum import FileType
+from src.shared.domain.enums.information_field_type_enum import InformationFieldType
 import pytest
 
 sys.path.append(os.getcwd())
@@ -377,15 +381,26 @@ class TestCreateFormUsecaseAppConfig:
             usecase(**self._payload("user-sem-perfil", "user-sem-perfil"))
 
 
+def _SECTIONS():
+    from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
+    return TemplateRepositoryMock().templates[0].sections
+
+
+def _image_requirement(key="evidencia", required=True):
+    return TemplateInformationField(
+        key=key, label="Evidência", information_field_type=InformationFieldType.FILE_INFORMATION_FIELD,
+        required=required, file_type=FileType.IMAGE,
+    )
+
+
 def test_template_requires_keyed_information_image_before_creating():
     usecase, payload, templates = _make_usecase_and_payload()
     template = templates.templates[0]
-    template.information_fields = [{"key": "evidencia", "label": "Evidência", "information_field_type": "FILE_INFORMATION_FIELD", "required": True, "file_type": "IMAGE"}]
+    template.change_information_fields([_image_requirement()])
     payload.update(template=template.id, sections=[], information_fields=[])
     with pytest.raises(EntityError, match="obrigatório"):
         usecase(**payload)
-    wrong = FileInformationField(file_path="")
-    wrong.key = "evidencia"
+    wrong = FileInformationField(file_path="", key="evidencia")
     payload.update(information_fields=[wrong], information_fields_uploads=[FileUploadRequest(filename="x.pdf", mimetype="application/pdf")])
     with pytest.raises(EntityError, match="Tipo de arquivo"):
         usecase(**payload)
@@ -395,10 +410,33 @@ def test_template_requires_keyed_information_image_before_creating():
     assert len(uploads) == 1
 
 
+def test_template_rejects_repeated_wrong_type_and_missing_file():
+    template = Template(name="t", system="s", created_by="u", created_at=1, updated_at=1, sections=_SECTIONS(), information_fields=[_image_requirement()])
+    image = FileUploadRequest(filename="x.jpg", mimetype="image/jpeg")
+    with pytest.raises(EntityError, match="repetido"):
+        template.validate_information_fields(
+            [FileInformationField("", key="evidencia"), FileInformationField("", key="evidencia")], [image, image])
+    with pytest.raises(EntityError, match="Tipo inválido"):
+        template.validate_information_fields([TextInformationField("x", key="evidencia")], [None])
+    with pytest.raises(EntityError, match="Arquivo ausente"):
+        template.validate_information_fields([FileInformationField("", key="evidencia")], [None])
+
+
+def test_optional_requirement_and_legacy_unkeyed_fields_pass():
+    template = Template(name="t", system="s", created_by="u", created_at=1, updated_at=1, sections=_SECTIONS(), information_fields=[_image_requirement(required=False)])
+    template.validate_information_fields([TextInformationField("legado")], None)
+    Template(name="t", system="s", created_by="u", created_at=1, updated_at=1, sections=_SECTIONS()).validate_information_fields(None, None)
+
+
+def test_template_rejects_duplicate_keys_and_file_type_on_text():
+    with pytest.raises(EntityError, match="repetidas"):
+        Template(name="t", system="s", created_by="u", created_at=1, updated_at=1, sections=_SECTIONS(), information_fields=[_image_requirement(), _image_requirement()])
+    with pytest.raises(EntityError, match="exclusivo"):
+        TemplateInformationField(key="k", label="l", information_field_type=InformationFieldType.TEXT_INFORMATION_FIELD, file_type=FileType.IMAGE)
+
+
 def test_keyed_information_fields_survive_dynamo_round_trip():
     from src.shared.infra.dtos.information_field_dto import InformationFieldDTO
-    field = TextInformationField("texto")
-    field.key = "observacao_gestor"
-    stored = InformationFieldDTO.from_entity(field).to_dynamo()
+    stored = InformationFieldDTO.from_entity(TextInformationField("texto", key="observacao_gestor")).to_dynamo()
     assert InformationFieldDTO.from_dynamo(stored).to_entity().key == "observacao_gestor"
-    assert not hasattr(InformationFieldDTO.from_dynamo({"information_field_type": "TEXT_INFORMATION_FIELD", "value": "legado"}).to_entity(), "key")
+    assert InformationFieldDTO.from_dynamo({"information_field_type": "TEXT_INFORMATION_FIELD", "value": "legado"}).to_entity().key is None

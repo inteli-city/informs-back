@@ -62,6 +62,11 @@ class TestUpdateTemplateUsecase:
             )
 
 
+from src.shared.domain.entities.template_information_field import TemplateInformationField
+from src.shared.domain.enums.file_type_enum import FileType
+from src.shared.domain.enums.information_field_type_enum import InformationFieldType
+
+
 def test_information_field_change_requires_version_when_template_is_used():
     from src.shared.helpers.errors.usecase_errors import TemplateVersionRequired
     from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
@@ -70,7 +75,10 @@ def test_information_field_change_requires_version_when_template_is_used():
     forms = FormRepositoryMock()
     forms.has_forms_with_template = lambda _: True
     usecase = UpdateTemplateUsecase(repo, form_repo=forms)
-    fields = [{"key": "evidencia", "label": "Evidência", "information_field_type": "FILE_INFORMATION_FIELD", "required": True, "file_type": "IMAGE"}]
+    fields = [TemplateInformationField(
+        key="evidencia", label="Evidência", information_field_type=InformationFieldType.FILE_INFORMATION_FIELD,
+        required=True, file_type=FileType.IMAGE,
+    )]
     with pytest.raises(TemplateVersionRequired):
         usecase(template_id=template.id, requester_user_id="user", information_fields=fields)
     updated = usecase(template_id=template.id, requester_user_id="user", information_fields=fields, new_version=True)
