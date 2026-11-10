@@ -15,11 +15,12 @@ class _ConfigGroup(BaseModel):
 
 class MenusConfig(_ConfigGroup):
     """Quais menus e botões o app mostra. O papel do usuário continua valendo
-    por cima disto — `start_tracking` ligado não mostra o botão a quem não é
-    INSPECTOR."""
+    por cima disto — `create_form` ligado não mostra a aba a quem não tem
+    `forms.create`, e `start_tracking` ligado não mostra o botão a quem não
+    tem `tracking.start`."""
 
-    create_form: StrictBool = Field(default=True, title="Aba Criar", description="Permite criar formulário em campo.")
-    start_tracking: StrictBool = Field(default=True, title="Botão Iniciar percurso", description="Rastreamento do percurso no mapa (só para INSPECTOR).")
+    create_form: StrictBool = Field(default=True, title="Aba Criar", description="Mostra a aba Criar neste sistema. Só a vê quem tem no papel a permissão “Criar formulários pelo app”.")
+    start_tracking: StrictBool = Field(default=True, title="Botão Iniciar percurso", description="Rastreamento do percurso no mapa. Só o vê quem tem no papel a permissão “Enviar a própria localização”.")
     route_plan: StrictBool = Field(default=True, title="Botão Gerar rota", description="Planejamento de rota entre formulários no mapa.")
 
 
