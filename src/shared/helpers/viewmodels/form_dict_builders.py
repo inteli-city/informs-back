@@ -190,4 +190,5 @@ def build_form_dict(
         "released_at": form.released_at,
         "assignment_source": form.assignment_source.value if form.assignment_source else None,
         "template_version": form.template_version,
+        "creator_location": form.creator_location.to_dict() if form.creator_location else None,
     }

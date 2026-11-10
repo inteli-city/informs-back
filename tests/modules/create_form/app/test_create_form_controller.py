@@ -55,6 +55,46 @@ def _make_base_body():
         }
 
 
+class TestCreateFormControllerCreatorLocation:
+    """A posição do aparelho de quem cria fica no formulário, separada do pin."""
+
+    def _controller(self):
+        self.repo = FormRepositoryMock()
+        return CreateFormController(CreateFormUsecase(self.repo, FileRepositoryMock()))
+
+    def test_saves_and_returns_creator_location_apart_from_the_pin(self):
+        body = _make_base_body()
+        body["latitude"], body["longitude"] = -18.91, -48.26
+        body["creator_location"] = {
+            "latitude": -18.9, "longitude": -48.27, "accuracy": 7.5, "captured_at": 1715000000000,
+        }
+
+        response = self._controller()(HttpRequest(body=body))
+
+        assert response.status_code == 201
+        assert response.body["latitude"] == -18.91
+        assert response.body["creator_location"] == {
+            "latitude": -18.9, "longitude": -48.27, "accuracy": 7.5, "captured_at": 1715000000000,
+        }
+        saved = self.repo.forms[-1]
+        assert saved.creator_location.latitude == -18.9
+        assert saved.latitude == -18.91
+
+    def test_creator_location_is_optional(self):
+        response = self._controller()(HttpRequest(body=_make_base_body()))
+
+        assert response.status_code == 201
+        assert response.body["creator_location"] is None
+
+    def test_rejects_out_of_range_creator_location(self):
+        body = _make_base_body()
+        body["creator_location"] = {"latitude": 100, "longitude": 0}
+
+        response = self._controller()(HttpRequest(body=body))
+
+        assert response.status_code == 400
+
+
 class TestCreateFormController:
     def test_create_form_controller_success(self):
         repo = FormRepositoryMock()

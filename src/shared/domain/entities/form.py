@@ -2,6 +2,7 @@ import abc
 from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID
 
+from src.shared.domain.entities.creator_location import CreatorLocation
 from src.shared.domain.entities.field import FileField
 from src.shared.domain.entities.file_upload import FileUploadRequest
 from src.shared.domain.entities.information_field import InformationField
@@ -58,6 +59,7 @@ class Form(abc.ABC):
     released_at: Optional[int]
     assignment_source: Optional[AssignmentSource]
     template_version: Optional[int]
+    creator_location: Optional[CreatorLocation]
 
     ID_LENGTH = 36
 
@@ -110,6 +112,7 @@ class Form(abc.ABC):
         released_at: Optional[int] = None,
         assignment_source: Optional[AssignmentSource] = None,
         template_version: Optional[int] = None,
+        creator_location: Optional[CreatorLocation] = None,
     ):
 
         # Validação dividida em blocos para manter a complexidade de cada
@@ -125,6 +128,7 @@ class Form(abc.ABC):
         )
         self._init_pool_fields(possession, claimed_at, released_at, assignment_source)
         self._init_template_version(template_version)
+        self._init_creator_location(creator_location)
 
     def _init_identity(self, form_title, id, user_id, created_by, template):
         if not isinstance(form_title, str):
@@ -302,6 +306,13 @@ class Form(abc.ABC):
         if template_version is None and Form._is_uuid_string(self.template):
             template_version = 1
         self.template_version = template_version
+
+    def _init_creator_location(self, creator_location):
+        """Onde estava o aparelho de quem criou (auditoria). Separado do ponto
+        do serviço; ausente em integrações e em formulários antigos."""
+        if creator_location is not None and not isinstance(creator_location, CreatorLocation):
+            raise EntityError('Localização de quem criou inválida')
+        self.creator_location = creator_location
 
     def is_open_for_template_update(self) -> bool:
         """Pode receber uma nova versão do template: ainda aberto (pendente ou

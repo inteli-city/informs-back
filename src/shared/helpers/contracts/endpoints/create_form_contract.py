@@ -17,6 +17,15 @@ def _is_uuid(value: str) -> bool:
         return False
 
 
+class CreatorLocationInputSchema(RequestContractModel):
+    """Posição do aparelho de quem cria, separada do ponto do serviço."""
+
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+    accuracy: float | None = Field(default=None, ge=0, description="Raio de precisão do aparelho, em metros.")
+    captured_at: int | None = Field(default=None, ge=0, description="Quando o aparelho mediu a posição (epoch ms).")
+
+
 class CreateFormRequestSchema(RequestContractModel):
     form_title: str
     user_id: str | None = None
@@ -39,6 +48,11 @@ class CreateFormRequestSchema(RequestContractModel):
     scheduled_start_at: int | None = None
     scheduled_end_at: int | None = None
     attributes: dict[str, list[str]] | None = None
+    creator_location: CreatorLocationInputSchema | None = Field(
+        default=None,
+        description="Onde estava o aparelho de quem cria (auditoria). `latitude` e "
+        "`longitude` do formulário continuam sendo o ponto do serviço.",
+    )
 
     @model_validator(mode="after")
     def validate_sections_when_template_absent(self) -> "CreateFormRequestSchema":
