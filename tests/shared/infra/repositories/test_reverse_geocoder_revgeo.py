@@ -82,6 +82,22 @@ class TestReverseGeocoderRevgeo:
         assert request.get_header("X-api-key") == "chave-de-teste"
         assert timeout == 5
 
+    def test_sends_its_own_user_agent(self, monkeypatch):
+        # O Cloudflare do backend.inteli.city recusa o User-Agent padrão do urllib (HTTP 403, código 1010) e deixaria
+        # o endereço do pin sempre indisponível no deploy. Achado no E2E local com a chave real.
+        calls = []
+
+        def fake_urlopen(req, timeout):
+            calls.append(req)
+            return FakeResponse(200, json.dumps({"provider": "nominatim", "result": NOMINATIM_RESULT}))
+
+        monkeypatch.setattr(MODULE, fake_urlopen)
+
+        _geocoder().reverse(-18.918, -48.2772)
+
+        user_agent = calls[0].get_header("User-agent")
+        assert user_agent and not user_agent.startswith("Python-urllib")
+
     def test_without_address_returns_none(self, monkeypatch):
         monkeypatch.setattr(MODULE, lambda req, timeout: FakeResponse(
             200, json.dumps({"provider": "nominatim", "result": {"error": "Unable to geocode"}})

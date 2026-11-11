@@ -71,6 +71,8 @@ class ReverseGeocoderRevgeo(IReverseGeocoder):
         })
         request = urllib.request.Request(f"{self.base_url}{NOMINATIM_PATH}?{query}", method="GET")
         request.add_header("X-API-Key", self.api_key)
+        # User-Agent próprio: o Cloudflare na frente do revgeo recusa o padrão do urllib (403, código 1010).
+        request.add_header("User-Agent", "informs-back/1.0")
         request.add_header("Accept", "application/json")
 
         try:
