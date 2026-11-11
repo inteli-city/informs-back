@@ -87,7 +87,7 @@ para o sistema.
 **Comportamentos que já existiam e não mudaram:** o checkpoint avança mesmo quando o Apex falha (a recuperação é pela
 fila `SyncErrorForm`). Com a trava fechada, o resumo conta os formulários como `sent`.
 
-E2E local com um Apex falso, fora do pytest (precisa do DynamoDB Local e do LocalStack de pé, e de
+E2E local com um Apex falso, fora do pytest (precisa do DynamoDB Local e do Floci de pé, e de
 `python iac/local/bootstrap_local.py --reset-db --seed`). A guarda recusa qualquer origem que não aponte para
 localhost:
 
@@ -114,4 +114,4 @@ acima.
 
 - `docs/adr`: decisões arquiteturais do projeto.
 - `iac/README.md`: visão geral da infraestrutura como código.
-- `iac/LOCAL_SETUP.md`: setup local com SAM, DynamoDB Local e LocalStack.
+- `iac/LOCAL_SETUP.md`: setup local com SAM, DynamoDB Local e Floci.
