@@ -7,6 +7,7 @@ from src.shared.domain.repositories.origin_repository_interface import IOriginRe
 from src.shared.domain.repositories.file_repository_interface import IFileRepository
 from src.shared.domain.repositories.profile_repository_interface import IProfileRepository
 from src.shared.domain.repositories.system_role_repository_interface import ISystemRoleRepository
+from src.shared.domain.repositories.system_group_repository_interface import ISystemGroupRepository
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
 from src.shared.domain.repositories.sync_state_repository_interface import ISyncStateRepository
 from src.shared.domain.repositories.sync_error_form_repository_interface import ISyncErrorFormRepository
@@ -209,6 +210,17 @@ class Environments:
         elif Environments.get_envs().stage in [Stage.PROD, Stage.DEV, Stage.HOMOLOG]:
             from src.shared.infra.repositories.system_role_repository_dynamo import SystemRoleRepositoryDynamo
             return SystemRoleRepositoryDynamo()
+        else:
+            raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
+
+    @staticmethod
+    def get_system_group_repo() -> ISystemGroupRepository:
+        if Environments.get_envs().stage in [Stage.TEST, Stage.DOTENV]:
+            from src.shared.infra.repositories.system_group_repository_mock import SystemGroupRepositoryMock
+            return SystemGroupRepositoryMock()
+        elif Environments.get_envs().stage in [Stage.PROD, Stage.DEV, Stage.HOMOLOG]:
+            from src.shared.infra.repositories.system_group_repository_dynamo import SystemGroupRepositoryDynamo
+            return SystemGroupRepositoryDynamo()
         else:
             raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
 

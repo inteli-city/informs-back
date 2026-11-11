@@ -86,6 +86,7 @@ class CreateFormController:
             payload.scheduled_end_at,
             payload.attributes,
             CreatorLocation(**payload.creator_location.model_dump()) if payload.creator_location else None,
+            payload.groups,
         )
 
     @controller_error_handler
@@ -119,6 +120,7 @@ class CreateFormController:
                 scheduled_end_at,
                 attributes,
                 creator_location,
+                groups,
             ) = self._build_usecase_payload(payload)
 
             form, files = self.usecase(
@@ -148,6 +150,7 @@ class CreateFormController:
                 scheduled_end_at=scheduled_end_at,
                 attributes=attributes,
                 creator_location=creator_location,
+                groups=groups,
             )
 
             viewmodel = CreateFormViewmodel(form=form, files=files)

@@ -50,12 +50,19 @@ class GetAllFormsUsecase:
         start_key = self._decode_start_key(exclusive_start_key)
 
         # scope=pool (especificação Uberlândia §6.3): OS abertas via GSI3, sem
-        # cair em Scan (§14.1) — a filtragem fina por escopo é a Fase 2.
+        # cair em Scan (§14.1). Só as sem grupo e as dos grupos de quem pede
+        # (ADR-0022).
         if scope == "pool":
             if len(systems_to_use) != 1:
                 raise EntityError("scope=pool exige um único system")
             effective_limit = limit if limit is not None else POOL_DEFAULT_LIMIT
-            return self.form_repo.get_pool_forms(system=systems_to_use[0], limit=effective_limit, exclusive_start_key=start_key)
+            groups = (
+                self.access_control.groups_in(requester.user_id, systems_to_use[0])
+                if self.access_control is not None else None
+            )
+            return self.form_repo.get_pool_forms(
+                system=systems_to_use[0], limit=effective_limit, exclusive_start_key=start_key, groups=groups,
+            )
 
         # scope=all (RN-UBE-003, decisão P3): quem tem `forms.view_all` em
         # todos os sistemas pedidos enxerga todo mundo, não só o próprio.
@@ -107,9 +114,19 @@ class GetAllFormsUsecase:
                 limit=effective_limit,
                 exclusive_start_key=start_key,
             )
+            # Mesmo critério da listagem do pool (ADR-0022): OS aberta de grupo alheio, ou de quem já saiu
+            # do grupo, não pode voltar como formulário. Entra como marcador, então a paginação não muda.
+            # Sem `access_control` (como na listagem), não há como decidir grupo, e nada é convertido.
+            groups = (
+                self.access_control.groups_in(requester.user_id, systems_to_use[0])
+                if self.access_control is not None else None
+            )
             return GetAllFormsDelta(
                 forms=[form for form, _ in pairs],
-                in_pool=[in_pool for _, in_pool in pairs],
+                in_pool=[
+                    in_pool and (groups is None or form.is_open_to_groups(groups))
+                    for form, in_pool in pairs
+                ],
                 next_key=next_key,
                 server_time=server_time,
             )

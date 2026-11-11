@@ -7,6 +7,7 @@ from src.shared.helpers.contracts.schemas.file_upload import FileUploadSchema
 from src.shared.helpers.contracts.schemas.form import FormOriginLiteral, FormResponseSchema, FormSectionSchema
 from src.shared.helpers.contracts.schemas.information_field import InformationFieldInputSchema
 from src.shared.helpers.contracts.schemas.justification import JustificationOptionSchema
+from src.shared.helpers.contracts.endpoints.system_access_contract import GroupIdStr
 
 
 def _is_uuid(value: str) -> bool:
@@ -52,6 +53,12 @@ class CreateFormRequestSchema(RequestContractModel):
         default=None,
         description="Onde estava o aparelho de quem cria (auditoria). `latitude` e "
         "`longitude` do formulário continuam sendo o ponto do serviço.",
+    )
+    groups: list[GroupIdStr] | None = Field(
+        default=None,
+        description="Identificadores de grupos do sistema (GET /systems/{system}/groups). "
+        "Sem user_id, só quem está num desses grupos vê e pega a OS no pool; "
+        "com user_id, valem se a OS for devolvida ao pool. Grupo desconhecido = 400.",
     )
 
     @model_validator(mode="after")

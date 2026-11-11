@@ -41,6 +41,9 @@ except ImportError:
         def contains(self, value: Any) -> _ConditionExpression:
             return self._build("CONTAINS", value=value)
 
+        def not_exists(self) -> _ConditionExpression:
+            return self._build("NOT_EXISTS")
+
         def between(self, low: Any, high: Any) -> _ConditionExpression:
             return self._build("BETWEEN", value=low, second_value=high)
 

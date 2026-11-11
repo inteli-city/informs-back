@@ -75,6 +75,9 @@ class LambdaStack(Construct):
         system_role_id_resource = system_roles_resource.add_resource("{role_id}")
         system_users_resource = system_resource.add_resource("users")
         system_user_id_resource = system_users_resource.add_resource("{user_id}")
+        system_user_groups_resource = system_user_id_resource.add_resource("groups")
+        system_groups_resource = system_resource.add_resource("groups")
+        system_group_id_resource = system_groups_resource.add_resource("{group_id}")
 
         self.create_form = self.create_lambda_api_gateway_integration(
             module_name="create_form",
@@ -283,6 +286,47 @@ class LambdaStack(Construct):
             module_name="delete_system_user",
             method="DELETE",
             api_resource=system_user_id_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        # Grupos do sistema (ADR-0022).
+        self.put_system_user_groups = self.create_lambda_api_gateway_integration(
+            module_name="put_system_user_groups",
+            method="PUT",
+            api_resource=system_user_groups_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.get_system_groups = self.create_lambda_api_gateway_integration(
+            module_name="get_system_groups",
+            method="GET",
+            api_resource=system_groups_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.create_system_group = self.create_lambda_api_gateway_integration(
+            module_name="create_system_group",
+            method="POST",
+            api_resource=system_groups_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.update_system_group = self.create_lambda_api_gateway_integration(
+            module_name="update_system_group",
+            method="PUT",
+            api_resource=system_group_id_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        self.delete_system_group = self.create_lambda_api_gateway_integration(
+            module_name="delete_system_group",
+            method="DELETE",
+            api_resource=system_group_id_resource,
             environment_variables=environment_variables,
             authorizer=authorizer,
         )
@@ -538,6 +582,8 @@ class LambdaStack(Construct):
             self.plan_route,
             self.sync_forms_origin,
             self.sync_forms_origin_callback,
+            # Confere se há OS aberta apontando para o grupo antes de apagá-lo.
+            self.delete_system_group,
         ]
         # A reconciliação só pode consultar o GSI2 por sistema e janela. Não
         # recebe grant_read_data/read_write_data porque esses grants incluem
@@ -583,6 +629,13 @@ class LambdaStack(Construct):
             self.get_system_users,
             self.put_system_user,
             self.delete_system_user,
+            self.put_system_user_groups,
+            self.get_system_groups,
+            self.create_system_group,
+            self.update_system_group,
+            self.delete_system_group,
+            self.get_form,
+            self.claim_form,
             self.release_form,
             self.assign_form,
             self.get_all_forms,

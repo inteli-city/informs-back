@@ -60,6 +60,7 @@ class Form(abc.ABC):
     assignment_source: Optional[AssignmentSource]
     template_version: Optional[int]
     creator_location: Optional[CreatorLocation]
+    groups: List[str]
 
     ID_LENGTH = 36
 
@@ -113,6 +114,7 @@ class Form(abc.ABC):
         assignment_source: Optional[AssignmentSource] = None,
         template_version: Optional[int] = None,
         creator_location: Optional[CreatorLocation] = None,
+        groups: Optional[List[str]] = None,
     ):
 
         # Validação dividida em blocos para manter a complexidade de cada
@@ -129,6 +131,7 @@ class Form(abc.ABC):
         self._init_pool_fields(possession, claimed_at, released_at, assignment_source)
         self._init_template_version(template_version)
         self._init_creator_location(creator_location)
+        self._init_groups(groups)
 
     def _init_identity(self, form_title, id, user_id, created_by, template):
         if not isinstance(form_title, str):
@@ -313,6 +316,19 @@ class Form(abc.ABC):
         if creator_location is not None and not isinstance(creator_location, CreatorLocation):
             raise EntityError('Localização de quem criou inválida')
         self.creator_location = creator_location
+
+    def _init_groups(self, groups):
+        """Grupos do sistema a que a OS aberta se destina (ADR-0022). Vazio =
+        qualquer pessoa do sistema, o comportamento de antes dos grupos."""
+        groups = groups if groups is not None else []
+        if not isinstance(groups, list) or not all(isinstance(g, str) and g.strip() for g in groups):
+            raise EntityError('Grupos do formulário devem ser uma lista de identificadores')
+        self.groups = list(dict.fromkeys(groups))
+
+    def is_open_to_groups(self, user_groups: List[str]) -> bool:
+        """Se quem tem `user_groups` pode ver e pegar esta OS no pool: sem
+        grupos no formulário, qualquer um; com grupos, quem tem ao menos um."""
+        return not self.groups or any(group in self.groups for group in user_groups)
 
     def is_open_for_template_update(self) -> bool:
         """Pode receber uma nova versão do template: ainda aberto (pendente ou

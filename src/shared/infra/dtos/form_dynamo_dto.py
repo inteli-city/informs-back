@@ -93,6 +93,7 @@ class FormDynamoDTO:
         assignment_source: Optional[AssignmentSource] = None,
         template_version: Optional[int] = None,
         creator_location: Optional[CreatorLocation] = None,
+        groups: Optional[List[str]] = None,
     ):
         self.form_title = form_title
         self.id = id
@@ -132,6 +133,7 @@ class FormDynamoDTO:
         self.assignment_source = assignment_source
         self.template_version = template_version
         self.creator_location = creator_location
+        self.groups = groups if groups is not None else []
 
     @staticmethod
     def from_entity(form: Form) -> "FormDynamoDTO":
@@ -174,10 +176,11 @@ class FormDynamoDTO:
             assignment_source=form.assignment_source,
             template_version=form.template_version,
             creator_location=form.creator_location,
+            groups=form.groups,
         )
 
     def to_dynamo(self) -> dict:
-        return {
+        item = {
             "form_title": self.form_title,
             "created_by": self.created_by,
             "user_id": self.user_id,
@@ -221,6 +224,11 @@ class FormDynamoDTO:
             "template_version": self.template_version,
             "creator_location": self.creator_location.to_dict() if self.creator_location else None,
         }
+        # Ausente quando vazio (não lista vazia): o filtro do pool trata
+        # "sem grupos" como `attribute_not_exists(groups)` (ADR-0022).
+        if self.groups:
+            item["groups"] = list(self.groups)
+        return item
 
     @staticmethod
     def from_dynamo(data: dict) -> "FormDynamoDTO":
@@ -271,6 +279,7 @@ class FormDynamoDTO:
             assignment_source=AssignmentSource(data["assignment_source"]) if data.get("assignment_source") is not None else None,
             template_version=int(data["template_version"]) if data.get("template_version") is not None else None,
             creator_location=CreatorLocation.from_dict(data["creator_location"]) if data.get("creator_location") else None,
+            groups=list(data.get("groups") or []),
         )
 
     def to_entity(self) -> Form:
@@ -313,6 +322,7 @@ class FormDynamoDTO:
             assignment_source=self.assignment_source,
             template_version=self.template_version,
             creator_location=self.creator_location,
+            groups=self.groups,
         )
 
     def to_dict(self) -> dict:
