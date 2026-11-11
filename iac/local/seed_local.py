@@ -82,9 +82,9 @@ LOCAL_ACCOUNTS = [
 
 # Papéis criados em cada sistema (RBAC). ADMIN é o papel fixo do back-end.
 LOCAL_ROLES = {
-    "tecnico": dict(name="Técnico", is_default=True, actions=["tracking.start"]),
+    "tecnico": dict(name="Técnico", is_default=True, actions=["forms.create", "tracking.start"]),
     "gestor": dict(name="Gestor", is_default=False, actions=[
-        "forms.view_all", "forms.assign", "forms.release", "tracking.start", "tracking.view",
+        "forms.create", "forms.view_all", "forms.assign", "forms.release", "tracking.start", "tracking.view",
         "users.manage", "templates.manage",
     ]),
 }

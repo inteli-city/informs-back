@@ -9,6 +9,7 @@ from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.information_field import FileInformationField, InformationField
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import Section
+from src.shared.domain.enums.action_enum import Action
 from src.shared.domain.enums.file_type_enum import FileType
 from src.shared.domain.enums.form_origin_enum import FormOrigin
 from src.shared.domain.enums.form_status_enum import FormStatus
@@ -46,10 +47,12 @@ class CreateFormUsecase:
         config = self.system_config_repo.get_by_system(system)
         return bool(config and config.allow_unassigned_forms)
 
-    def _ensure_app_config_allows_creation(self, system: str, user_id: Optional[str], created_by: str) -> None:
+    def _ensure_can_create(self, system: str, user_id: Optional[str], created_by: str) -> None:
         """
-        O que a configuração da aplicação esconde no app também é recusado
-        aqui — esconder o botão não impede quem chama a API direto.
+        O que o app esconde também é recusado aqui — esconder o botão não
+        impede quem chama a API direto. Criar exige, no mesmo sistema:
+          - o menu Criar ligado na configuração (`menus.create_form`); e
+          - a ação `forms.create` no papel da pessoa.
 
         Quem administra o sistema (role ADMIN nele, ou super admin) não passa
         por esta regra: é como as integrações criam as OS do pool em sistemas
@@ -69,6 +72,8 @@ class CreateFormUsecase:
         )
         if not config.menus.create_form:
             raise ForbiddenAction("Criação de formulário não está habilitada para este sistema")
+        if not self.access_control.can(created_by, system, Action.FORMS_CREATE):
+            raise ForbiddenAction("Seu perfil não tem permissão para criar formulário neste sistema")
         if user_id is None and not config.creation.allow_open:
             raise ForbiddenAction("Criação de formulário em aberto não está habilitada para este sistema")
 
@@ -109,7 +114,7 @@ class CreateFormUsecase:
             if existing_form is not None:
                 return existing_form, []
 
-        self._ensure_app_config_allows_creation(system, user_id, created_by)
+        self._ensure_can_create(system, user_id, created_by)
 
         if user_id is None and not self._allows_unassigned_forms(system):
             raise MissingParameters("user_id")
