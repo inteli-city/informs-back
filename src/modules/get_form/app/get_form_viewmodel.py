@@ -62,6 +62,7 @@ class GetFormViewmodel:
         self.status = form.status
         self.form_title = form.form_title
         self.user_id = form.user_id
+        self.template = form.template
         self.area = form.area
         self.system = form.system
         self.city = form.city
@@ -94,6 +95,7 @@ class GetFormViewmodel:
         self.released_at = form.released_at
         self.assignment_source = form.assignment_source
         self.template_version = form.template_version
+        self.creator_location = form.creator_location.to_dict() if form.creator_location else None
 
     def to_dict(self):
         payload = {
@@ -101,6 +103,7 @@ class GetFormViewmodel:
             "status": self.status.value if isinstance(self.status, FormStatus) else self.status,
             "form_title": self.form_title,
             "user_id": self.user_id,
+            "template": self.template,
             "area": self.area,
             "system": self.system,
             "city": self.city,
@@ -140,6 +143,7 @@ class GetFormViewmodel:
             "released_at": self.released_at,
             "assignment_source": self.assignment_source.value if self.assignment_source else None,
             "template_version": self.template_version,
+            "creator_location": self.creator_location,
         }
         validated = GetFormResponseSchema.model_validate(payload).model_dump()
         validated["priority"] = self.priority.value if isinstance(self.priority, Priority) else self.priority

@@ -1,5 +1,6 @@
 from typing import List, Optional
 
+from src.shared.domain.entities.template_information_field import TemplateInformationField
 from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.justification import JustificationOption
 from src.shared.domain.entities.template import Template
@@ -30,6 +31,7 @@ class TemplateDynamoDTO:
         description: Optional[str] = None,
         justification_options: Optional[List[JustificationOption]] = None,
         version: int = 1,
+        information_fields: Optional[List[TemplateInformationField]] = None,
     ):
         self.id = id
         self.name = name
@@ -42,6 +44,7 @@ class TemplateDynamoDTO:
         self.sections = sections
         self.justification_options = justification_options or []
         self.version = version
+        self.information_fields = information_fields or []
 
     @staticmethod
     def from_entity(template: Template) -> "TemplateDynamoDTO":
@@ -57,6 +60,7 @@ class TemplateDynamoDTO:
             sections=template.sections,
             justification_options=template.justification_options,
             version=template.version,
+            information_fields=template.information_fields,
         )
 
     def to_dynamo(self) -> dict:
@@ -74,6 +78,7 @@ class TemplateDynamoDTO:
                 for o in self.justification_options
             ],
             "version": self.version,
+            "information_fields": [field.to_dict() for field in self.information_fields],
         }
 
     @staticmethod
@@ -102,6 +107,8 @@ class TemplateDynamoDTO:
             ],
             # Gravado antes do versionamento: versão 1.
             version=int(data.get("version") or 1),
+            # Template gravado antes das exigências não tem a chave: sem exigência.
+            information_fields=[TemplateInformationField.from_dict(item) for item in data.get("information_fields") or []],
         )
 
     def to_entity(self) -> Template:
@@ -117,4 +124,5 @@ class TemplateDynamoDTO:
             sections=self.sections,
             justification_options=self.justification_options,
             version=self.version,
+            information_fields=self.information_fields,
         )

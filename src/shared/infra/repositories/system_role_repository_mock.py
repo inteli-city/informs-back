@@ -25,7 +25,7 @@ class SystemRoleRepositoryMock(ISystemRoleRepository):
                 system="GAIA",
                 role_id=MOCK_TECNICO_ROLE_ID,
                 name="Técnico",
-                actions=[Action.TRACKING_START],
+                actions=[Action.FORMS_CREATE, Action.TRACKING_START],
                 is_default=True,
                 created_at=946684800000,
                 updated_at=946684800000,

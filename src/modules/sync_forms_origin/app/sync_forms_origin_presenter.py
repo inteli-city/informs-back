@@ -80,6 +80,10 @@ def lambda_handler(event, context):
         },
     )
 
+    # Tempo que falta para a Lambda ser morta: a execução para antes disso, com checkpoint do último lote.
+    # Sem `context` (execução local), não há limite e ela segue até o fim.
+    remaining_time_ms = getattr(context, "get_remaining_time_in_millis", None)
+
     results = usecase(
         systems=systems,
         system_mapping=SYSTEM_TO_ORIGIN,
@@ -87,6 +91,7 @@ def lambda_handler(event, context):
         page_size=page_size,
         full_sync_on_first_run=full_sync_on_first_run,
         logger=logger,
+        remaining_time_ms=remaining_time_ms,
     )
 
     total_sent = sum(result.sent for result in results)
@@ -100,6 +105,11 @@ def lambda_handler(event, context):
     metrics.add_metric("FormsProcessed", MetricUnit.Count, total_processed)
     metrics.add_metric("OriginRequests", MetricUnit.Count, total_requests)
     metrics.add_metric("SyncDurationMs", MetricUnit.Milliseconds, duration_ms)
+    partial_systems = [result.system for result in results if result.partial]
+    if partial_systems:
+        # Parou por falta de tempo: a próxima execução continua do último lote tratado.
+        metrics.add_metric("SyncPartial", MetricUnit.Count, 1)
+        logger.warning("sync_forms_origin stopped partially", extra={"systems": partial_systems})
 
     for result in results:
         with single_metric(

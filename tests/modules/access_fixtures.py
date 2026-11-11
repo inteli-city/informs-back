@@ -40,7 +40,7 @@ class AccessScenario:
 
         self.role_repo.put_role(SystemRole(
             system="GAIA", role_id=COORDENADOR_ROLE_ID, name="Coordenador",
-            actions=[Action.ROLES_MANAGE, Action.USERS_MANAGE, Action.TRACKING_START],
+            actions=[Action.ROLES_MANAGE, Action.USERS_MANAGE, Action.FORMS_CREATE, Action.TRACKING_START],
             created_at=1, updated_at=1,
         ))
         self.add_person(MANAGER_ID, "Maria Coordenadora", "GAIA", COORDENADOR_ROLE_ID)

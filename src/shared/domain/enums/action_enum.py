@@ -10,6 +10,7 @@ class Action(Enum):
     todo sistema.
     """
 
+    FORMS_CREATE = "forms.create"
     FORMS_VIEW_ALL = "forms.view_all"
     FORMS_ASSIGN = "forms.assign"
     FORMS_RELEASE = "forms.release"
@@ -23,6 +24,7 @@ class Action(Enum):
 
 
 ACTION_DESCRIPTIONS = {
+    Action.FORMS_CREATE: "Criar formulários pelo app (aba Criar)",
     Action.FORMS_VIEW_ALL: "Ver os formulários de todos no sistema",
     Action.FORMS_ASSIGN: "Atribuir formulário do pool a uma pessoa",
     Action.FORMS_RELEASE: "Devolver ao pool formulário de outra pessoa",

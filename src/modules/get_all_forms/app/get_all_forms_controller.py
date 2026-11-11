@@ -1,3 +1,5 @@
+import time
+
 from pydantic import ValidationError
 
 from .get_all_forms_usecase import GetAllFormsUsecase, POOL_DEFAULT_LIMIT
@@ -76,6 +78,10 @@ class GetAllFormsController:
 
     @controller_error_handler
     def __call__(self, request: IRequest) -> IResponse:
+        # Lido antes de qualquer consulta ao repositório (INF-SRVTIME): o front guarda este instante como
+        # `lastSyncServerTime` e o usa como `updated_after` do refresh incremental. Vem em toda resposta, com
+        # ou sem `updated_after`, porque a carga completa é a que o front lê para começar a sincronizar.
+        server_time = int(time.time() * 1000)
         try:
             data = request.data if isinstance(request.data, dict) else {}
             payload = GetAllFormsControllerRequestSchema.model_validate(data)
@@ -130,7 +136,9 @@ class GetAllFormsController:
                 scope=payload.scope,
             )
 
-            viewmodel = GetAllFormsViewmodel(forms=forms, limit=limit, last_evaluated_key=next_key)
+            viewmodel = GetAllFormsViewmodel(
+                forms=forms, limit=limit, last_evaluated_key=next_key, server_time=server_time,
+            )
             return OK(viewmodel.to_dict())
 
         except ValidationError as err:

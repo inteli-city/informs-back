@@ -149,6 +149,8 @@ def build_form_dict(
         "status": form.status.value,
         "form_title": form.form_title,
         "user_id": form.user_id,
+        # O front usa o id para saber de qual template o formulário nasceu.
+        "template": form.template,
         "area": form.area,
         "system": form.system,
         "city": form.city,
@@ -190,5 +192,6 @@ def build_form_dict(
         "released_at": form.released_at,
         "assignment_source": form.assignment_source.value if form.assignment_source else None,
         "template_version": form.template_version,
+        "creator_location": form.creator_location.to_dict() if form.creator_location else None,
         "groups": form.groups,
     }

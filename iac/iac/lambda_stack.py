@@ -40,7 +40,8 @@ class LambdaStack(Construct):
         return function
 
     def __init__(self, scope: Construct, api_gateway_resource: Resource, environment_variables: dict,
-                 authorizer: Optional[IAuthorizer], apex_sync_enabled_origins: str = "") -> None:
+                 authorizer: Optional[IAuthorizer], apex_sync_enabled_origins: str = "",
+                 reverse_geocode_environment: Optional[dict] = None) -> None:
         super().__init__(scope, "Formularios_Lambda")
 
         self.lambda_layer = lambda_.LayerVersion(self, "Formularios_Layer",
@@ -61,6 +62,7 @@ class LambdaStack(Construct):
         profiles_resource = api_gateway_resource.add_resource("profiles")
         profile_user_id_resource = profiles_resource.add_resource("{user_id}")
         locations_resource = api_gateway_resource.add_resource("locations")
+        geocode_reverse_resource = api_gateway_resource.add_resource("geocode").add_resource("reverse")
         locations_history_resource = locations_resource.add_resource("history")
         docs_resource = api_gateway_resource.add_resource("docs")
         app_config_resource = api_gateway_resource.add_resource("app-config")
@@ -337,6 +339,15 @@ class LambdaStack(Construct):
             authorizer=authorizer,
         )
 
+        # Endereço do pin no Criar. A chave do revgeo vai só para esta Lambda.
+        self.reverse_geocode = self.create_lambda_api_gateway_integration(
+            module_name="reverse_geocode",
+            method="GET",
+            api_resource=geocode_reverse_resource,
+            environment_variables={**environment_variables, **(reverse_geocode_environment or {})},
+            authorizer=authorizer,
+        )
+
         self.create_template = self.create_lambda_api_gateway_integration(
             module_name="create_template",
             method="POST",
@@ -443,7 +454,9 @@ class LambdaStack(Construct):
                 **environment_variables,
                 "APEX_SYNC_ENABLED_ORIGINS": apex_sync_enabled_origins,
             },
-            timeout=Duration.seconds(60),
+            # Com a execução de hora em hora, uma rodada com ~1 h de acúmulo (ou a carga inicial) não cabe em 60 s.
+            # O checkpoint por lote deixa a próxima continuar do ponto; 900 s é o teto da Lambda.
+            timeout=Duration.seconds(900),
             tracing=lambda_.Tracing.ACTIVE,
             log_retention=logs.RetentionDays.ONE_MONTH,
         )
@@ -467,7 +480,7 @@ class LambdaStack(Construct):
         self.sync_forms_origin_schedule = scheduler.CfnSchedule(
             self,
             "SyncFormsOriginEventBridgeScheduler",
-            schedule_expression="rate(5 minutes)",
+            schedule_expression="rate(1 hour)",
             flexible_time_window=scheduler.CfnSchedule.FlexibleTimeWindowProperty(
                 mode="OFF",
             ),
@@ -476,7 +489,7 @@ class LambdaStack(Construct):
                 role_arn=self.sync_forms_origin_scheduler_role.role_arn,
                 input='{"trigger":"eventbridge-scheduler","job":"sync_forms_origin"}',
             ),
-            description="Runs sync_forms_origin every 5 minutes",
+            description="Runs sync_forms_origin every hour",
             state="ENABLED",
         )
 

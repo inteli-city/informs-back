@@ -1,4 +1,4 @@
-"""Variáveis de ambiente do ambiente local (DynamoDB Local + LocalStack).
+"""Variáveis de ambiente do ambiente local (DynamoDB Local + Floci).
 
 Importe este módulo ANTES de qualquer `src.*`: o `Environments` lê o ambiente
 na primeira chamada e os presenters instanciam os repositórios no import.
@@ -15,9 +15,9 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-# Conta fixa do LocalStack. Vai como ExpectedBucketOwner nas chamadas de S3,
+# Conta fixa do Floci (padrão FLOCI_DEFAULT_ACCOUNT_ID). Vai como ExpectedBucketOwner nas chamadas de S3,
 # como numa conta de verdade: o bucket tem que ser desta conta.
-LOCALSTACK_ACCOUNT_ID = "000000000000"
+LOCAL_ACCOUNT_ID = "000000000000"
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
@@ -25,7 +25,7 @@ LOCAL_DEFAULTS = {
     "STAGE": "DEV",
     "REGION": "sa-east-1",
     "AWS_DEFAULT_REGION": "sa-east-1",
-    # DynamoDB Local e LocalStack aceitam qualquer credencial, mas o boto3 exige
+    # DynamoDB Local e Floci aceitam qualquer credencial, mas o boto3 exige
     # que exista uma — sem isto ele sai procurando no ~/.aws do usuário.
     "AWS_ACCESS_KEY_ID": "local",
     "AWS_SECRET_ACCESS_KEY": "local",

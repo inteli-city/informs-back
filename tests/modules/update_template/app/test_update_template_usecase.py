@@ -60,3 +60,31 @@ class TestUpdateTemplateUsecase:
                 requester_user_id="user-1",
                 sections=[],
             )
+
+
+from src.shared.domain.entities.template_information_field import TemplateInformationField
+from src.shared.domain.enums.file_type_enum import FileType
+from src.shared.domain.enums.information_field_type_enum import InformationFieldType
+
+
+def test_information_field_change_requires_version_when_template_is_used():
+    from src.shared.helpers.errors.usecase_errors import TemplateVersionRequired
+    from src.shared.infra.repositories.form_repository_mock import FormRepositoryMock
+    repo = TemplateRepositoryMock()
+    template = repo.templates[0]
+    forms = FormRepositoryMock()
+    forms.has_forms_with_template = lambda _: True
+    usecase = UpdateTemplateUsecase(repo, form_repo=forms)
+    fields = [TemplateInformationField(
+        key="evidencia", label="Evidência", information_field_type=InformationFieldType.FILE_INFORMATION_FIELD,
+        required=True, file_type=FileType.IMAGE,
+    )]
+    with pytest.raises(TemplateVersionRequired):
+        usecase(template_id=template.id, requester_user_id="user", information_fields=fields)
+    updated = usecase(template_id=template.id, requester_user_id="user", information_fields=fields, new_version=True)
+    assert updated.version == 2
+    assert updated.information_fields == fields
+    from src.shared.infra.dtos.template_dynamo_dto import TemplateDynamoDTO
+    dto = TemplateDynamoDTO.from_entity(updated)
+    record = {**dto.to_dynamo(), "PK": f"template#{template.id}"}
+    assert TemplateDynamoDTO.from_dynamo(record).to_entity().information_fields == fields

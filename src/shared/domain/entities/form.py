@@ -2,6 +2,7 @@ import abc
 from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID
 
+from src.shared.domain.entities.creator_location import CreatorLocation
 from src.shared.domain.entities.field import FileField
 from src.shared.domain.entities.file_upload import FileUploadRequest
 from src.shared.domain.entities.information_field import InformationField
@@ -58,6 +59,7 @@ class Form(abc.ABC):
     released_at: Optional[int]
     assignment_source: Optional[AssignmentSource]
     template_version: Optional[int]
+    creator_location: Optional[CreatorLocation]
     groups: List[str]
 
     ID_LENGTH = 36
@@ -111,6 +113,7 @@ class Form(abc.ABC):
         released_at: Optional[int] = None,
         assignment_source: Optional[AssignmentSource] = None,
         template_version: Optional[int] = None,
+        creator_location: Optional[CreatorLocation] = None,
         groups: Optional[List[str]] = None,
     ):
 
@@ -127,6 +130,7 @@ class Form(abc.ABC):
         )
         self._init_pool_fields(possession, claimed_at, released_at, assignment_source)
         self._init_template_version(template_version)
+        self._init_creator_location(creator_location)
         self._init_groups(groups)
 
     def _init_identity(self, form_title, id, user_id, created_by, template):
@@ -305,6 +309,13 @@ class Form(abc.ABC):
         if template_version is None and Form._is_uuid_string(self.template):
             template_version = 1
         self.template_version = template_version
+
+    def _init_creator_location(self, creator_location):
+        """Onde estava o aparelho de quem criou (auditoria). Separado do ponto
+        do serviço; ausente em integrações e em formulários antigos."""
+        if creator_location is not None and not isinstance(creator_location, CreatorLocation):
+            raise EntityError('Localização de quem criou inválida')
+        self.creator_location = creator_location
 
     def _init_groups(self, groups):
         """Grupos do sistema a que a OS aberta se destina (ADR-0022). Vazio =

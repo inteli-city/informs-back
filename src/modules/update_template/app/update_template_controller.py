@@ -1,3 +1,4 @@
+from src.shared.domain.entities.template_information_field import TemplateInformationField
 from src.shared.domain.entities.justification import JustificationOption
 from pydantic import ValidationError
 
@@ -35,6 +36,11 @@ class UpdateTemplateController:
                 template_id=payload.template_id,
                 requester_user_id=requester.user_id,
                 requester_systems=requester.systems,
+                information_fields=(
+                    [TemplateInformationField.from_dict(field.model_dump()) for field in payload.information_fields]
+                    if payload.information_fields is not None
+                    else None
+                ),
                 name=payload.name,
                 system=payload.system,
                 description=payload.description,

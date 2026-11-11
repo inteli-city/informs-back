@@ -22,8 +22,9 @@ from src.shared.helpers.contracts.endpoints.start_form_contract import StartForm
 from src.shared.helpers.contracts.endpoints.submit_form_contract import SubmitFormFieldFlatSchema, SubmitFormRequestSchema
 from src.shared.helpers.contracts.endpoints.location_history_contract import LocationHistoryRequestSchema
 from src.shared.helpers.contracts.endpoints.template_versioning_contract import PropagateTemplateRequestSchema
+from src.shared.helpers.contracts.endpoints.reverse_geocode_contract import ReverseGeocodeRequestSchema
 from src.shared.helpers.contracts.schemas.justification import JustificationOptionSchema
-from src.shared.helpers.contracts.schemas.template import TemplateSectionSchema
+from src.shared.helpers.contracts.schemas.template import TemplateSectionSchema, TemplateInformationFieldSchema
 
 
 class RequesterUserSchema(RequestContractModel):
@@ -63,6 +64,7 @@ class UpdateTemplateControllerRequestSchema(RequestContractModel):
     )
     sections: list[TemplateSectionSchema] | None = None
     justification_options: list[JustificationOptionSchema] | None = None
+    information_fields: list[TemplateInformationFieldSchema] | None = None
     new_version: StrictBool = False
 
 
@@ -203,6 +205,10 @@ class GetTemplateFormsControllerRequestSchema(RequestContractModel):
 class PropagateTemplateControllerRequestSchema(PropagateTemplateRequestSchema):
     requester_user: RequesterUserSchema
     template_id: str
+
+
+class ReverseGeocodeControllerRequestSchema(ReverseGeocodeRequestSchema):
+    requester_user: RequesterUserSchema
 
 
 class GetAppConfigControllerRequestSchema(RequestContractModel):
