@@ -25,25 +25,20 @@ class HttpRequest(IRequest):
         data_dict = {}
 
         if isinstance(body, dict):
-            overlaps = sorted(
-                set(self.body).intersection(self.query_params).union(set(self.body).intersection(self.headers))
-            )
+            overlaps = sorted(set(self.body).intersection(self.query_params))
             if overlaps:
-                warn(f"body, query_params and/or headers have overlapping keys -> {overlaps}")
-        else:
-            overlaps = sorted(set(self.query_params).intersection(self.headers))
-            if overlaps:
-                warn(f"query_params and headers have overlapping keys -> {overlaps}")
+                warn(f"body and query_params have overlapping keys -> {overlaps}")
 
         if isinstance(body, str):
             data_dict.update({"body": body})
 
-        # Ordem de precedência: body vence por último. Query string e headers
-        # chegam sempre como string (inclusive headers padrão que o cliente não
-        # escolhe mandar, ex.: "Priority" do RFC 9218 enviado automaticamente por
-        # fetch()/XHR do browser) e não devem sobrescrever um campo do payload
-        # JSON explícito só por coincidência de nome (ex.: "priority").
-        data_dict.update(self.headers)
+        # Headers HTTP não são parâmetros: ficam só em `self.headers`. Antes eles
+        # entravam em `data`, e header que o navegador manda sozinho virava
+        # campo de negócio com o mesmo nome — "Priority" (RFC 9218) sobre
+        # `priority`, e "Origin" (todo POST do app web) no `origin` opcional do
+        # POST /forms, que respondia 400 "Parâmetro inválido: origin".
+        # Ordem de precedência: body vence por último. Query string chega
+        # sempre como string e não deve sobrescrever um campo do payload JSON.
         data_dict.update(self.query_params)
         data_dict.update(self.path_params)
         if isinstance(body, dict):

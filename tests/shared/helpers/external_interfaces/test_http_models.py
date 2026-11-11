@@ -31,21 +31,25 @@ class TestHttpRequestDataPrecedence:
         )
         assert request.data["user_id"] == "from-body"
 
-    def test_non_overlapping_keys_still_merge_normally(self):
+    def test_body_query_and_path_merge_but_headers_do_not(self):
         request = HttpRequest(
             body={"form_title": "x"},
             headers={"authorization": "Bearer y"},
             query_params={"limit": "10"},
             path_params={"formId": "abc"},
         )
-        assert request.data == {
-            "form_title": "x",
-            "authorization": "Bearer y",
-            "limit": "10",
-            "formId": "abc",
-        }
+        assert request.data == {"form_title": "x", "limit": "10", "formId": "abc"}
+        assert request.headers == {"authorization": "Bearer y"}
 
-    def test_overlap_still_emits_warning(self):
-        """A sobreposição continua sendo sinalizada — só a precedência mudou."""
-        with pytest.warns(UserWarning, match="priority"):
-            HttpRequest(body={"priority": 1}, headers={"priority": "u=4"})
+    def test_browser_origin_header_does_not_become_a_parameter(self):
+        """Bug real: todo POST do app web leva o header `Origin`, que virava o
+        campo opcional `origin` do POST /forms (CITIZEN, ...) e dava 400."""
+        request = HttpRequest(
+            body={"form_title": "x"},
+            headers={"origin": "https://dev.example.amplifyapp.com"},
+        )
+        assert "origin" not in request.data
+
+    def test_overlap_with_query_still_emits_warning(self):
+        with pytest.warns(UserWarning, match="status"):
+            HttpRequest(body={"status": "ACTIVE"}, query_params={"status": "queried"})

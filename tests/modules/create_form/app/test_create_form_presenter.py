@@ -67,3 +67,41 @@ class TestCreateFormPresenter:
         assert response["statusCode"] == 201
         assert response_json["form_title"] == "FORM TITLE"
         assert response_json["status"] == "PENDING"
+
+    def test_browser_origin_header_is_not_the_form_origin(self):
+        """O app web manda `Origin` em todo POST; isso não é o `origin` do
+        formulário (CITIZEN, ...) e não pode virar 400."""
+        os.environ["STAGE"] = "TEST"
+        from src.modules.create_form.app import create_form_presenter
+        importlib.reload(create_form_presenter)
+
+        event = {
+            "httpMethod": "POST",
+            "path": "/mss-formularios/forms",
+            "headers": {"content-type": "application/json", "origin": "https://dev.example.amplifyapp.com"},
+            "requestContext": {"authorizer": {"claims": {
+                "sub": "d61dbf66-a10f-11ed-a8fc-0242ac120001",
+                "name": "User",
+                "email": "user@test.com",
+                "cognito:groups": "FORMULARIOS,GAIA",
+            }}},
+            "body": json.dumps({
+                "form_title": "FORM TITLE",
+                "user_id": "d61dbf66-a10f-11ed-a8fc-0242ac120001",
+                "system": "GAIA",
+                "street": "1",
+                "city": "1",
+                "latitude": 1.0,
+                "longitude": 1.0,
+                "priority": 1,
+                "justifications": [{"option": "", "required_image": False, "required_text": False}],
+                "sections": [{"section_id": 1, "fields": [
+                    {"field_type": "TEXT_FIELD", "label": "x", "required": False, "key": "k", "order": 0}
+                ]}],
+            }),
+        }
+
+        response = create_form_presenter.lambda_handler(event, None)
+
+        assert response["statusCode"] == 201
+        assert json.loads(response["body"])["origin"] is None
