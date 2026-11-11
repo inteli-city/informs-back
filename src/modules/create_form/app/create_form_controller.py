@@ -2,6 +2,7 @@ from pydantic import ValidationError
 
 from .create_form_usecase import CreateFormUsecase
 from .create_form_viewmodel import CreateFormViewmodel
+from src.shared.domain.entities.creator_location import CreatorLocation
 from src.shared.domain.entities.file_upload import FileUploadRequest
 from src.shared.domain.entities.information_field import FileInformationField
 from src.shared.domain.enums.file_type_enum import FileType
@@ -84,6 +85,7 @@ class CreateFormController:
             payload.scheduled_start_at,
             payload.scheduled_end_at,
             payload.attributes,
+            CreatorLocation(**payload.creator_location.model_dump()) if payload.creator_location else None,
         )
 
     @controller_error_handler
@@ -116,6 +118,7 @@ class CreateFormController:
                 scheduled_start_at,
                 scheduled_end_at,
                 attributes,
+                creator_location,
             ) = self._build_usecase_payload(payload)
 
             form, files = self.usecase(
@@ -144,6 +147,7 @@ class CreateFormController:
                 scheduled_start_at=scheduled_start_at,
                 scheduled_end_at=scheduled_end_at,
                 attributes=attributes,
+                creator_location=creator_location,
             )
 
             viewmodel = CreateFormViewmodel(form=form, files=files)

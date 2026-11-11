@@ -112,7 +112,13 @@ class IacStack(Stack):
         # Ausente = nenhuma: a trava global continua valendo para todas.
         self.lambda_stack = LambdaStack(self, api_gateway_resource=api_gateway_resource,
                                         environment_variables=ENVIRONMENT_VARIABLES, authorizer=self.cognito_auth,
-                                        apex_sync_enabled_origins=self.node.try_get_context("apex_sync_enabled_origins") or "")
+                                        apex_sync_enabled_origins=self.node.try_get_context("apex_sync_enabled_origins") or "",
+                                        # Só a Lambda do endereço recebe a chave do revgeo (segredo do GitHub no CD).
+                                        reverse_geocode_environment={
+                                            key: os.environ[key]
+                                            for key in ("REVGEO_API_KEY", "REVGEO_BASE_URL")
+                                            if os.environ.get(key)
+                                        })
           
         cognito_admin_policy = aws_iam.PolicyStatement(
             effect=aws_iam.Effect.ALLOW,

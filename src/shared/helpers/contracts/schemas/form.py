@@ -27,6 +27,13 @@ class FormSectionSchema(RequestContractModel):
     )
 
 
+class CreatorLocationSchema(ResponseContractModel):
+    latitude: float
+    longitude: float
+    accuracy: float | None = Field(default=None, description="Raio de precisão do aparelho, em metros.")
+    captured_at: int | None = Field(default=None, description="Quando o aparelho mediu a posição (epoch ms).")
+
+
 class FormResponseSchema(ResponseContractModel):
     id: str
     status: FormStatusLiteral
@@ -77,6 +84,12 @@ class FormResponseSchema(ResponseContractModel):
         description="Como a OS ganhou responsável: ORIGIN_SYSTEM (direcionada na "
         "criação), CLAIM (reivindicada pelo próprio usuário) ou MANAGER (atribuída "
         "por um Gestor/Fiscal/Admin).",
+    )
+    creator_location: CreatorLocationSchema | None = Field(
+        default=None,
+        description="Onde estava o aparelho de quem criou, no momento da criação "
+        "(auditoria). Separado de `latitude`/`longitude`, que são o ponto do serviço. "
+        "Ausente em integrações e em formulários antigos.",
     )
     template_version: int | None = Field(
         default=None,

@@ -17,7 +17,8 @@ from src.shared.domain.entities.justification import Justification, Justificatio
 from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.system_config import SystemConfig
 from src.shared.domain.entities.system_membership import SystemMembership
-from src.shared.domain.entities.system_role import ADMIN_ROLE_ID
+from src.shared.domain.entities.system_role import ADMIN_ROLE_ID, SystemRole
+from src.shared.domain.enums.action_enum import Action
 from src.shared.domain.services.access_control import AccessControl
 from src.shared.domain.entities.file_upload import FileUploadRequest
 from src.shared.domain.enums.form_origin_enum import FormOrigin
@@ -30,7 +31,7 @@ from src.shared.infra.repositories.form_repository_mock import FormRepositoryMoc
 from src.shared.infra.repositories.file_repository_mock import FileRepositoryMock
 from src.shared.infra.repositories.profile_repository_mock import ProfileRepositoryMock
 from src.shared.infra.repositories.system_config_repository_mock import SystemConfigRepositoryMock
-from src.shared.infra.repositories.system_role_repository_mock import SystemRoleRepositoryMock
+from src.shared.infra.repositories.system_role_repository_mock import MOCK_TECNICO_ROLE_ID, SystemRoleRepositoryMock
 from src.shared.infra.repositories.template_repository_mock import TemplateRepositoryMock
 
 
@@ -440,3 +441,76 @@ def test_keyed_information_fields_survive_dynamo_round_trip():
     stored = InformationFieldDTO.from_entity(TextInformationField("texto", key="observacao_gestor")).to_dynamo()
     assert InformationFieldDTO.from_dynamo(stored).to_entity().key == "observacao_gestor"
     assert InformationFieldDTO.from_dynamo({"information_field_type": "TEXT_INFORMATION_FIELD", "value": "legado"}).to_entity().key is None
+
+
+class TestCreateFormUsecasePermission:
+    """Além do menu ligado, criar exige `forms.create` no papel da pessoa,
+    no mesmo sistema."""
+
+    def _usecase(self):
+        system_config_repo = SystemConfigRepositoryMock()
+        system_config_repo.put(SystemConfig(system="GAIA", created_at=1, updated_at=1))
+        self.profile_repo = ProfileRepositoryMock()
+        self.role_repo = SystemRoleRepositoryMock()
+        return CreateFormUsecase(
+            FormRepositoryMock(), FileRepositoryMock(),
+            system_config_repo=system_config_repo,
+            access_control=AccessControl(self.profile_repo, self.role_repo),
+        )
+
+    def _payload(self, created_by):
+        _, payload, _ = _make_usecase_and_payload()
+        payload = deepcopy(payload)
+        payload["created_by"] = created_by
+        payload["user_id"] = created_by
+        return payload
+
+    def _set_tecnico_actions(self, actions):
+        role = self.role_repo.get_role("GAIA", MOCK_TECNICO_ROLE_ID)
+        role.actions = actions
+        self.role_repo.put_role(role)
+
+    def test_role_with_forms_create_creates(self):
+        usecase = self._usecase()
+
+        form, _ = usecase(**self._payload(INSPECTOR_ID))
+
+        assert form.created_by == INSPECTOR_ID
+
+    def test_role_without_forms_create_is_forbidden(self):
+        usecase = self._usecase()
+        self._set_tecnico_actions([Action.TRACKING_START])
+
+        with pytest.raises(ForbiddenAction, match="permissão para criar"):
+            usecase(**self._payload(INSPECTOR_ID))
+
+    def test_forms_create_in_another_system_does_not_count(self):
+        usecase = self._usecase()
+        self._set_tecnico_actions([Action.TRACKING_START])
+        self.role_repo.put_role(SystemRole(
+            system="UBERLANDIA", role_id="r-campo-udi", name="Campo", actions=[Action.FORMS_CREATE],
+            created_at=1, updated_at=1,
+        ))
+        self.profile_repo.put_membership(SystemMembership(
+            user_id=INSPECTOR_ID, system="UBERLANDIA", role_id="r-campo-udi", created_at=1, updated_at=1,
+        ))
+
+        with pytest.raises(ForbiddenAction):
+            usecase(**self._payload(INSPECTOR_ID))
+
+    def test_user_without_membership_is_forbidden(self):
+        usecase = self._usecase()
+
+        with pytest.raises(ForbiddenAction):
+            usecase(**self._payload("user-sem-perfil"))
+
+    def test_system_admin_creates_without_forms_create_in_any_role(self):
+        usecase = self._usecase()
+        self._set_tecnico_actions([])
+        self.profile_repo.put_membership(SystemMembership(
+            user_id=INSPECTOR_ID, system="GAIA", role_id=ADMIN_ROLE_ID, created_at=1, updated_at=1,
+        ))
+
+        form, _ = usecase(**self._payload(INSPECTOR_ID))
+
+        assert form.created_by == INSPECTOR_ID

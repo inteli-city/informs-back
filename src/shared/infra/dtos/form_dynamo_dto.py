@@ -1,5 +1,6 @@
 from typing import Dict, List, Optional
 
+from src.shared.domain.entities.creator_location import CreatorLocation
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.information_field import InformationField
 from src.shared.domain.entities.justification import Justification
@@ -91,6 +92,7 @@ class FormDynamoDTO:
         released_at: Optional[int] = None,
         assignment_source: Optional[AssignmentSource] = None,
         template_version: Optional[int] = None,
+        creator_location: Optional[CreatorLocation] = None,
     ):
         self.form_title = form_title
         self.id = id
@@ -129,6 +131,7 @@ class FormDynamoDTO:
         self.released_at = released_at
         self.assignment_source = assignment_source
         self.template_version = template_version
+        self.creator_location = creator_location
 
     @staticmethod
     def from_entity(form: Form) -> "FormDynamoDTO":
@@ -170,6 +173,7 @@ class FormDynamoDTO:
             released_at=form.released_at,
             assignment_source=form.assignment_source,
             template_version=form.template_version,
+            creator_location=form.creator_location,
         )
 
     def to_dynamo(self) -> dict:
@@ -215,6 +219,7 @@ class FormDynamoDTO:
             "released_at": self.released_at,
             "assignment_source": self.assignment_source.value if isinstance(self.assignment_source, AssignmentSource) else self.assignment_source,
             "template_version": self.template_version,
+            "creator_location": self.creator_location.to_dict() if self.creator_location else None,
         }
 
     @staticmethod
@@ -265,6 +270,7 @@ class FormDynamoDTO:
             released_at=int(data["released_at"]) if data.get("released_at") is not None else None,
             assignment_source=AssignmentSource(data["assignment_source"]) if data.get("assignment_source") is not None else None,
             template_version=int(data["template_version"]) if data.get("template_version") is not None else None,
+            creator_location=CreatorLocation.from_dict(data["creator_location"]) if data.get("creator_location") else None,
         )
 
     def to_entity(self) -> Form:
@@ -306,6 +312,7 @@ class FormDynamoDTO:
             released_at=self.released_at,
             assignment_source=self.assignment_source,
             template_version=self.template_version,
+            creator_location=self.creator_location,
         )
 
     def to_dict(self) -> dict:

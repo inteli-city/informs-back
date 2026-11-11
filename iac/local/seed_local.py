@@ -82,9 +82,9 @@ LOCAL_ACCOUNTS = [
 
 # Papéis criados em cada sistema (RBAC). ADMIN é o papel fixo do back-end.
 LOCAL_ROLES = {
-    "tecnico": dict(name="Técnico", is_default=True, actions=["tracking.start"]),
+    "tecnico": dict(name="Técnico", is_default=True, actions=["forms.create", "tracking.start"]),
     "gestor": dict(name="Gestor", is_default=False, actions=[
-        "forms.view_all", "forms.assign", "forms.release", "tracking.start", "tracking.view",
+        "forms.create", "forms.view_all", "forms.assign", "forms.release", "tracking.start", "tracking.view",
         "users.manage", "templates.manage",
     ]),
 }
@@ -116,7 +116,7 @@ def _upload_image(key: str, rgb: tuple) -> str:
     s3 = boto3.client("s3", endpoint_url=envs.s3_endpoint_url, region_name=envs.region)
     s3.put_object(
         Bucket=envs.bucket_name, Key=key, Body=_png(rgb), ContentType="image/png",
-        ExpectedBucketOwner=local_env.LOCALSTACK_ACCOUNT_ID,
+        ExpectedBucketOwner=local_env.LOCAL_ACCOUNT_ID,
     )
     return build_s3_url(key)
 

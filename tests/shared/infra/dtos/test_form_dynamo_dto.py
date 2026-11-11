@@ -9,6 +9,7 @@ compartilhados para asserts comuns.
 
 import pytest
 
+from src.shared.domain.entities.creator_location import CreatorLocation
 from src.shared.domain.entities.field import TextField
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.information_field import TextInformationField
@@ -274,3 +275,15 @@ class TestFormDynamoDTOUberlandiaFields:
         assert form.scheduled_end_at is None
         assert form.attributes == {}
         assert form.completed_by is None
+        assert form.creator_location is None
+
+    def test_round_trip_preserves_creator_location(self):
+        kwargs = self._uberlandia_kwargs()
+        kwargs["creator_location"] = CreatorLocation(-18.9, -48.27, 8.0, 1715000000000)
+        item = FormDynamoDTO.from_entity(Form(**kwargs)).to_dynamo()
+        item["PK"] = f"form#{SAMPLE_ID}"
+        item["SK"] = "METADATA"
+
+        rebuilt = FormDynamoDTO.from_dynamo(item).to_entity()
+
+        assert rebuilt.creator_location == CreatorLocation(-18.9, -48.27, 8.0, 1715000000000)

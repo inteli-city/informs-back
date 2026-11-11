@@ -11,7 +11,7 @@ O projeto usa AWS CDK em Python para definir API Gateway, Lambdas, DynamoDB, S3,
 - `iac/iac_stack.py`: stack principal com API Gateway, Cognito, S3 e permissões.
 - `iac/lambda_stack.py`: definição das Lambdas e rotas HTTP.
 - `iac/dynamo_stack.py`: tabela DynamoDB single-table e índices.
-- `local/`: apoio para execução local com SAM, DynamoDB Local e LocalStack.
+- `local/`: apoio para execução local com SAM, DynamoDB Local e Floci.
 
 ## Instalação
 

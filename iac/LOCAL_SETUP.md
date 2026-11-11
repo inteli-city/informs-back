@@ -1,14 +1,14 @@
 # Ambiente local do Informs
 
 Back-end inteiro na sua máquina, sem conta na AWS: DynamoDB Local, S3 no
-LocalStack e as Lambdas servidas por uma API HTTP local. O PWA
+Floci e as Lambdas servidas por uma API HTTP local. O PWA
 (`informs-front/clients/web`) fala com ela como fala com o API Gateway, e os
 testes e2e do front rodam contra ela.
 
 ```
 PWA (localhost:5174) ──HTTP──▶ API local (127.0.0.1:4010) ──▶ DynamoDB Local (:8000)
-        │                       Lambdas no mesmo processo  └─▶ LocalStack S3  (:4566)
-        └────── upload de fotos (URL assinada) ─────────────────▶ LocalStack S3
+        │                       Lambdas no mesmo processo  └─▶ Floci S3  (:4566)
+        └────── upload de fotos (URL assinada) ─────────────────▶ Floci S3
 ```
 
 ## Pré-requisitos
@@ -40,7 +40,7 @@ local**.
 
 | Arquivo | Papel |
 | --- | --- |
-| `local/docker-compose.yml` | DynamoDB Local, dynamodb-admin e LocalStack (só S3) |
+| `local/docker-compose.yml` | DynamoDB Local, dynamodb-admin e Floci (só S3) |
 | `local/bootstrap_local.py` | Sobe os containers, espera ficarem prontos, cria tabelas e bucket (com CORS para o upload do navegador) |
 | `local/create_dynamodb_tables.py` | As três tabelas do `dynamo_stack.py` (formulários com os GSIs `UserPriorityIndex`, `SystemUpdatedAtIndex` e `PoolIndex`; perfis com `ByRole`; localização) |
 | `local/seed_local.py` | As três contas locais (perfis), templates de GAIA e UBERLANDIA, OS próprias em vários status e OS em aberto com foto no campo informativo |
@@ -88,8 +88,11 @@ no Cognito. Os testes criam os próprios formulários; para recomeçar do zero,
 
 ## Problemas conhecidos
 
-- **LocalStack fixado na 4.9.** A partir da 2026.x a imagem `latest` exige
-  conta e `LOCALSTACK_AUTH_TOKEN`, e o container sai com exit 55 sem eles.
+- **Floci fixado na 2.4.0** (`floci/floci`, MIT, sem conta). Substituiu o LocalStack, que a partir da
+  2026.x exige `LOCALSTACK_AUTH_TOKEN`. Só o S3 vem dele: o DynamoDB fica no DynamoDB Local, que é o
+  código da AWS (o Floci também fala DynamoDB, mas não guarda o GSI, lê a tabela base). Saúde:
+  `curl http://127.0.0.1:4566/_floci/health`. O Floci não valida a assinatura da URL pré-assinada;
+  quem valida é a AWS de verdade. O repositório antigo `hectorvent/floci` está parado.
 - **Porta 4010, não 3000.** A 3000 costuma estar ocupada por outro dev server,
   e `localhost` pode resolver para IPv6 e cair nele. Use `127.0.0.1` na URL.
 - **Service worker do PWA.** O cache de GETs do Workbox ignora endereços de

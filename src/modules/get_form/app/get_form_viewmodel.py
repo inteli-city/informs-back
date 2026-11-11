@@ -95,6 +95,7 @@ class GetFormViewmodel:
         self.released_at = form.released_at
         self.assignment_source = form.assignment_source
         self.template_version = form.template_version
+        self.creator_location = form.creator_location.to_dict() if form.creator_location else None
 
     def to_dict(self):
         payload = {
@@ -142,6 +143,7 @@ class GetFormViewmodel:
             "released_at": self.released_at,
             "assignment_source": self.assignment_source.value if self.assignment_source else None,
             "template_version": self.template_version,
+            "creator_location": self.creator_location,
         }
         validated = GetFormResponseSchema.model_validate(payload).model_dump()
         validated["priority"] = self.priority.value if isinstance(self.priority, Priority) else self.priority
