@@ -12,6 +12,7 @@ from src.shared.domain.repositories.sync_state_repository_interface import ISync
 from src.shared.domain.repositories.sync_error_form_repository_interface import ISyncErrorFormRepository
 from src.shared.domain.repositories.system_config_repository_interface import ISystemConfigRepository
 from src.shared.domain.repositories.form_event_repository_interface import IFormEventRepository
+from src.shared.domain.repositories.reverse_geocoder_interface import IReverseGeocoder
 
 class Stage(Enum):
     DOTENV = "DOTENV"
@@ -110,6 +111,9 @@ class Environments:
             # dev/homolog (Lambda de verdade, rede de verdade), coberto abaixo.
             self.apex_sync_enabled = True
             self.apex_sync_enabled_origins = ()
+            self.revgeo_base_url = None
+            self.revgeo_api_key = None
+            self.revgeo_timeout = 5
         else:
             self.region = os.environ.get("REGION")
             self.endpoint_url = os.environ.get("ENDPOINT_URL")
@@ -147,6 +151,11 @@ class Environments:
             # Habilitação por origem, vazia por padrão: liga o envio de uma origem em DEV/HOMOLOG sem
             # ligar as outras. Não substitui a trava global; quem decide os nomes é o deploy.
             self.apex_sync_enabled_origins = self._parse_csv(os.environ.get("APEX_SYNC_ENABLED_ORIGINS"))
+            # Endereço do pin no Criar (GET /geocode/reverse): wrapper revgeo da
+            # Intelicity. A chave só existe aqui, no back-end — nunca no app.
+            self.revgeo_base_url = os.environ.get("REVGEO_BASE_URL", "https://backend.inteli.city/revgeo")
+            self.revgeo_api_key = os.environ.get("REVGEO_API_KEY")
+            self.revgeo_timeout = int(os.environ.get("REVGEO_TIMEOUT", "5"))
 
     @staticmethod
     def get_form_repo() -> IFormRepository:
@@ -159,6 +168,17 @@ class Environments:
         else:
             raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
     
+    @staticmethod
+    def get_reverse_geocoder() -> IReverseGeocoder:
+        if Environments.get_envs().stage in [Stage.TEST, Stage.DOTENV]:
+            from src.shared.infra.repositories.reverse_geocoder_mock import ReverseGeocoderMock
+            return ReverseGeocoderMock()
+        elif Environments.get_envs().stage in [Stage.PROD, Stage.DEV, Stage.HOMOLOG]:
+            from src.shared.infra.repositories.reverse_geocoder_revgeo import ReverseGeocoderRevgeo
+            return ReverseGeocoderRevgeo()
+        else:
+            raise ValueError(Environments.NO_REPOSITORY_FOUND_ERROR)
+
     @staticmethod
     def get_file_repo() -> IFileRepository:
         if Environments.get_envs().stage in [Stage.TEST, Stage.DOTENV]:

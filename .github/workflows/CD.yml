@@ -78,3 +78,4 @@ jobs:
           KUMA_HEARTBEAT_PUSH_URL: ${{ secrets.KUMA_HEARTBEAT_PUSH_URL }}
           KUMA_MISSING_FILES_PUSH_URL: ${{ secrets.KUMA_MISSING_FILES_PUSH_URL }}
           RECONCILE_SYSTEMS: ${{ secrets.RECONCILE_SYSTEMS }}
+          REVGEO_API_KEY: ${{ secrets.REVGEO_API_KEY }}

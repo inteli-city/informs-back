@@ -3,6 +3,7 @@ from typing import List, Optional
 import uuid
 
 from src.shared.domain.entities.app_config import AppConfig
+from src.shared.domain.entities.creator_location import CreatorLocation
 from src.shared.domain.entities.file_upload import FileUpload, FileUploadRequest
 from src.shared.domain.entities.form import Form
 from src.shared.domain.entities.information_field import FileInformationField, InformationField
@@ -103,6 +104,7 @@ class CreateFormUsecase:
         scheduled_start_at: Optional[int] = None,
         scheduled_end_at: Optional[int] = None,
         attributes: Optional[dict] = None,
+        creator_location: Optional[CreatorLocation] = None,
     ) -> tuple[Form, list[FileUpload]]:
         if requester_systems is not None and system not in requester_systems:
             raise ForbiddenAction("Usuário não tem permissão para acessar este sistema")
@@ -156,6 +158,7 @@ class CreateFormUsecase:
             scheduled_end_at=scheduled_end_at,
             attributes=attributes,
             template_version=template_entity.version if template_entity else None,
+            creator_location=creator_location,
         )
 
         created_form = self.form_repo.create_form(form)
