@@ -86,6 +86,7 @@ ROUTES: List[Route] = [
     Route("DELETE", "/profiles/{user_id}", "delete_profile"),
     Route("PUT", "/profiles/{user_id}", "update_profile"),
     Route("GET", "/locations/history", "get_location_history"),
+    Route("GET", "/geocode/reverse", "reverse_geocode"),
     Route("POST", "/templates", "create_template"),
     Route("GET", "/templates", "get_all_templates"),
     Route("PUT", "/templates/{template_id}", "update_template"),

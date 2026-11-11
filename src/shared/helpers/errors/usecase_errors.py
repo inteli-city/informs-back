@@ -30,3 +30,10 @@ class TemplateVersionRequired(BaseError):
             'Este template já tem formulários. Para alterar seções, campos ou motivos de '
             'cancelamento, crie uma nova versão.'
         )
+
+
+class ReverseGeocodeUnavailable(BaseError):
+    """O serviço de endereço (revgeo) não respondeu como esperado. Não é erro
+    de quem pediu: o app avisa e a pessoa preenche o endereço à mão."""
+    def __init__(self, message: str = 'Serviço de endereço indisponível'):
+        super().__init__(message)

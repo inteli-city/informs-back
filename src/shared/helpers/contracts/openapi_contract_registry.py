@@ -67,6 +67,10 @@ from src.shared.helpers.contracts.endpoints.update_template_contract import (
     UpdateTemplateRequestSchema,
     UpdateTemplateResponseSchema,
 )
+from src.shared.helpers.contracts.endpoints.reverse_geocode_contract import (
+    ReverseGeocodeRequestSchema,
+    ReverseGeocodeResponseSchema,
+)
 
 
 @dataclass(frozen=True)
@@ -372,6 +376,15 @@ _CONTRACTS = [
         success_status_code=200,
         request_model=LocationHistoryRequestSchema,
         response_model=LocationHistoryResponseSchema,
+    ),
+    EndpointContract(
+        path="/geocode/reverse",
+        method="get",
+        tag="Geocode",
+        summary="Endereço de um ponto do mapa (pin do Criar). Query: lat, lng. 404 sem endereço; 502 serviço fora",
+        success_status_code=200,
+        request_model=ReverseGeocodeRequestSchema,
+        response_model=ReverseGeocodeResponseSchema,
     ),
 ]
 

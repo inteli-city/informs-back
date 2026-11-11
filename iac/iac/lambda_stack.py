@@ -40,7 +40,8 @@ class LambdaStack(Construct):
         return function
 
     def __init__(self, scope: Construct, api_gateway_resource: Resource, environment_variables: dict,
-                 authorizer: Optional[IAuthorizer], apex_sync_enabled_origins: str = "") -> None:
+                 authorizer: Optional[IAuthorizer], apex_sync_enabled_origins: str = "",
+                 reverse_geocode_environment: Optional[dict] = None) -> None:
         super().__init__(scope, "Formularios_Lambda")
 
         self.lambda_layer = lambda_.LayerVersion(self, "Formularios_Layer",
@@ -61,6 +62,7 @@ class LambdaStack(Construct):
         profiles_resource = api_gateway_resource.add_resource("profiles")
         profile_user_id_resource = profiles_resource.add_resource("{user_id}")
         locations_resource = api_gateway_resource.add_resource("locations")
+        geocode_reverse_resource = api_gateway_resource.add_resource("geocode").add_resource("reverse")
         locations_history_resource = locations_resource.add_resource("history")
         docs_resource = api_gateway_resource.add_resource("docs")
         app_config_resource = api_gateway_resource.add_resource("app-config")
@@ -290,6 +292,15 @@ class LambdaStack(Construct):
             method="GET",
             api_resource=locations_history_resource,
             environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        # Endereço do pin no Criar. A chave do revgeo vai só para esta Lambda.
+        self.reverse_geocode = self.create_lambda_api_gateway_integration(
+            module_name="reverse_geocode",
+            method="GET",
+            api_resource=geocode_reverse_resource,
+            environment_variables={**environment_variables, **(reverse_geocode_environment or {})},
             authorizer=authorizer,
         )
 
