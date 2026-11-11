@@ -123,6 +123,8 @@ class CreateFormUsecase:
         now_timestamp = now_timestamp_ms()
 
         template_entity = self._load_template(template, system)
+        if template_entity is not None:
+            template_entity.validate_information_fields(information_fields, information_fields_uploads)
         resolved_sections = deepcopy(template_entity.sections) if template_entity else sections
         justification = self._inherit_justification(justification, template_entity)
         files = self._process_information_field_uploads(

@@ -1,5 +1,6 @@
 from typing import List, Optional
 
+from src.shared.domain.entities.template_information_field import TemplateInformationField
 from src.shared.domain.entities.justification import JustificationOption
 from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.template import Template
@@ -93,6 +94,7 @@ class UpdateTemplateUsecase:
         justification_options: Optional[List[JustificationOption]] = None,
         clear_description: bool = False,
         new_version: bool = False,
+        information_fields: Optional[List[TemplateInformationField]] = None,
     ) -> Template:
         template = self.template_repo.get_template(template_id)
         if template is None:
@@ -107,7 +109,10 @@ class UpdateTemplateUsecase:
             self.access_control, requester_user_id, {template.system, system or template.system},
         )
         self._validate_sections(sections)
-        content_changed = self._content_changes(template, sections, justification_options)
+        content_changed = self._content_changes(template, sections, justification_options) or (
+            # Exigência nova ou alterada muda o que os formulários criados dali em diante precisam trazer.
+            information_fields is not None and information_fields != template.information_fields
+        )
         if content_changed and not new_version and self._is_in_use(template.id):
             raise TemplateVersionRequired()
 
@@ -125,6 +130,8 @@ class UpdateTemplateUsecase:
             template.change_sections(sections)
         if justification_options is not None:
             template.change_justification_options(justification_options)
+        if information_fields is not None:
+            template.change_information_fields(information_fields)
         if new_version and content_changed:
             template.bump_version()
 

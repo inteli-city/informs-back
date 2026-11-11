@@ -2,7 +2,7 @@ from src.shared.helpers.contracts.schemas.justification import JustificationOpti
 from pydantic import AliasChoices, Field, StrictBool
 
 from src.shared.helpers.contracts.base import RequestContractModel
-from src.shared.helpers.contracts.schemas.template import TemplateSchema, TemplateSectionSchema
+from src.shared.helpers.contracts.schemas.template import TemplateSchema, TemplateSectionSchema, TemplateInformationFieldSchema
 
 
 class CreateTemplateRequestSchema(RequestContractModel):
@@ -16,6 +16,7 @@ class CreateTemplateRequestSchema(RequestContractModel):
     )
     sections: list[TemplateSectionSchema]
     justification_options: list[JustificationOptionSchema] | None = None
+    information_fields: list[TemplateInformationFieldSchema] | None = None
 
 
 class CreateTemplateResponseSchema(TemplateSchema):

@@ -1,3 +1,4 @@
+from src.shared.domain.entities.template_information_field import TemplateInformationField
 from src.shared.domain.entities.justification import JustificationOption
 from pydantic import ValidationError
 
@@ -41,6 +42,11 @@ class CreateTemplateController:
                     else None
                 ),
                 requester_systems=requester.systems,
+                information_fields=(
+                    [TemplateInformationField.from_dict(field.model_dump()) for field in payload.information_fields]
+                    if payload.information_fields is not None
+                    else None
+                ),
             )
 
             viewmodel = TemplateViewmodel(template)

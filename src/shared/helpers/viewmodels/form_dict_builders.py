@@ -149,6 +149,8 @@ def build_form_dict(
         "status": form.status.value,
         "form_title": form.form_title,
         "user_id": form.user_id,
+        # O front usa o id para saber de qual template o formulário nasceu.
+        "template": form.template,
         "area": form.area,
         "system": form.system,
         "city": form.city,

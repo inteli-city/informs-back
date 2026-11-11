@@ -4,7 +4,11 @@ from datetime import datetime, timezone
 import uuid
 
 from src.shared.domain.entities.justification import JustificationOption
+from src.shared.domain.entities.file_upload import FileUploadRequest
+from src.shared.domain.entities.information_field import FileInformationField, InformationField, TextInformationField
 from src.shared.domain.entities.section import Section
+from src.shared.domain.entities.template_information_field import TemplateInformationField
+from src.shared.domain.enums.file_type_enum import FileType
 from src.shared.helpers.errors.domain_errors import EntityError
 
 
@@ -35,6 +39,7 @@ class Template:
         updated_at: Optional[int] = None,
         justification_options: Optional[List[JustificationOption]] = None,
         version: Optional[int] = None,
+        information_fields: Optional[List[TemplateInformationField]] = None,
     ):
         template_identifier = id or str(uuid.uuid4())
         self._validate_id(template_identifier)
@@ -72,6 +77,64 @@ class Template:
         # cancelamento). Template sem versão gravada é da época anterior ao
         # versionamento: conta como a 1.
         self.version = self._validate_version(1 if version is None else version)
+        self.change_information_fields(information_fields or [])
+
+    def change_information_fields(self, fields: List[TemplateInformationField]) -> None:
+        if not isinstance(fields, list) or not all(isinstance(f, TemplateInformationField) for f in fields):
+            raise EntityError("Campos informativos devem ser uma lista de definições")
+        # A chave identifica o dado no formulário; repetida, duas exigências
+        # disputariam o mesmo valor.
+        keys = [f.key for f in fields]
+        if len(set(keys)) != len(keys):
+            raise EntityError("Chaves de campos informativos repetidas")
+        self.information_fields = fields
+
+    def validate_information_fields(
+        self,
+        fields: Optional[List[InformationField]],
+        uploads: Optional[List[Optional[FileUploadRequest]]],
+    ) -> None:
+        """Confere o que quem cria o formulário enviou contra as exigências do
+        template. `uploads[i]` é o arquivo declarado para `fields[i]`.
+
+        Só prova a declaração: os bytes do arquivo chegam depois, por PUT."""
+        if not self.information_fields:
+            return
+        uploads = uploads or []
+        supplied: dict = {}
+        for index, field in enumerate(fields or []):
+            # Campo sem chave é o formato anterior: não atende exigência alguma.
+            if field.key is None:
+                continue
+            if field.key in supplied:
+                raise EntityError(f"Campo informativo repetido: {field.key}")
+            supplied[field.key] = (field, uploads[index] if index < len(uploads) else None)
+
+        for requirement in self.information_fields:
+            item = supplied.get(requirement.key)
+            if item is None:
+                if requirement.required:
+                    raise EntityError(f"Campo informativo obrigatório: {requirement.key}")
+                continue
+            field, upload = item
+            if field.information_field_type != requirement.information_field_type:
+                raise EntityError(f"Tipo inválido do campo informativo: {requirement.key}")
+            if isinstance(field, FileInformationField):
+                self._validate_file(requirement, field, upload)
+            elif isinstance(field, TextInformationField) and requirement.required and not field.value.strip():
+                raise EntityError(f"Campo informativo obrigatório: {requirement.key}")
+
+    @staticmethod
+    def _validate_file(requirement: TemplateInformationField, field: FileInformationField, upload) -> None:
+        if upload is None:
+            raise EntityError(f"Arquivo ausente: {requirement.key}")
+        if requirement.file_type is None:
+            return
+        # A categoria vale pelo mimetype declarado; o `file_type` do corpo, se
+        # vier, não pode contradizer a exigência.
+        declared = FileType.IMAGE if upload.mimetype.lower().startswith("image/") else FileType.DOCUMENT
+        if declared != requirement.file_type or (field.file_type and field.file_type != requirement.file_type):
+            raise EntityError(f"Tipo de arquivo inválido: {requirement.key}")
 
     @staticmethod
     def _validate_version(version: int) -> int:

@@ -62,6 +62,7 @@ class GetFormViewmodel:
         self.status = form.status
         self.form_title = form.form_title
         self.user_id = form.user_id
+        self.template = form.template
         self.area = form.area
         self.system = form.system
         self.city = form.city
@@ -102,6 +103,7 @@ class GetFormViewmodel:
             "status": self.status.value if isinstance(self.status, FormStatus) else self.status,
             "form_title": self.form_title,
             "user_id": self.user_id,
+            "template": self.template,
             "area": self.area,
             "system": self.system,
             "city": self.city,
