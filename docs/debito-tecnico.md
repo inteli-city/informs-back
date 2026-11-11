@@ -66,6 +66,38 @@ Ordenados por risco.
 
 ---
 
+## DT-04 — O número da rua não vem do geocode reverso em parte dos pontos
+
+**Estado:** aberto.
+
+**Onde:** `src/shared/infra/repositories/reverse_geocoder_revgeo.py` (`parse_nominatim`); etapa Local do front (campo "S/N").
+
+**Problema:** o Nominatim (OpenStreetMap) só devolve `house_number` quando o ponto cai sobre um endereço mapeado. Em ponto de via, vem a rua e a cidade e o número fica vazio. Observado no E2E local de 11/11 com a chave real: pin na Rua Arizona, São Paulo, devolveu rua e cidade, número vazio.
+
+**Consequência:** o formulário pode ser criado sem número. Para serviço de campo (buraco, ramal) costuma bastar; integração ou relatório que exige número recebe vazio ou "S/N".
+
+**Resolução:** decidir entre (a) aceitar "S/N" como valor válido e registrar na ADR da criação em passos; (b) um geocoder com numeração por interpolação atrás do `revgeo`; (c) estimar o número mais próximo na via a partir de pontos vizinhos.
+
+**Mitigação atual:** o campo é editável e a pessoa digita o número.
+
+---
+
+## DT-05 — Sair de um grupo não limpa o pool no cache do aparelho pelo delta incremental
+
+**Estado:** aberto.
+
+**Onde:** `GET /forms?scope=pool&updated_after=` (`get_all_forms_usecase.py`); `docs/adr/0022-grupos-do-sistema.md`.
+
+**Problema:** quem sai de um grupo deixa de ver a OS do grupo no servidor (provado no E2E: some do pool e o `claim` volta 403). O delta não a coloca em `removed_from_pool`, porque a OS não mudou (`updated_at` igual): o que mudou foi o vínculo pessoa↔grupo. A ADR-0022 define quem vê, abre e assume, mas não diz o que acontece com o cache do aparelho.
+
+**Consequência:** o aparelho mantém a OS no cache até a sincronização completa (de hora em hora) e pode exibi-la e abri-la offline nesse intervalo. Ao tentar assumir, o servidor nega.
+
+**Resolução:** decidir entre (a) aceitar e documentar o intervalo na ADR-0022; (b) o delta do pool devolver como removida toda OS de grupo que a pessoa não tem mais, comparando com os grupos atuais. O vínculo já é lido em `GET /forms?scope=pool`, então o custo extra é pequeno.
+
+**Mitigação atual:** sincronização completa horária e `claim` negado no servidor.
+
+---
+
 ## Dependências externas e decisões pendentes
 
 Não são débito do código; dependem de resposta de outro time ou de decisão. Levantadas na mesma revisão.
