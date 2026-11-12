@@ -18,7 +18,7 @@ Exemplo no corpo de `POST /templates` ou `PUT /templates/{id}`, junto aos demais
 ]
 ```
 
-Cada definição tem uma chave única dentro do template, rótulo, tipo, obrigatoriedade e, apenas para arquivo, `file_type` opcional (`IMAGE` ou `DOCUMENT`). Tipos disponíveis: `TEXT_INFORMATION_FIELD`, `MAP_INFORMATION_FIELD`, `FILE_INFORMATION_FIELD` e `URL_INFORMATION_FIELD`. Para editar, envie a lista completa; `[]` remove as definições. Templates já em uso exigem `new_version: true` ao alterar a lista. As regras valem para novas criações; propagar seções não modifica os dados informativos de formulários existentes.
+Cada definição tem uma chave única dentro do template, rótulo, tipo, obrigatoriedade e, apenas para arquivo, `file_type` opcional (`IMAGE` ou `DOCUMENT`). Tipos disponíveis: `TEXT_INFORMATION_FIELD`, `MAP_INFORMATION_FIELD`, `FILE_INFORMATION_FIELD` e `URL_INFORMATION_FIELD`. Para editar, envie a lista completa; `[]` remove as definições. Alterar a lista salva no lugar, sem versão nova, mesmo em template já em uso (ADR-0025). As regras valem para novas criações; propagar seções não modifica os dados informativos de formulários existentes.
 
 Na criação, envie os valores no `POST /forms` com a mesma `key` e o mesmo `information_field_type`. É possível enviar campos informativos adicionais sem chave para manter integrações existentes. Exemplo para arquivo:
 

@@ -623,9 +623,10 @@ class FormRepositoryDynamo(IFormRepository):
             "GSI2PK": self.form_gsi2_partition_key_format(form.system),
             "GSI2SK": self.form_gsi2_sort_key_format(updated_at=form.updated_at, form_id=form.id),
         }
-        condition = Attr("template").eq(template_id) & Attr("status").is_in(
-            [FormStatus.PENDING.value, FormStatus.IN_PROGRESS.value]
-        )
+        # Só pendente: se o técnico iniciou entre a leitura e esta escrita, o
+        # formulário fica na versão em que ele começou (ver
+        # Form.is_open_for_template_update).
+        condition = Attr("template").eq(template_id) & Attr("status").eq(FormStatus.PENDING.value)
         try:
             resp = self.dynamo.update_item(
                 partition_key=self.form_partition_key_format(form.id),

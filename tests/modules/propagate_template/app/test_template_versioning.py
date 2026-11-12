@@ -191,7 +191,7 @@ class TestTemplateVersioning:
             template_id=self.template.id, requester_user_id=USER_ID, sections=deepcopy(NEW_SECTIONS), new_version=True,
         )
 
-    def test_propagates_open_forms_and_skips_the_rest(self):
+    def test_propagates_only_pending_forms_and_skips_the_rest(self):
         pending = _form(self.template.id, FormStatus.PENDING)
         running = _form(self.template.id, FormStatus.IN_PROGRESS)
         done = _form(self.template.id, FormStatus.COMPLETED)
@@ -206,13 +206,43 @@ class TestTemplateVersioning:
         )
 
         assert result.template_version == 2
-        assert result.updated == [pending.id, running.id]
+        assert result.updated == [pending.id]
         assert dict(result.skipped) == {
-            done.id: "closed", other.id: "other_template", "nao-existe": "not_found",
+            running.id: "in_progress", done.id: "closed", other.id: "other_template", "nao-existe": "not_found",
         }
         stored = self.form_repo.get_form_by_id(USER_ID, pending.id)
         assert stored.template_version == 2
         assert [field.key for field in stored.sections[0].fields] == ["name", "plate"]
+
+    def test_in_progress_form_keeps_the_version_it_started_on(self):
+        running = _form(self.template.id, FormStatus.IN_PROGRESS)
+        self._add(running)
+        self._bump()
+
+        result = PropagateTemplateUsecase(self.template_repo, self.form_repo)(
+            template_id=self.template.id, requester=REQUESTER, form_ids=[running.id],
+        )
+
+        assert result.updated == []
+        assert result.skipped == [(running.id, "in_progress")]
+        stored = self.form_repo.get_form_by_id(USER_ID, running.id)
+        assert stored.template_version == 1
+        assert [field.key for field in stored.sections[0].fields] != ["name", "plate"]
+
+    def test_form_started_between_read_and_write_is_not_changed(self):
+        pending = _form(self.template.id, FormStatus.PENDING)
+        self._add(pending)
+        self._bump()
+        started = deepcopy(pending)
+        started.status = FormStatus.IN_PROGRESS
+        self.form_repo.forms = [started]
+        form = deepcopy(pending)
+        form.apply_template_version(
+            sections=deepcopy(NEW_SECTIONS), justification_options=[], template_version=2, updated_at=99,
+        )
+
+        assert self.form_repo.apply_template_version(form, self.template.id) is None
+        assert self.form_repo.forms[0].template_version == 1
 
     def test_already_current_is_skipped(self):
         self._bump()
