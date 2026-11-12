@@ -331,17 +331,21 @@ class Form(abc.ABC):
         return not self.groups or any(group in self.groups for group in user_groups)
 
     def is_open_for_template_update(self) -> bool:
-        """Pode receber uma nova versão do template: ainda aberto (pendente ou
-        em execução). Concluído e cancelado já foram salvos com os campos que
-        tinham — trocar os campos deles mudaria o que foi registrado."""
-        return self.status in (FormStatus.PENDING, FormStatus.IN_PROGRESS)
+        """Pode receber uma nova versão do template: só pendente.
+
+        Em execução fica na versão em que o técnico começou: as respostas estão
+        no aparelho, talvez offline, e o servidor não sabe o que já foi
+        preenchido. Trocar os campos por baixo faria o envio perder respostas
+        ou ser recusado (tipo mudado, opção ou motivo removidos). Concluído e
+        cancelado já foram salvos com os campos que tinham."""
+        return self.status == FormStatus.PENDING
 
     def apply_template_version(self, sections: List[Section], justification_options, template_version: int, updated_at: int) -> None:
         """Troca as seções e os motivos de cancelamento pelos da nova versão.
         Formulário aberto não tem respostas gravadas no servidor (elas ficam no
         aparelho até o envio), então não há valor a migrar aqui."""
         if not self.is_open_for_template_update():
-            raise ForbiddenAction('Só formulários pendentes ou em execução recebem a nova versão do template')
+            raise ForbiddenAction('Só formulários pendentes recebem a nova versão do template')
         self._init_content(
             Justification(options=list(justification_options), selected=None)
             if justification_options else self.justification,

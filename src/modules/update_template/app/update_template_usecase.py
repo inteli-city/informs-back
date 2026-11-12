@@ -39,7 +39,10 @@ class UpdateTemplateUsecase:
     enquanto nenhum formulário nasceu do template, mudam no lugar; depois disso,
     só como nova versão (`new_version`), para os formulários existentes não
     ficarem com um conteúdo que ninguém sabe de onde veio. Quais formulários
-    abertos passam para a versão nova é outra decisão (`propagate_template`).
+    pendentes passam para a versão nova é outra decisão (`propagate_template`).
+
+    Campos informativos mudam sempre no lugar, sem versão: valem só para os
+    formulários criados depois, e nenhum formulário existente depende deles.
     """
 
     def __init__(
@@ -109,10 +112,10 @@ class UpdateTemplateUsecase:
             self.access_control, requester_user_id, {template.system, system or template.system},
         )
         self._validate_sections(sections)
-        content_changed = self._content_changes(template, sections, justification_options) or (
-            # Exigência nova ou alterada muda o que os formulários criados dali em diante precisam trazer.
-            information_fields is not None and information_fields != template.information_fields
-        )
+        # Campos informativos não contam: são conferidos só na criação, nenhum
+        # formulário existente os copia, e a propagação não os toca. Mudar só
+        # eles salva no lugar e vale para os formulários criados dali em diante.
+        content_changed = self._content_changes(template, sections, justification_options)
         if content_changed and not new_version and self._is_in_use(template.id):
             raise TemplateVersionRequired()
 

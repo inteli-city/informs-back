@@ -46,19 +46,20 @@ class PropagateTemplateRequestSchema(RequestContractModel):
         max_length=PROPAGATE_MAX_FORMS,
         description=(
             f"Formulários que passam para a versão atual do template (até "
-            f"{PROPAGATE_MAX_FORMS} por chamada). Só pendentes e em execução mudam."
+            f"{PROPAGATE_MAX_FORMS} por chamada). Só pendentes mudam; em execução fica na versão em que o técnico começou."
         ),
     )
 
 
-SkipReasonLiteral = Literal["not_found", "other_template", "closed", "already_current", "changed"]
+SkipReasonLiteral = Literal["not_found", "other_template", "in_progress", "closed", "already_current", "changed"]
 
 
 class PropagateTemplateSkippedSchema(ResponseContractModel):
     form_id: str
     reason: SkipReasonLiteral = Field(
         description=(
-            "not_found: não existe; other_template: é de outro template; closed: "
+            "not_found: não existe; other_template: é de outro template; in_progress: "
+            "em execução, fica na versão em que o técnico começou; closed: "
             "concluído ou cancelado; already_current: já está na versão atual; "
             "changed: mudou de estado durante a propagação."
         )

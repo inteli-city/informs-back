@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
 from src.shared.domain.enums.action_enum import Action
+from src.shared.domain.enums.form_status_enum import FormStatus
 from src.shared.domain.repositories.form_repository_interface import IFormRepository
 from src.shared.domain.repositories.template_repository_interface import ITemplateRepository
 from src.shared.domain.services.access_control import AccessControl
@@ -24,11 +25,13 @@ class PropagateTemplateUsecase:
     Passa os formulários escolhidos para a versão atual do template: troca as
     seções e os motivos de cancelamento pelos da versão nova.
 
-    Só formulário aberto (pendente ou em execução) muda — concluído e cancelado
-    já foram salvos com os campos que tinham. Formulário aberto não tem resposta
-    gravada no servidor (as respostas ficam no aparelho até o envio), então não
-    há valor a migrar aqui; o app mantém as respostas dos campos que continuam
-    existindo, e o envio feito contra a versão anterior é aceito (ver
+    Só formulário pendente muda. Em execução fica na versão em que o técnico
+    começou (`in_progress`): as respostas estão no aparelho, talvez offline, e
+    trocar os campos por baixo faria o envio perder respostas ou ser recusado.
+    Concluído e cancelado (`closed`) já foram salvos com os campos que tinham.
+
+    Se o técnico iniciou um pendente offline e a propagação chegou antes do
+    início, o envio feito contra a versão anterior continua aceito (ver
     `SubmitFormUsecase`).
 
     Um formulário que não pode mudar não derruba o lote: entra em `skipped` com
@@ -66,6 +69,9 @@ class PropagateTemplateUsecase:
                 continue
             if form.template != template.id:
                 result.skipped.append((form_id, "other_template"))
+                continue
+            if form.status == FormStatus.IN_PROGRESS:
+                result.skipped.append((form_id, "in_progress"))
                 continue
             if not form.is_open_for_template_update():
                 result.skipped.append((form_id, "closed"))

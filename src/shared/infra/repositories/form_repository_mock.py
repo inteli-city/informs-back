@@ -406,7 +406,8 @@ class FormRepositoryMock(IFormRepository):
     ) -> tuple[List[TemplateFormSummary], Optional[str]]:
         forms = [
             form for form in self.forms
-            if form.template == template_id and (not only_open or form.is_open_for_template_update())
+            if form.template == template_id
+            and (not only_open or form.status in (FormStatus.PENDING, FormStatus.IN_PROGRESS))
         ]
         forms = sorted(forms, key=lambda f: (f.created_at, f.id))
 

@@ -162,6 +162,6 @@ class IFormRepository(ABC):
     def apply_template_version(self, form: Form, template_id: str) -> Optional[Form]:
         """Grava as seções, os motivos e a versão de template que `form` já
         recebeu (`Form.apply_template_version`) — só se no banco ele ainda for
-        deste template e estiver aberto. `None` quando mudou nesse meio-tempo
-        (foi concluído, cancelado ou removido)."""
+        deste template e ainda estiver pendente. `None` quando mudou nesse
+        meio-tempo (foi iniciado, concluído, cancelado ou removido)."""
         pass
