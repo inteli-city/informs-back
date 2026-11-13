@@ -36,4 +36,17 @@ Na criação, envie os valores no `POST /forms` com a mesma `key` e o mesmo `inf
 
 Sem um campo obrigatório, com chave repetida, tipo divergente ou MIME incompatível com a categoria configurada, a criação retorna erro. A chave é preservada no formulário retornado. A confirmação do arquivo segue o contrato existente: o `POST` retorna uma URL pré-assinada e o cliente deve enviar os bytes por `PUT`. **A validação na criação comprova a declaração do arquivo, não a presença dos bytes no armazenamento.** O cliente deve tratar falhas de upload e não anunciar que o arquivo está disponível antes do PUT bem-sucedido.
 
+Integrações que já hospedam o arquivo (ex.: Apex) podem atender uma definição `FILE_INFORMATION_FIELD` com um link, sem upload ([ADR-0026](adr/0026-campo-de-arquivo-aceita-link-de-integracao.md)). Envie `URL_INFORMATION_FIELD` com a mesma `key`, a `url` e o `mimetype` do arquivo. Se a definição tiver `file_type`, o `mimetype` precisa ser da mesma categoria (`image/*` para `IMAGE`). O valor fica gravado como link; o inverso (arquivo numa definição de link) segue recusado.
+
+```json
+"information_fields": [
+  {
+    "key": "foto_evidencia",
+    "information_field_type": "URL_INFORMATION_FIELD",
+    "url": "https://apex.exemplo/fotos/123.jpg",
+    "mimetype": "image/jpeg"
+  }
+]
+```
+
 A tela web e o app devem implementar a edição das definições e a seleção/envio dos valores para usar este contrato; a API sozinha não adiciona essa interface. Confirme a compatibilidade dos clientes antes de tornar uma definição obrigatória em template utilizado por eles.

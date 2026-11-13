@@ -5,10 +5,11 @@ import uuid
 
 from src.shared.domain.entities.justification import JustificationOption
 from src.shared.domain.entities.file_upload import FileUploadRequest
-from src.shared.domain.entities.information_field import FileInformationField, InformationField, TextInformationField
+from src.shared.domain.entities.information_field import FileInformationField, InformationField, TextInformationField, UrlInformationField
 from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.template_information_field import TemplateInformationField
 from src.shared.domain.enums.file_type_enum import FileType
+from src.shared.domain.enums.information_field_type_enum import InformationFieldType
 from src.shared.helpers.errors.domain_errors import EntityError
 
 
@@ -117,6 +118,11 @@ class Template:
                     raise EntityError(f"Campo informativo obrigatório: {requirement.key}")
                 continue
             field, upload = item
+            if self._url_for_file(requirement, field):
+                # Arquivo já hospedado por quem integra (ADR-0026): vale como o
+                # arquivo exigido, sem upload, e fica gravado como URL.
+                self._validate_file_category(requirement, field.mimetype)
+                continue
             if field.information_field_type != requirement.information_field_type:
                 raise EntityError(f"Tipo inválido do campo informativo: {requirement.key}")
             if isinstance(field, FileInformationField):
@@ -128,12 +134,27 @@ class Template:
     def _validate_file(requirement: TemplateInformationField, field: FileInformationField, upload) -> None:
         if upload is None:
             raise EntityError(f"Arquivo ausente: {requirement.key}")
-        if requirement.file_type is None:
-            return
         # A categoria vale pelo mimetype declarado; o `file_type` do corpo, se
         # vier, não pode contradizer a exigência.
-        declared = FileType.IMAGE if upload.mimetype.lower().startswith("image/") else FileType.DOCUMENT
-        if declared != requirement.file_type or (field.file_type and field.file_type != requirement.file_type):
+        Template._validate_file_category(requirement, upload.mimetype)
+        if requirement.file_type is not None and field.file_type and field.file_type != requirement.file_type:
+            raise EntityError(f"Tipo de arquivo inválido: {requirement.key}")
+
+    @staticmethod
+    def _url_for_file(requirement: TemplateInformationField, field: InformationField) -> bool:
+        """Exigência de arquivo atendida por um link: quem integra (ex.: Apex) já
+        hospeda a imagem e manda a URL em vez de subir o arquivo."""
+        return (
+            requirement.information_field_type == InformationFieldType.FILE_INFORMATION_FIELD
+            and isinstance(field, UrlInformationField)
+        )
+
+    @staticmethod
+    def _validate_file_category(requirement: TemplateInformationField, mimetype: str) -> None:
+        if requirement.file_type is None:
+            return
+        declared = FileType.IMAGE if mimetype.lower().startswith("image/") else FileType.DOCUMENT
+        if declared != requirement.file_type:
             raise EntityError(f"Tipo de arquivo inválido: {requirement.key}")
 
     @staticmethod

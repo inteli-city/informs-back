@@ -12,7 +12,7 @@ sys.path.append(os.getcwd())
 
 from src.modules.create_form.app.create_form_usecase import CreateFormUsecase
 from src.shared.domain.entities.field import TextField
-from src.shared.domain.entities.information_field import FileInformationField, TextInformationField
+from src.shared.domain.entities.information_field import FileInformationField, TextInformationField, UrlInformationField
 from src.shared.domain.entities.justification import Justification, JustificationOption
 from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.system_config import SystemConfig
@@ -434,6 +434,45 @@ def test_template_rejects_duplicate_keys_and_file_type_on_text():
         Template(name="t", system="s", created_by="u", created_at=1, updated_at=1, sections=_SECTIONS(), information_fields=[_image_requirement(), _image_requirement()])
     with pytest.raises(EntityError, match="exclusivo"):
         TemplateInformationField(key="k", label="l", information_field_type=InformationFieldType.TEXT_INFORMATION_FIELD, file_type=FileType.IMAGE)
+
+
+def _image_url(key="evidencia", mimetype="image/jpeg"):
+    return UrlInformationField(url="https://apex.example/fotos/1.jpg", mimetype=mimetype, key=key)
+
+
+def test_file_requirement_accepts_hosted_url_without_upload():
+    """ADR-0026: integração que já hospeda a imagem manda o link no lugar do arquivo."""
+    usecase, payload, templates = _make_usecase_and_payload()
+    template = templates.templates[0]
+    template.change_information_fields([_image_requirement()])
+    payload.update(template=template.id, sections=[], information_fields=[_image_url()], information_fields_uploads=[None])
+    form, uploads = usecase(**payload)
+    stored = form.information_fields[0]
+    assert isinstance(stored, UrlInformationField)
+    assert stored.key == "evidencia"
+    assert stored.url == "https://apex.example/fotos/1.jpg"
+    assert uploads == []
+
+
+def test_hosted_url_must_match_the_required_file_category():
+    template = Template(name="t", system="s", created_by="u", created_at=1, updated_at=1, sections=_SECTIONS(), information_fields=[_image_requirement()])
+    with pytest.raises(EntityError, match="Tipo de arquivo"):
+        template.validate_information_fields([_image_url(mimetype="text/html")], [None])
+    template.validate_information_fields([_image_url(mimetype="IMAGE/PNG")], None)
+
+    any_file = TemplateInformationField(key="anexo", label="Anexo", information_field_type=InformationFieldType.FILE_INFORMATION_FIELD)
+    Template(name="t", system="s", created_by="u", created_at=1, updated_at=1, sections=_SECTIONS(), information_fields=[any_file]).validate_information_fields(
+        [_image_url(key="anexo", mimetype="application/pdf")], None)
+
+
+def test_url_requirement_still_rejects_other_types():
+    """Só arquivo aceita link; o inverso (upload num campo de link) segue barrado."""
+    link = TemplateInformationField(key="planta", label="Planta", information_field_type=InformationFieldType.URL_INFORMATION_FIELD)
+    template = Template(name="t", system="s", created_by="u", created_at=1, updated_at=1, sections=_SECTIONS(), information_fields=[link])
+    image = FileUploadRequest(filename="x.jpg", mimetype="image/jpeg")
+    with pytest.raises(EntityError, match="Tipo inválido"):
+        template.validate_information_fields([FileInformationField("", key="planta")], [image])
+    template.validate_information_fields([_image_url(key="planta")], None)
 
 
 def test_keyed_information_fields_survive_dynamo_round_trip():
