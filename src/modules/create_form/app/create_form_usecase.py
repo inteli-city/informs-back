@@ -10,6 +10,7 @@ from src.shared.domain.entities.information_field import FileInformationField, I
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.action_enum import Action
+from src.shared.domain.enums.file_source_enum import FileSource
 from src.shared.domain.enums.file_type_enum import FileType
 from src.shared.domain.enums.form_origin_enum import FormOrigin
 from src.shared.domain.enums.form_status_enum import FormStatus
@@ -221,6 +222,9 @@ class CreateFormUsecase:
         uploads = information_fields_uploads or []
         for idx, information_field in enumerate(information_fields):
             if not isinstance(information_field, FileInformationField):
+                continue
+            # Arquivo hospedado fora (ADR-0026): sem upload nem registro no S3.
+            if information_field.source == FileSource.URL:
                 continue
             upload = uploads[idx] if idx < len(uploads) else None
             if not isinstance(upload, FileUploadRequest):

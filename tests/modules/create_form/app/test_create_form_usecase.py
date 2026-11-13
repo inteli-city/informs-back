@@ -13,6 +13,7 @@ sys.path.append(os.getcwd())
 from src.modules.create_form.app.create_form_usecase import CreateFormUsecase
 from src.shared.domain.entities.field import TextField
 from src.shared.domain.entities.information_field import FileInformationField, TextInformationField, UrlInformationField
+from src.shared.domain.enums.file_source_enum import FileSource
 from src.shared.domain.entities.justification import Justification, JustificationOption
 from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.system_config import SystemConfig
@@ -436,43 +437,51 @@ def test_template_rejects_duplicate_keys_and_file_type_on_text():
         TemplateInformationField(key="k", label="l", information_field_type=InformationFieldType.TEXT_INFORMATION_FIELD, file_type=FileType.IMAGE)
 
 
-def _image_url(key="evidencia", mimetype="image/jpeg"):
-    return UrlInformationField(url="https://apex.example/fotos/1.jpg", mimetype=mimetype, key=key)
+def _hosted_image(key="evidencia", file_type=FileType.IMAGE):
+    return FileInformationField("https://apex.example/fotos/1.jpg", file_type=file_type, key=key, source=FileSource.URL)
 
 
-def test_file_requirement_accepts_hosted_url_without_upload():
-    """ADR-0026: integração que já hospeda a imagem manda o link no lugar do arquivo."""
+def test_hosted_file_meets_file_requirement_without_upload():
+    """ADR-0026: arquivo já hospedado atende a exigência de arquivo, sem S3."""
     usecase, payload, templates = _make_usecase_and_payload()
     template = templates.templates[0]
     template.change_information_fields([_image_requirement()])
-    payload.update(template=template.id, sections=[], information_fields=[_image_url()], information_fields_uploads=[None])
+    payload.update(template=template.id, sections=[], information_fields=[_hosted_image()], information_fields_uploads=[None])
     form, uploads = usecase(**payload)
     stored = form.information_fields[0]
-    assert isinstance(stored, UrlInformationField)
-    assert stored.key == "evidencia"
-    assert stored.url == "https://apex.example/fotos/1.jpg"
+    assert stored.source == FileSource.URL
+    assert stored.file_path == "https://apex.example/fotos/1.jpg"
     assert uploads == []
 
 
-def test_hosted_url_must_match_the_required_file_category():
+def test_hosted_file_must_match_the_required_category():
     template = Template(name="t", system="s", created_by="u", created_at=1, updated_at=1, sections=_SECTIONS(), information_fields=[_image_requirement()])
     with pytest.raises(EntityError, match="Tipo de arquivo"):
-        template.validate_information_fields([_image_url(mimetype="text/html")], [None])
-    template.validate_information_fields([_image_url(mimetype="IMAGE/PNG")], None)
-
-    any_file = TemplateInformationField(key="anexo", label="Anexo", information_field_type=InformationFieldType.FILE_INFORMATION_FIELD)
-    Template(name="t", system="s", created_by="u", created_at=1, updated_at=1, sections=_SECTIONS(), information_fields=[any_file]).validate_information_fields(
-        [_image_url(key="anexo", mimetype="application/pdf")], None)
+        template.validate_information_fields([_hosted_image(file_type=FileType.DOCUMENT)], [None])
 
 
-def test_url_requirement_still_rejects_other_types():
-    """Só arquivo aceita link; o inverso (upload num campo de link) segue barrado."""
-    link = TemplateInformationField(key="planta", label="Planta", information_field_type=InformationFieldType.URL_INFORMATION_FIELD)
-    template = Template(name="t", system="s", created_by="u", created_at=1, updated_at=1, sections=_SECTIONS(), information_fields=[link])
-    image = FileUploadRequest(filename="x.jpg", mimetype="image/jpeg")
+def test_file_requirement_does_not_accept_a_site_link():
+    """Os tipos não se misturam: link de site é URL_INFORMATION_FIELD, e não atende arquivo."""
+    template = Template(name="t", system="s", created_by="u", created_at=1, updated_at=1, sections=_SECTIONS(), information_fields=[_image_requirement()])
+    link = UrlInformationField(url="https://apex.example/fotos/1.jpg", mimetype="image/jpeg", key="evidencia")
     with pytest.raises(EntityError, match="Tipo inválido"):
-        template.validate_information_fields([FileInformationField("", key="planta")], [image])
-    template.validate_information_fields([_image_url(key="planta")], None)
+        template.validate_information_fields([link], [None])
+
+
+def test_hosted_file_requires_an_address():
+    with pytest.raises(EntityError, match="URL do arquivo"):
+        FileInformationField("", key="evidencia", source=FileSource.URL)
+
+
+def test_file_source_survives_dynamo_round_trip():
+    from src.shared.infra.dtos.information_field_dto import InformationFieldDTO
+    stored = InformationFieldDTO.from_entity(_hosted_image()).to_dynamo()
+    assert stored["source"] == "URL"
+    assert InformationFieldDTO.from_dynamo(stored).to_entity().source == FileSource.URL
+    # Registro de antes da ADR-0026 não tem `source`: é upload.
+    legacy = {"information_field_type": "FILE_INFORMATION_FIELD", "file_path": "https://bucket/x.jpg", "file_type": "IMAGE"}
+    assert InformationFieldDTO.from_dynamo(legacy).to_entity().source == FileSource.UPLOAD
+    assert "source" not in InformationFieldDTO.from_entity(FileInformationField("https://bucket/x.jpg")).to_dynamo()
 
 
 def test_keyed_information_fields_survive_dynamo_round_trip():

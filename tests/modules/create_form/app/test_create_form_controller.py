@@ -1,6 +1,8 @@
 import os
 import sys
 
+import pytest
+
 sys.path.append(os.getcwd())
 
 from src.modules.create_form.app.create_form_controller import CreateFormController
@@ -153,6 +155,52 @@ class TestCreateFormController:
         assert info["information_field_type"] == "URL_INFORMATION_FIELD"
         assert info["url"] == "https://example.com/photo.jpg"
         assert info["mimetype"] == "image/jpeg"
+
+    def _post_information_fields(self, information_fields):
+        controller = CreateFormController(CreateFormUsecase(FormRepositoryMock(), FileRepositoryMock()))
+        body = _make_base_body()
+        body["information_fields"] = information_fields
+        return controller(HttpRequest(body=body))
+
+    def test_hosted_file_is_stored_as_file_without_upload(self):
+        """ADR-0026: FILE com source URL guarda o endereço e não aloca nada no S3."""
+        response = self._post_information_fields([{
+            "key": "foto",
+            "information_field_type": "FILE_INFORMATION_FIELD",
+            "source": "URL",
+            "url": "https://apex.example/fotos/1.jpg",
+            "mimetype": "image/jpeg",
+        }])
+
+        assert response.status_code == 201
+        assert response.body["files"] == []
+        info = response.body["information_fields"][0]
+        assert info["information_field_type"] == "FILE_INFORMATION_FIELD"
+        assert info["source"] == "URL"
+        assert info["file_path"] == "https://apex.example/fotos/1.jpg"
+        assert info["file_type"] == "IMAGE"
+
+    def test_upload_reports_its_source(self):
+        response = self._post_information_fields([
+            {"information_field_type": "FILE_INFORMATION_FIELD", "filename": "a.pdf", "mimetype": "application/pdf"},
+        ])
+        assert response.status_code == 201
+        assert response.body["information_fields"][0]["source"] == "UPLOAD"
+        assert len(response.body["files"]) == 1
+
+    @pytest.mark.parametrize("field", [
+        # Sem `source`, é upload: sem filename não passa, mesmo com url.
+        {"url": "https://apex.example/1.jpg", "mimetype": "image/jpeg"},
+        {"source": "URL", "mimetype": "image/jpeg"},
+        {"source": "URL", "url": "", "mimetype": "image/jpeg"},
+        {"source": "URL", "url": "https://apex.example/1.jpg"},
+        {"source": "S3", "filename": "a.jpg", "mimetype": "image/jpeg"},
+        # file_type do corpo contradizendo o mimetype do link.
+        {"source": "URL", "url": "https://apex.example/1.jpg", "mimetype": "image/jpeg", "file_type": "DOCUMENT"},
+    ])
+    def test_rejects_malformed_file_information_field(self, field):
+        response = self._post_information_fields([{"information_field_type": "FILE_INFORMATION_FIELD", **field}])
+        assert response.status_code == 400
 
     def test_create_form_controller_without_information_fields(self):
         repo = FormRepositoryMock()

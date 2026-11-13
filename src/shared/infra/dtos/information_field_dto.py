@@ -1,5 +1,6 @@
 from decimal import Decimal
 from src.shared.domain.entities.information_field import FileInformationField, InformationField, MapInformationField, TextInformationField, UrlInformationField
+from src.shared.domain.enums.file_source_enum import FileSource
 from src.shared.domain.enums.file_type_enum import FileType
 from src.shared.domain.enums.information_field_type_enum import InformationFieldType
 from src.shared.helpers.errors.controller_errors import MissingParameters
@@ -51,7 +52,12 @@ class InformationFieldDTO():
         if information_field_dict.get('file_path') is None:
             raise MissingParameters('file_path')
         file_type = InformationFieldDTO._parse_file_type(information_field_dict.get('file_type'))
-        return FileInformationField(file_path=information_field_dict.get('file_path'), file_type=file_type, key=information_field_dict.get('key'))
+        return FileInformationField(
+            file_path=information_field_dict.get('file_path'),
+            file_type=file_type,
+            key=information_field_dict.get('key'),
+            source=InformationFieldDTO._parse_file_source(information_field_dict.get('source')),
+        )
 
     @staticmethod
     def _url_from_request(information_field_dict: dict) -> UrlInformationField:
@@ -60,6 +66,15 @@ class InformationFieldDTO():
         if information_field_dict.get('mimetype') is None:
             raise MissingParameters('mimetype')
         return UrlInformationField(url=information_field_dict.get('url'), mimetype=information_field_dict.get('mimetype'), key=information_field_dict.get('key'))
+
+    @staticmethod
+    def _parse_file_source(source_raw) -> FileSource:
+        # Sem `source` é upload: registros e corpos de antes da ADR-0026.
+        if source_raw is None:
+            return FileSource.UPLOAD
+        if source_raw not in [source.value for source in FileSource]:
+            raise EntityError('source')
+        return FileSource(source_raw)
 
     @staticmethod
     def _parse_file_type(file_type_raw) -> "FileType | None":
@@ -98,6 +113,8 @@ class InformationFieldDTO():
             }
             if self.information_field.file_type is not None:
                 payload["file_type"] = self.information_field.file_type.value
+            if self.information_field.source != FileSource.UPLOAD:
+                payload["source"] = self.information_field.source.value
             return payload
         if isinstance(self.information_field, UrlInformationField):
             return {
@@ -126,7 +143,12 @@ class InformationFieldDTO():
         if information_field_type == InformationFieldType.FILE_INFORMATION_FIELD:
             file_type_raw = information_field_dict.get("file_type")
             file_type = FileType(file_type_raw) if file_type_raw in [ft.value for ft in FileType] else None
-            return InformationFieldDTO(FileInformationField(file_path=information_field_dict.get('file_path'), file_type=file_type, key=key))
+            return InformationFieldDTO(FileInformationField(
+                file_path=information_field_dict.get('file_path'),
+                file_type=file_type,
+                key=key,
+                source=InformationFieldDTO._parse_file_source(information_field_dict.get('source')),
+            ))
         if information_field_type == InformationFieldType.URL_INFORMATION_FIELD:
             return InformationFieldDTO(UrlInformationField(url=information_field_dict.get('url'), mimetype=information_field_dict.get('mimetype'), key=key))
         raise EntityError('information_field_type')
