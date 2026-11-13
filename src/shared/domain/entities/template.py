@@ -8,6 +8,7 @@ from src.shared.domain.entities.file_upload import FileUploadRequest
 from src.shared.domain.entities.information_field import FileInformationField, InformationField, TextInformationField
 from src.shared.domain.entities.section import Section
 from src.shared.domain.entities.template_information_field import TemplateInformationField
+from src.shared.domain.enums.file_source_enum import FileSource
 from src.shared.domain.enums.file_type_enum import FileType
 from src.shared.helpers.errors.domain_errors import EntityError
 
@@ -126,6 +127,12 @@ class Template:
 
     @staticmethod
     def _validate_file(requirement: TemplateInformationField, field: FileInformationField, upload) -> None:
+        if field.source == FileSource.URL:
+            # Hospedado por quem cria (ADR-0026): não há upload; a categoria já
+            # veio do mimetype do link.
+            if requirement.file_type is not None and field.file_type != requirement.file_type:
+                raise EntityError(f"Tipo de arquivo inválido: {requirement.key}")
+            return
         if upload is None:
             raise EntityError(f"Arquivo ausente: {requirement.key}")
         if requirement.file_type is None:

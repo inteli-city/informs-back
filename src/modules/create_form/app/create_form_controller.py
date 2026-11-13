@@ -1,10 +1,13 @@
+from typing import List, Optional, Tuple
+
 from pydantic import ValidationError
 
 from .create_form_usecase import CreateFormUsecase
 from .create_form_viewmodel import CreateFormViewmodel
 from src.shared.domain.entities.creator_location import CreatorLocation
 from src.shared.domain.entities.file_upload import FileUploadRequest
-from src.shared.domain.entities.information_field import FileInformationField
+from src.shared.domain.entities.information_field import FileInformationField, InformationField
+from src.shared.domain.enums.file_source_enum import FileSource
 from src.shared.domain.enums.file_type_enum import FileType
 from src.shared.domain.enums.form_origin_enum import FormOrigin
 from src.shared.domain.enums.priority_enum import Priority
@@ -41,25 +44,7 @@ class CreateFormController:
         normalized_justifications = [option.model_dump() for option in payload.justifications]
         justification_entity = JustificationDTO.from_request({"options": normalized_justifications}).to_entity()
 
-        information_fields = None
-        information_fields_uploads = None
-        if payload.information_fields is not None:
-            information_fields = []
-            info_raw = [field.model_dump() for field in payload.information_fields]
-            information_fields_uploads = [None] * len(info_raw)
-
-            for idx, information_field in enumerate(info_raw):
-                info_type = information_field.get("information_field_type")
-                if info_type == "FILE_INFORMATION_FIELD":
-                    mimetype = information_field.get("mimetype")
-                    filename = information_field.get("filename")
-                    information_fields_uploads[idx] = FileUploadRequest(filename=filename, mimetype=mimetype)
-
-                    file_type_raw = information_field.get("file_type")
-                    file_type = FileType(file_type_raw) if file_type_raw is not None else None
-                    information_fields.append(FileInformationField(file_path="", file_type=file_type, key=information_field.get("key")))
-                else:
-                    information_fields.append(InformationFieldDTO.from_request(information_field).to_entity())
+        information_fields, information_fields_uploads = self._build_information_fields(payload)
 
         return (
             payload.form_title,
@@ -87,6 +72,55 @@ class CreateFormController:
             payload.attributes,
             CreatorLocation(**payload.creator_location.model_dump()) if payload.creator_location else None,
             payload.groups,
+        )
+
+    @classmethod
+    def _build_information_fields(
+        cls, payload: CreateFormControllerRequestSchema
+    ) -> Tuple[Optional[List[InformationField]], Optional[List[Optional[FileUploadRequest]]]]:
+        """Entidades dos campos informativos e, na mesma posição, o arquivo a
+        enviar (só para FILE por upload; o resto fica `None`)."""
+        if payload.information_fields is None:
+            return None, None
+        information_fields: List[InformationField] = []
+        uploads: List[Optional[FileUploadRequest]] = []
+        for information_field in (field.model_dump() for field in payload.information_fields):
+            field, upload = cls._information_field(information_field)
+            information_fields.append(field)
+            uploads.append(upload)
+        return information_fields, uploads
+
+    @classmethod
+    def _information_field(cls, information_field: dict) -> Tuple[InformationField, Optional[FileUploadRequest]]:
+        if information_field.get("information_field_type") != "FILE_INFORMATION_FIELD":
+            return InformationFieldDTO.from_request(information_field).to_entity(), None
+        if information_field.get("source") == FileSource.URL.value:
+            return cls._hosted_file(information_field), None
+        return cls._uploaded_file(information_field)
+
+    @staticmethod
+    def _uploaded_file(information_field: dict) -> Tuple[FileInformationField, FileUploadRequest]:
+        """Arquivo por upload: o caminho no S3 só existe depois, no usecase."""
+        upload = FileUploadRequest(filename=information_field.get("filename"), mimetype=information_field.get("mimetype"))
+        file_type_raw = information_field.get("file_type")
+        file_type = FileType(file_type_raw) if file_type_raw is not None else None
+        return FileInformationField(file_path="", file_type=file_type, key=information_field.get("key")), upload
+
+    @staticmethod
+    def _hosted_file(information_field: dict) -> FileInformationField:
+        """Arquivo já hospedado por quem cria (ADR-0026): guarda o endereço, sem
+        upload. A categoria sai do mimetype; o `file_type` do corpo, se vier,
+        não pode contradizê-lo."""
+        mimetype = information_field.get("mimetype")
+        declared = FileType.IMAGE if mimetype.lower().startswith("image/") else FileType.DOCUMENT
+        file_type_raw = information_field.get("file_type")
+        if file_type_raw is not None and FileType(file_type_raw) != declared:
+            raise EntityError("file_type")
+        return FileInformationField(
+            file_path=information_field.get("url"),
+            file_type=declared,
+            key=information_field.get("key"),
+            source=FileSource.URL,
         )
 
     @controller_error_handler
