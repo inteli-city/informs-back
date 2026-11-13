@@ -456,8 +456,9 @@ def test_hosted_file_meets_file_requirement_without_upload():
 
 def test_hosted_file_must_match_the_required_category():
     template = Template(name="t", system="s", created_by="u", created_at=1, updated_at=1, sections=_SECTIONS(), information_fields=[_image_requirement()])
+    document = [_hosted_image(file_type=FileType.DOCUMENT)]
     with pytest.raises(EntityError, match="Tipo de arquivo"):
-        template.validate_information_fields([_hosted_image(file_type=FileType.DOCUMENT)], [None])
+        template.validate_information_fields(document, [None])
 
 
 def test_file_requirement_does_not_accept_a_site_link():
