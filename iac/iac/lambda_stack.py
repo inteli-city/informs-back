@@ -77,6 +77,7 @@ class LambdaStack(Construct):
         system_user_id_resource = system_users_resource.add_resource("{user_id}")
         system_user_groups_resource = system_user_id_resource.add_resource("groups")
         system_groups_resource = system_resource.add_resource("groups")
+        system_assignees_resource = system_resource.add_resource("assignees")
         system_group_id_resource = system_groups_resource.add_resource("{group_id}")
 
         self.create_form = self.create_lambda_api_gateway_integration(
@@ -270,6 +271,15 @@ class LambdaStack(Construct):
             module_name="get_system_users",
             method="GET",
             api_resource=system_users_resource,
+            environment_variables=environment_variables,
+            authorizer=authorizer,
+        )
+
+        # Para quem criar formulário: grupos e pessoas do sistema, sem e-mail.
+        self.get_system_assignees = self.create_lambda_api_gateway_integration(
+            module_name="get_system_assignees",
+            method="GET",
+            api_resource=system_assignees_resource,
             environment_variables=environment_variables,
             authorizer=authorizer,
         )
@@ -559,6 +569,8 @@ class LambdaStack(Construct):
         # presenter) só para dashboard/debug no CloudWatch.
 
         self.functions_that_need_dynamo_forms_permissions = [
+            # Lê a configuração do sistema (aceita formulário sem responsável?).
+            self.get_system_assignees,
             self.refresh_presign,
             self.create_form,
             self.cancel_form,
@@ -627,6 +639,7 @@ class LambdaStack(Construct):
             self.update_system_role,
             self.delete_system_role,
             self.get_system_users,
+            self.get_system_assignees,
             self.put_system_user,
             self.delete_system_user,
             self.put_system_user_groups,

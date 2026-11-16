@@ -1,7 +1,9 @@
-from typing import List
+from typing import List, Optional
 
 from src.shared.domain.entities.system_role import ADMIN_ROLE_ID, SystemRole
 from src.shared.domain.enums.action_enum import Action
+from src.shared.domain.enums.assignment_option_enum import AssignmentOption
+from src.shared.domain.enums.home_tab_enum import HomeTab
 from src.shared.domain.repositories.system_role_repository_interface import ISystemRoleRepository
 from src.shared.domain.services.access_control import AccessControl
 from src.shared.domain.services.role_management import (
@@ -16,7 +18,7 @@ from src.shared.helpers.functions.datetime_utils import now_timestamp_ms
 
 class UpdateSystemRoleUsecase:
     """
-    Substitui nome, ações e `is_default` de um role. O ADMIN é fixo e não se
+    Substitui nome, ações, `is_default` e `home_tab` de um role. O ADMIN é fixo e não se
     edita. Quem não é ADMIN do sistema só mexe em role cujas ações (antes e
     depois) ele mesmo tem.
 
@@ -29,6 +31,9 @@ class UpdateSystemRoleUsecase:
 
     def __call__(
         self, requester_user_id: str, system: str, role_id: str, name: str, actions: List[Action], is_default: bool,
+        home_tab: HomeTab = HomeTab.LIST,
+        assignment_options: Optional[List[AssignmentOption]] = None,
+        default_assignment: Optional[AssignmentOption] = None,
     ) -> SystemRole:
         ensure_can(self.access_control, requester_user_id, system, Action.ROLES_MANAGE)
         if role_id == ADMIN_ROLE_ID:
@@ -48,6 +53,9 @@ class UpdateSystemRoleUsecase:
             name=name,
             actions=actions,
             is_default=is_default,
+            home_tab=home_tab,
+            assignment_options=assignment_options,
+            default_assignment=default_assignment,
             created_at=current.created_at,
             updated_at=now_ms,
         ))

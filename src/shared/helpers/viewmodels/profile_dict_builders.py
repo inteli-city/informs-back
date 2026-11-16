@@ -23,6 +23,9 @@ def build_system_access_dict(access: SystemAccess) -> dict:
         "role_name": access.role_name,
         # Ordenado para a resposta ser estável (frozenset não tem ordem).
         "actions": sorted(action.value for action in access.actions),
+        "home_tab": access.home_tab.value,
+        "assignment_options": [option.value for option in access.assignment_options],
+        "default_assignment": access.default_assignment.value if access.default_assignment else None,
     }
 
 
@@ -33,6 +36,9 @@ def build_system_role_dict(role: SystemRole) -> dict:
         "name": role.name,
         "actions": [action.value for action in role.actions],
         "is_default": role.is_default,
+        "home_tab": role.home_tab.value,
+        "assignment_options": [option.value for option in role.assignment_options],
+        "default_assignment": role.default_assignment.value,
         "fixed": False,
     }
 

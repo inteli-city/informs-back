@@ -37,6 +37,9 @@ def clear_other_defaults(role_repo: ISystemRoleRepository, system: str, keep_rol
                 name=role.name,
                 actions=role.actions,
                 is_default=False,
+                home_tab=role.home_tab,
+                assignment_options=role.assignment_options,
+                default_assignment=role.default_assignment,
                 created_at=role.created_at,
                 updated_at=now_ms,
             ))

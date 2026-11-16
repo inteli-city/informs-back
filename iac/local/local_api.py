@@ -67,6 +67,7 @@ ROUTES: List[Route] = [
     Route("PUT", "/systems/{system}/roles/{role_id}", "update_system_role"),
     Route("DELETE", "/systems/{system}/roles/{role_id}", "delete_system_role"),
     Route("GET", "/systems/{system}/users", "get_system_users"),
+    Route("GET", "/systems/{system}/assignees", "get_system_assignees"),
     Route("PUT", "/systems/{system}/users/{user_id}", "put_system_user"),
     Route("DELETE", "/systems/{system}/users/{user_id}", "delete_system_user"),
     Route("PUT", "/systems/{system}/users/{user_id}/groups", "put_system_user_groups"),

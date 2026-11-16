@@ -1,6 +1,8 @@
 from .update_system_role_usecase import UpdateSystemRoleUsecase
 from .update_system_role_viewmodel import UpdateSystemRoleViewmodel
 from src.shared.domain.enums.action_enum import Action
+from src.shared.domain.enums.assignment_option_enum import AssignmentOption
+from src.shared.domain.enums.home_tab_enum import HomeTab
 from src.shared.helpers.contracts.runtime_requests import UpdateSystemRoleControllerRequestSchema
 from src.shared.helpers.access_error_response import HANDLED_ERRORS, access_error_response
 from src.shared.helpers.controller_error_handler import controller_error_handler
@@ -27,6 +29,9 @@ class UpdateSystemRoleController:
                 name=payload.name,
                 actions=[Action(value) for value in payload.actions],
                 is_default=payload.is_default,
+                home_tab=HomeTab(payload.home_tab),
+                assignment_options=[AssignmentOption(value) for value in payload.assignment_options],
+                default_assignment=AssignmentOption(payload.default_assignment),
             )
 
             viewmodel = UpdateSystemRoleViewmodel(result)
