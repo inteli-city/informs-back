@@ -167,6 +167,11 @@ class GetSystemUsersControllerRequestSchema(RequestContractModel):
     system: str
 
 
+class GetSystemAssigneesControllerRequestSchema(RequestContractModel):
+    requester_user: RequesterUserSchema
+    system: str
+
+
 class PutSystemUserControllerRequestSchema(PutSystemUserRequestSchema):
     requester_user: RequesterUserSchema
     system: str

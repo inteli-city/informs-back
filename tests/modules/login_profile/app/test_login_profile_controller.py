@@ -49,7 +49,7 @@ class TestLoginProfileController:
         assert response.body["user_id"] == ADMIN_USER_ID
         # Também ganha o role padrão do sistema, mas como super admin tem todas as ações.
         assert response.body["systems"] == [
-            {"system": "GAIA", "role_id": MOCK_TECNICO_ROLE_ID, "role_name": "Técnico", "actions": ALL_ACTIONS},
+            {"system": "GAIA", "role_id": MOCK_TECNICO_ROLE_ID, "role_name": "Técnico", "actions": ALL_ACTIONS, "home_tab": "list", "assignment_options": ["self", "targeted", "open"], "default_assignment": "self"},
         ]
 
     def test_existing_person_gets_the_actions_of_their_role(self):
@@ -59,7 +59,7 @@ class TestLoginProfileController:
         assert response.body["just_created"] is False
         assert response.body["super_admin"] is False
         assert response.body["systems"] == [
-            {"system": "GAIA", "role_id": MOCK_TECNICO_ROLE_ID, "role_name": "Técnico", "actions": ["forms.create", "tracking.start"]},
+            {"system": "GAIA", "role_id": MOCK_TECNICO_ROLE_ID, "role_name": "Técnico", "actions": ["forms.create", "tracking.start"], "home_tab": "list", "assignment_options": ["self", "open"], "default_assignment": "self"},
         ]
 
     def test_first_login_creates_profile_and_joins_with_default_role(self):
@@ -77,7 +77,7 @@ class TestLoginProfileController:
         response = self._login(sub=NEW_USER_ID, groups="FORMULARIOS,SGC")
 
         assert response.status_code == 200
-        assert response.body["systems"] == [{"system": "SGC", "role_id": None, "role_name": None, "actions": []}]
+        assert response.body["systems"] == [{"system": "SGC", "role_id": None, "role_name": None, "actions": [], "home_tab": "list", "assignment_options": [], "default_assignment": None}]
         assert self.repo.get_membership(NEW_USER_ID, "SGC") is None
 
     def test_new_cognito_group_joins_existing_person_with_default_role(self):

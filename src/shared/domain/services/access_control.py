@@ -1,15 +1,18 @@
 from dataclasses import dataclass
-from typing import FrozenSet, List, Optional
+from typing import FrozenSet, List, Optional, Tuple
 
 from src.shared.domain.entities.profile import Profile
 from src.shared.domain.entities.system_membership import SystemMembership
 from src.shared.domain.entities.system_role import ADMIN_ROLE_ID, ADMIN_ROLE_NAME
 from src.shared.domain.enums.action_enum import Action
+from src.shared.domain.enums.assignment_option_enum import AssignmentOption
+from src.shared.domain.enums.home_tab_enum import HomeTab
 from src.shared.domain.repositories.profile_repository_interface import IProfileRepository
 from src.shared.domain.repositories.system_role_repository_interface import ISystemRoleRepository
 
 
 ALL_ACTIONS: FrozenSet[Action] = frozenset(Action)
+ALL_ASSIGNMENT_OPTIONS: Tuple[AssignmentOption, ...] = tuple(AssignmentOption)
 
 
 @dataclass(frozen=True)
@@ -20,6 +23,15 @@ class SystemAccess:
     role_id: Optional[str]
     role_name: Optional[str]
     actions: FrozenSet[Action]
+    # Aba em que o app abre (do role). Sem role, ou com o ADMIN fixo: a lista.
+    home_tab: HomeTab = HomeTab.LIST
+    # Para quem pode criar formulário no app, e qual vem marcado (do role).
+    # Sem role: nenhuma. ADMIN do sistema e super admin: todas.
+    assignment_options: Tuple[AssignmentOption, ...] = ()
+    default_assignment: Optional[AssignmentOption] = None
+
+    def allows(self, option: AssignmentOption) -> bool:
+        return option in self.assignment_options
 
 
 class AccessControl:
@@ -85,6 +97,9 @@ class AccessControl:
                 role_id=access.role_id if access else None,
                 role_name=access.role_name if access else None,
                 actions=ALL_ACTIONS,
+                home_tab=access.home_tab if access else HomeTab.LIST,
+                assignment_options=ALL_ASSIGNMENT_OPTIONS,
+                default_assignment=(access.default_assignment if access else None) or AssignmentOption.SELF,
             )
         return access or SystemAccess(system=system, role_id=None, role_name=None, actions=frozenset())
 
@@ -92,6 +107,7 @@ class AccessControl:
         if membership.role_id == ADMIN_ROLE_ID:
             return SystemAccess(
                 system=membership.system, role_id=ADMIN_ROLE_ID, role_name=ADMIN_ROLE_NAME, actions=ALL_ACTIONS,
+                assignment_options=ALL_ASSIGNMENT_OPTIONS, default_assignment=AssignmentOption.SELF,
             )
         role = self.role_repo.get_role(membership.system, membership.role_id)
         if role is None:
@@ -99,4 +115,7 @@ class AccessControl:
             return SystemAccess(system=membership.system, role_id=membership.role_id, role_name=None, actions=frozenset())
         return SystemAccess(
             system=membership.system, role_id=role.role_id, role_name=role.name, actions=frozenset(role.actions),
+            home_tab=role.home_tab,
+            assignment_options=tuple(role.assignment_options),
+            default_assignment=role.default_assignment,
         )

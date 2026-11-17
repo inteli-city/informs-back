@@ -40,6 +40,7 @@ def test_openapi_contract_registry_covers_http_routes():
         ("/systems/{system}/roles/{role_id}", "put"),
         ("/systems/{system}/roles/{role_id}", "delete"),
         ("/systems/{system}/users", "get"),
+        ("/systems/{system}/assignees", "get"),
         ("/systems/{system}/users/{user_id}", "put"),
         ("/systems/{system}/users/{user_id}", "delete"),
         ("/systems/{system}/users/{user_id}/groups", "put"),

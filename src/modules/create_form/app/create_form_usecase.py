@@ -10,6 +10,7 @@ from src.shared.domain.entities.information_field import FileInformationField, I
 from src.shared.domain.entities.justification import Justification
 from src.shared.domain.entities.section import Section
 from src.shared.domain.enums.action_enum import Action
+from src.shared.domain.enums.assignment_option_enum import AssignmentOption
 from src.shared.domain.enums.file_source_enum import FileSource
 from src.shared.domain.enums.file_type_enum import FileType
 from src.shared.domain.enums.form_origin_enum import FormOrigin
@@ -26,6 +27,13 @@ from src.shared.helpers.errors.domain_errors import EntityError
 from src.shared.helpers.errors.usecase_errors import ForbiddenAction, NoItemsFound
 from src.shared.helpers.functions.datetime_utils import now_timestamp_ms, utc_year
 from src.shared.helpers.functions.s3_url import build_s3_url
+
+
+ASSIGNMENT_FORBIDDEN_MESSAGES = {
+    AssignmentOption.SELF: "Seu perfil não pode criar formulário para você mesmo neste sistema",
+    AssignmentOption.TARGETED: "Seu perfil não pode criar formulário para um grupo ou outra pessoa neste sistema",
+    AssignmentOption.OPEN: "Seu perfil não pode criar formulário em aberto neste sistema",
+}
 
 
 class CreateFormUsecase:
@@ -51,12 +59,15 @@ class CreateFormUsecase:
         config = self.system_config_repo.get_by_system(system)
         return bool(config and config.allow_unassigned_forms)
 
-    def _ensure_can_create(self, system: str, user_id: Optional[str], created_by: str) -> None:
+    def _ensure_can_create(
+        self, system: str, user_id: Optional[str], created_by: str, groups: Optional[List[str]] = None,
+    ) -> None:
         """
         O que o app esconde também é recusado aqui — esconder o botão não
         impede quem chama a API direto. Criar exige, no mesmo sistema:
           - o menu Criar ligado na configuração (`menus.create_form`); e
-          - a ação `forms.create` no papel da pessoa.
+          - a ação `forms.create` no papel da pessoa; e
+          - o destino (para si, grupo/pessoa, em aberto) ligado no papel.
 
         Quem administra o sistema (role ADMIN nele, ou super admin) não passa
         por esta regra: é como as integrações criam as OS do pool em sistemas
@@ -76,10 +87,36 @@ class CreateFormUsecase:
         )
         if not config.menus.create_form:
             raise ForbiddenAction("Criação de formulário não está habilitada para este sistema")
-        if not self.access_control.can(created_by, system, Action.FORMS_CREATE):
+        access = self.access_control.access_in(created_by, system)
+        if Action.FORMS_CREATE not in access.actions:
             raise ForbiddenAction("Seu perfil não tem permissão para criar formulário neste sistema")
-        if user_id is None and not config.creation.allow_open:
+
+        # Para quem: cada destino precisa estar ligado no role (Admin → Papéis).
+        option = self.assignment_option_of(user_id, created_by, groups)
+        if not access.allows(option):
+            raise ForbiddenAction(ASSIGNMENT_FORBIDDEN_MESSAGES[option])
+        if option is AssignmentOption.OPEN and not config.creation.allow_open:
             raise ForbiddenAction("Criação de formulário em aberto não está habilitada para este sistema")
+        if option is AssignmentOption.TARGETED and user_id is not None:
+            self._ensure_member(system, user_id)
+
+    @staticmethod
+    def assignment_option_of(
+        user_id: Optional[str], created_by: str, groups: Optional[List[str]],
+    ) -> AssignmentOption:
+        """Para si (responsável = quem cria); para grupo e/ou pessoa (outra
+        pessoa, ou só grupo); em aberto (sem responsável e sem grupo)."""
+        if user_id is not None:
+            return AssignmentOption.SELF if user_id == created_by else AssignmentOption.TARGETED
+        return AssignmentOption.TARGETED if groups else AssignmentOption.OPEN
+
+    def _ensure_member(self, system: str, user_id: str) -> None:
+        """Formulário para outra pessoa: ela precisa estar ativa e ter vínculo
+        no sistema — senão nasceria com um responsável que nunca o verá."""
+        profile_repo = self.access_control.profile_repo
+        profile = profile_repo.get_by_user_id(user_id)
+        if profile is None or not profile.active or profile_repo.get_membership(user_id, system) is None:
+            raise NoItemsFound(f"Pessoa {user_id} não encontrada no sistema {system}")
 
     def __call__(
         self,
@@ -119,7 +156,7 @@ class CreateFormUsecase:
             if existing_form is not None:
                 return existing_form, []
 
-        self._ensure_can_create(system, user_id, created_by)
+        self._ensure_can_create(system, user_id, created_by, groups)
 
         if user_id is None and not self._allows_unassigned_forms(system):
             raise MissingParameters("user_id")

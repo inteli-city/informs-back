@@ -48,6 +48,7 @@ from src.shared.helpers.contracts.endpoints.system_access_contract import (
     DeleteSystemUserResponseSchema,
     GetPermissionActionsResponseSchema,
     GetSystemRolesResponseSchema,
+    GetSystemAssigneesResponseSchema,
     GetSystemUsersResponseSchema,
     PutSystemUserRequestSchema,
     PutSystemUserResponseSchema,
@@ -260,6 +261,14 @@ _CONTRACTS = [
         summary="Pessoas do sistema e o role de cada uma (users.manage)",
         success_status_code=200,
         response_model=GetSystemUsersResponseSchema,
+    ),
+    EndpointContract(
+        path="/systems/{system}/assignees",
+        method="get",
+        tag="Access",
+        summary="Grupos e pessoas para quem criar formulário (papel com a opção grupo/pessoa)",
+        success_status_code=200,
+        response_model=GetSystemAssigneesResponseSchema,
     ),
     EndpointContract(
         path="/systems/{system}/users/{user_id}",

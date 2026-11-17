@@ -1,7 +1,9 @@
-from typing import List
+from typing import List, Optional
 
 from src.shared.domain.entities.system_role import SystemRole
 from src.shared.domain.enums.action_enum import Action
+from src.shared.domain.enums.assignment_option_enum import AssignmentOption
+from src.shared.domain.enums.home_tab_enum import HomeTab
 from src.shared.domain.repositories.system_role_repository_interface import ISystemRoleRepository
 from src.shared.domain.services.access_control import AccessControl
 from src.shared.domain.services.role_management import (
@@ -23,6 +25,9 @@ class CreateSystemRoleUsecase:
 
     def __call__(
         self, requester_user_id: str, system: str, name: str, actions: List[Action], is_default: bool,
+        home_tab: HomeTab = HomeTab.LIST,
+        assignment_options: Optional[List[AssignmentOption]] = None,
+        default_assignment: Optional[AssignmentOption] = None,
     ) -> SystemRole:
         ensure_can(self.access_control, requester_user_id, system, Action.ROLES_MANAGE)
         ensure_no_escalation(self.access_control, requester_user_id, system, actions)
@@ -31,6 +36,7 @@ class CreateSystemRoleUsecase:
         now_ms = now_timestamp_ms()
         role = SystemRole(
             system=system, name=name, actions=actions, is_default=is_default, created_at=now_ms, updated_at=now_ms,
+            home_tab=home_tab, assignment_options=assignment_options, default_assignment=default_assignment,
         )
         saved = self.role_repo.put_role(role)
         if is_default:
