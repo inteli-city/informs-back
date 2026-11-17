@@ -183,3 +183,20 @@ def test_assignees_endpoint_needs_the_targeted_option():
     assert response.status_code == 200
     assert response.body["users"] == [{"user_id": COLLEAGUE, "name": "Bruno Colega", "groups": [MOCK_GROUP_A_ID]}]
     assert "email" not in response.body["users"][0]
+
+
+def test_assignees_skip_inactive_members_and_need_a_config_to_allow_group_only():
+    scenario = Scenario([Opt.TARGETED], default=Opt.TARGETED, allow_unassigned=True)
+    inactive = "d61dbf66-a10f-11ed-a8fc-0242ac120057"
+    scenario.profile_repo.create(Profile(
+        user_id=inactive, name="Inativo", email="inativo@example.com", active=False, created_at=1, updated_at=1,
+    ))
+    scenario.profile_repo.put_membership(SystemMembership(
+        user_id=inactive, system="GAIA", role_id=MOCK_TECNICO_ROLE_ID, created_at=1, updated_at=1,
+    ))
+    usecase = GetSystemAssigneesUsecase(scenario.access_control, scenario.profile_repo, scenario.group_repo, None)
+
+    result = usecase(CREATOR, "GAIA")
+
+    assert [user.membership.user_id for user in result.users] == [COLLEAGUE]
+    assert result.allows_group_only is False
