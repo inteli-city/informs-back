@@ -111,16 +111,19 @@ def test_dto_round_trip_and_legacy_items():
 
 def test_self_needs_the_self_option():
     assert Scenario([Opt.SELF]).create(CREATOR).user_id == CREATOR
+    only_open = Scenario([Opt.OPEN], default=Opt.OPEN)
     with pytest.raises(ForbiddenAction):
-        Scenario([Opt.OPEN], default=Opt.OPEN).create(CREATOR)
+        only_open.create(CREATOR)
 
 
 def test_open_needs_the_option_and_the_system_flag():
     assert Scenario([Opt.OPEN], default=Opt.OPEN).create(None).user_id is None
+    only_self = Scenario([Opt.SELF])
     with pytest.raises(ForbiddenAction):
-        Scenario([Opt.SELF]).create(None)
+        only_self.create(None)
+    system_closed = Scenario([Opt.OPEN], default=Opt.OPEN, allow_open=False)
     with pytest.raises(ForbiddenAction):
-        Scenario([Opt.OPEN], default=Opt.OPEN, allow_open=False).create(None)
+        system_closed.create(None)
 
 
 def test_targeted_person_goes_straight_to_them():
@@ -135,15 +138,17 @@ def test_targeted_group_only_stays_in_the_group_pool_even_without_allow_open():
 
 
 def test_targeted_needs_the_option():
+    scenario = Scenario([Opt.SELF, Opt.OPEN])
     with pytest.raises(ForbiddenAction):
-        Scenario([Opt.SELF, Opt.OPEN]).create(COLLEAGUE)
+        scenario.create(COLLEAGUE)
     with pytest.raises(ForbiddenAction):
-        Scenario([Opt.SELF, Opt.OPEN]).create(None, groups=[MOCK_GROUP_A_ID])
+        scenario.create(None, groups=[MOCK_GROUP_A_ID])
 
 
 def test_targeted_person_must_belong_to_the_system():
+    scenario = Scenario([Opt.TARGETED], default=Opt.TARGETED)
     with pytest.raises(NoItemsFound):
-        Scenario([Opt.TARGETED], default=Opt.TARGETED).create(OUTSIDER)
+        scenario.create(OUTSIDER)
 
 
 # --- Grupos e pessoas para escolher ---------------------------------------------
