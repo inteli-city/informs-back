@@ -1,6 +1,5 @@
 import importlib
 import json
-import os
 
 from src.shared.infra.repositories.profile_repository_mock import MOCK_SUPER_ADMIN_ID
 
@@ -32,8 +31,8 @@ def _event(user_id: str) -> dict:
 
 class TestGetSystemAssigneesPresenter:
 
-    def test_get_system_assignees_presenter(self):
-        os.environ["STAGE"] = "TEST"
+    def test_get_system_assignees_presenter(self, monkeypatch):
+        monkeypatch.setenv("STAGE", "TEST")
         from src.modules.get_system_assignees.app import get_system_assignees_presenter
         importlib.reload(get_system_assignees_presenter)
 
