@@ -21,23 +21,22 @@ stack_name = os.environ.get("STACK_NAME")
 github_ref_name = os.environ.get("GITHUB_REF_NAME")
 
 
-if 'prod' == github_ref_name:
-    stage = 'PROD'
+# O ambiente vem da branch publicada (GITHUB_REF_NAME). Fora de dev, homolog e
+# prod o deploy falha, em vez de marcar os recursos com um ambiente que não
+# existe no padrão de tags da conta.
+ENVIRONMENTS = {'dev', 'homolog', 'prod'}
+if github_ref_name not in ENVIRONMENTS:
+    raise SystemExit(
+        f"GITHUB_REF_NAME={github_ref_name!r} is not dev, homolog or prod; "
+        "set it to the target environment before cdk deploy"
+    )
 
-elif 'homolog' == github_ref_name:
-    stage = 'HOMOLOG'
-
-elif 'dev' == github_ref_name:
-    stage = 'DEV'
-
-else:
-    stage = 'TEST'
-
+# Padrão de tags da conta AWS: project, environment e owner (time responsável),
+# minúsculas. São as tags usadas para filtrar custo no Cost Explorer.
 tags = {
-    'project': 'Formularios MSS',
-    'stage': stage,
-    'stack': 'BACK',
-    'owner': 'Intelicity'
+    'project': 'informs',
+    'environment': github_ref_name,
+    'owner': 'back',
 }
 
 IacStack(app, stack_name, env=cdk.Environment(account=aws_account_id, region=aws_region), tags=tags)
